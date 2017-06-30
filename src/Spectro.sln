@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.3
+VisualStudioVersion = 15.0.26430.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectro", "Spectro\Spectro.csproj", "{9BBBC5E5-B019-4F87-860E-CCDA048F449E}"
 EndProject
@@ -10,6 +10,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spectro.ViewModels", "Spectro.ViewModels\Spectro.ViewModels.csproj", "{6D57242A-3DAC-4D66-A6E8-BB314DF2B0EF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NewsBlurSharp", "NewsBlurSharp\NewsBlurSharp.csproj", "{347C65C2-161D-45E9-91EA-05005CED1A57}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{4189ECA3-0CE1-4E32-8227-5BA4092552CB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{E6082F8C-F3E7-4D90-B628-DF19087D4D86}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{18695422-9B84-4F42-A75D-4CF31CDD0DBA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NewsBlurSharp.Tests", "NewsBlurSharp.Tests\NewsBlurSharp.Tests.csproj", "{9F1F4188-3050-4193-941C-19A58E58C62D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -91,8 +99,31 @@ Global
 		{347C65C2-161D-45E9-91EA-05005CED1A57}.Release|x64.Build.0 = Release|Any CPU
 		{347C65C2-161D-45E9-91EA-05005CED1A57}.Release|x86.ActiveCfg = Release|Any CPU
 		{347C65C2-161D-45E9-91EA-05005CED1A57}.Release|x86.Build.0 = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|ARM.Build.0 = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|x64.Build.0 = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Debug|x86.Build.0 = Debug|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|ARM.ActiveCfg = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|ARM.Build.0 = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|x64.ActiveCfg = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|x64.Build.0 = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|x86.ActiveCfg = Release|Any CPU
+		{9F1F4188-3050-4193-941C-19A58E58C62D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9BBBC5E5-B019-4F87-860E-CCDA048F449E} = {4189ECA3-0CE1-4E32-8227-5BA4092552CB}
+		{938ED799-8A6E-4653-BDEE-D84A51767380} = {E6082F8C-F3E7-4D90-B628-DF19087D4D86}
+		{6D57242A-3DAC-4D66-A6E8-BB314DF2B0EF} = {E6082F8C-F3E7-4D90-B628-DF19087D4D86}
+		{347C65C2-161D-45E9-91EA-05005CED1A57} = {E6082F8C-F3E7-4D90-B628-DF19087D4D86}
+		{9F1F4188-3050-4193-941C-19A58E58C62D} = {18695422-9B84-4F42-A75D-4CF31CDD0DBA}
 	EndGlobalSection
 EndGlobal
