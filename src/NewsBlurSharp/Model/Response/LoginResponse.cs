@@ -16,4 +16,12 @@
             UserId = userId;
         }
     }
+
+    public class SignupResponse : LoginResponse
+    {
+        internal SignupResponse(bool isSuccess, string authCookieToken, int userId) 
+            : base(isSuccess, authCookieToken, userId)
+        {
+        }
+    }
 }

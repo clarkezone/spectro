@@ -15,7 +15,9 @@ namespace NewsBlurSharp
 {
     public class NewsBlurClient
     {
+        private const string NewsBlurSessionId = "newsblur_sessionid";
         private readonly IClientHandlerFactory _handlerFactory;
+        private readonly string _userAgent;
         private readonly ILogger _logger;
 
         private const string BaseUrl = "https://newsblur.com/";
@@ -23,10 +25,12 @@ namespace NewsBlurSharp
         private HttpClient _httpClient;
         private HttpClientHandler _handler;
         private CookieContainer _cookieJar;
+        private string _cookieSessionId;
 
-        public NewsBlurClient(IClientHandlerFactory handlerFactory, ILogger logger)
+        public NewsBlurClient(IClientHandlerFactory handlerFactory, ILogger logger, string userAgent = "NewsBlurSharp")
         {
             _handlerFactory = handlerFactory;
+            _userAgent = userAgent;
             _handler = GetHandlerFromFactory(handlerFactory);
 
             _httpClient = CreateHttpClient();
@@ -43,6 +47,39 @@ namespace NewsBlurSharp
         {
         }
 
+        public void SetCookieSessionId(string cookieSessionId)
+        {
+            if (string.IsNullOrEmpty(cookieSessionId))
+            {
+                return;
+            }
+
+            if (_cookieJar == null)
+            {
+                _cookieJar = new CookieContainer();
+                _cookieJar.Add(new Uri(BaseUrl), new Cookie(NewsBlurSessionId, cookieSessionId));
+            }
+            else
+            {
+                var cookies = _cookieJar.GetCookies(new Uri(BaseUrl));
+                var cookieFound = false;
+                foreach (Cookie cookie in cookies)
+                {
+                    if (cookie.Name == NewsBlurSessionId)
+                    {
+                        cookie.Value = cookieSessionId;
+                        cookieFound = true;
+                        break;
+                    }
+                }
+
+                if (!cookieFound)
+                {
+                    _cookieJar.Add(new Uri(BaseUrl), new Cookie(NewsBlurSessionId, cookieSessionId));
+                }
+            }
+        }
+
         public async Task<LoginResponse> LoginAsync(string username, string password, CancellationToken cancellation = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(username))
@@ -57,16 +94,46 @@ namespace NewsBlurSharp
 
             postData.AddIfNotNull("password", password);
 
-            var response = await PostResponse<InternalLoginResponse>("api", "login", postData, cancellation);
+            var response = await PostResponse<InternalLoginResponse>("api", "login", postData, cancellation).ConfigureAwait(false);
             var loginResponse = response.Response;
             return new LoginResponse(loginResponse.Authenticated, response.NewsBlurCookie, loginResponse.UserId);
+        }
+
+        public async Task LogoutAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            await PostResponse<object>("api", "logout", cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<SignupResponse> SignupAsync(string username, string emailAddress, string password = "", CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (string.IsNullOrEmpty(username))
+            {
+                throw new ArgumentNullException(nameof(username), "username must be provided");
+            }
+
+            if (string.IsNullOrEmpty(emailAddress))
+            {
+                throw new ArgumentNullException(nameof(emailAddress), "email address must be provided");
+            }
+
+            var postData = new Dictionary<string, string>
+            {
+                {"username", username},
+                {"email", emailAddress}
+            };
+
+            postData.AddIfNotNull("password", password);
+
+            var response = await PostResponse<InternalLoginResponse>("api", "signup", postData, cancellationToken);
+            var loginResponse = response.Response;
+            return new SignupResponse(loginResponse.Authenticated, response.NewsBlurCookie, loginResponse.UserId);
         }
 
         private HttpClientHandler GetHandlerFromFactory(IClientHandlerFactory handlerFactory)
         {
             var handler = handlerFactory?.CreateHandler() as HttpClientHandler ?? new HttpClientHandler();
 
-            _cookieJar = new CookieContainer();
+            SetCookieSessionId(_cookieSessionId);
             handler.CookieContainer = _cookieJar;
             handler.UseCookies = true;
             handler.UseDefaultCredentials = false;
@@ -77,7 +144,7 @@ namespace NewsBlurSharp
         private HttpClient CreateHttpClient()
         {
             var client = _handler != null ? new HttpClient(_handler) : new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("NewsBlurSharp", "0.0.0.1"));
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(_userAgent));
             return client;
         }
 
@@ -165,18 +232,17 @@ namespace NewsBlurSharp
 
             var item = await responseString.DeserialiseAsync<TResponseType>().ConfigureAwait(false);
             var cookies = _cookieJar.GetCookies(response.RequestMessage.RequestUri);
-            var newsBlurCookie = string.Empty;
 
             foreach (Cookie cookie in cookies)
             {
-                if (cookie.Name == "newsblur_sessionid")
+                if (cookie.Name == NewsBlurSessionId)
                 {
-                    newsBlurCookie = cookie.Value;
+                    _cookieSessionId = cookie.Value;
                     break;
                 }
             }
 
-            return new BaseResponse<TResponseType>(item, response, newsBlurCookie);
+            return new BaseResponse<TResponseType>(item, response, _cookieSessionId);
         }
 
         private class BaseResponse<T>
