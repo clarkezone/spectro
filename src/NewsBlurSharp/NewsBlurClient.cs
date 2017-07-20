@@ -47,36 +47,33 @@ namespace NewsBlurSharp
         {
         }
 
+        #region Authentication methods
         public void SetCookieSessionId(string cookieSessionId)
         {
-            if (string.IsNullOrEmpty(cookieSessionId))
-            {
-                return;
-            }
-
+            var canAddCookie = false;
             if (_cookieJar == null)
             {
                 _cookieJar = new CookieContainer();
-                _cookieJar.Add(new Uri(BaseUrl), new Cookie(NewsBlurSessionId, cookieSessionId));
+                canAddCookie = !string.IsNullOrEmpty(cookieSessionId);
             }
             else
             {
                 var cookies = _cookieJar.GetCookies(new Uri(BaseUrl));
-                var cookieFound = false;
+                canAddCookie = true;
                 foreach (Cookie cookie in cookies)
                 {
                     if (cookie.Name == NewsBlurSessionId)
                     {
                         cookie.Value = cookieSessionId;
-                        cookieFound = true;
+                        canAddCookie = false;
                         break;
                     }
                 }
+            }
 
-                if (!cookieFound)
-                {
-                    _cookieJar.Add(new Uri(BaseUrl), new Cookie(NewsBlurSessionId, cookieSessionId));
-                }
+            if (canAddCookie)
+            {
+                _cookieJar.Add(new Uri(BaseUrl), new Cookie(NewsBlurSessionId, cookieSessionId));
             }
         }
 
@@ -128,6 +125,19 @@ namespace NewsBlurSharp
             var loginResponse = response.Response;
             return new SignupResponse(loginResponse.Authenticated, response.NewsBlurCookie, loginResponse.UserId);
         }
+        #endregion
+
+        public async Task<object> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var options = new Dictionary<string, string>();
+            options.AddIfNotNull("include_favicons", includeFavIcons);
+            options.AddIfNotNull("flat", isFlatStructure);
+            options.AddIfNotNull("update_counts", updateCounts);
+
+            var response = await GetResponse<object>("reader", "feeds", options, cancellationToken);
+
+            return response.Response;
+        }
 
         private HttpClientHandler GetHandlerFromFactory(IClientHandlerFactory handlerFactory)
         {
@@ -144,7 +154,7 @@ namespace NewsBlurSharp
         private HttpClient CreateHttpClient()
         {
             var client = _handler != null ? new HttpClient(_handler) : new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(_userAgent));
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", _userAgent);
             return client;
         }
 
