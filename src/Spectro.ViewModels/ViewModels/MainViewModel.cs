@@ -1,4 +1,3 @@
-using System;
 using GalaSoft.MvvmLight;
 
 namespace Spectro.ViewModels
