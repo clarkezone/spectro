@@ -17,6 +17,7 @@ namespace Spectro.ViewModels
 
             SimpleIoc.Default.Register(() => _navigationService);
             Register<MainViewModel, MainPage>();
+            Register<NavigationRootViewModel, NavigationRoot>();
         }
 
         public MainViewModel MainViewModel => ServiceLocator.Current.GetInstance<MainViewModel>();

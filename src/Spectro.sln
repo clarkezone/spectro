@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.3
+VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectro", "Spectro\Spectro.csproj", "{9BBBC5E5-B019-4F87-860E-CCDA048F449E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectro.Core", "Spectro.Core\Spectro.Core.csproj", "{938ED799-8A6E-4653-BDEE-D84A51767380}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spectro.Core", "Spectro.Core\Spectro.Core.csproj", "{938ED799-8A6E-4653-BDEE-D84A51767380}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spectro.ViewModels", "Spectro.ViewModels\Spectro.ViewModels.csproj", "{6D57242A-3DAC-4D66-A6E8-BB314DF2B0EF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Spectro.ViewModels", "Spectro.ViewModels\Spectro.ViewModels.csproj", "{6D57242A-3DAC-4D66-A6E8-BB314DF2B0EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,6 +22,8 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9BBBC5E5-B019-4F87-860E-CCDA048F449E}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{9BBBC5E5-B019-4F87-860E-CCDA048F449E}.Debug|Any CPU.Build.0 = Debug|x86
+		{9BBBC5E5-B019-4F87-860E-CCDA048F449E}.Debug|Any CPU.Deploy.0 = Debug|x86
 		{9BBBC5E5-B019-4F87-860E-CCDA048F449E}.Debug|ARM.ActiveCfg = Debug|ARM
 		{9BBBC5E5-B019-4F87-860E-CCDA048F449E}.Debug|ARM.Build.0 = Debug|ARM
 		{9BBBC5E5-B019-4F87-860E-CCDA048F449E}.Debug|ARM.Deploy.0 = Debug|ARM

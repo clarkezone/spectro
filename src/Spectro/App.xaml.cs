@@ -51,7 +51,7 @@ namespace Spectro
     
         private ActivationService CreateActivationService()
         {
-            return new ActivationService(this, typeof(ViewModels.MainViewModel));
+            return new ActivationService(this, typeof(ViewModels.NavigationRootViewModel));
         }
     }
 }
