@@ -8,12 +8,11 @@
     mc:Ignorable="d"
     xmlns:RS3="using:Windows.UI.Xaml.Controls?IsApiContractPresent(Windows.Foundation.UniversalApiContract,5)"
     xmlns:RS2="using:Microsoft.Toolkit.Uwp.UI.Controls?IsApiContractNotPresent(Windows.Foundation.UniversalApiContract,5)"
+    DataContextTYpe=""
     >
-    <!--xmlns:RS3="using:Windows.UI.Xaml.Controls?IsApiContractPresent(Windows.Foundation.UniversalApiContract,5)"
-    xmlns:RS2="using:Microsoft.Toolkit.Uwp.UI.Controls?IsApiContractNotPresent(Windows.Foundation.UniversalApiContract,5)"-->
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <RS3:NavigationView IsSettingsVisible="True" x:Name="navview" AlwaysShowHeader="False">
+        <RS3:NavigationView IsSettingsVisible="True" x:Name="navview" AlwaysShowHeader="False" MenuItems="{x:Bind NavigationMenuItems}">
             <NavigationView.Header>
                 <Rectangle></Rectangle>
             </NavigationView.Header>
