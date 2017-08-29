@@ -1,10 +1,9 @@
 using System;
 
 using Spectro.Services;
-
+using Spectro.Helpers;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
-using ReactiveReorderingTest.Helpers;
 
 namespace Spectro
 {

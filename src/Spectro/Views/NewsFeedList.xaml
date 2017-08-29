@@ -12,7 +12,8 @@
     <Page.Resources>
         <!-- TODO: move to app resources -->
         <Thickness x:Key="topPosition">0,37,0,0</Thickness>
-        <Thickness x:Key="commandbarPosition">0,30,0,0</Thickness>
+        <Thickness x:Key="commandbarPosition">0,0,0,0</Thickness>
+        <Thickness x:Key="contentPosition">0,40,0,0</Thickness>
     </Page.Resources>
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
@@ -35,7 +36,7 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Column="1">
+        <Grid Grid.Column="1" Margin="{StaticResource topPosition}">
             <CommandBar 
                          Margin="{StaticResource commandbarPosition}"
                          x:Name="commands" IsDynamicOverflowEnabled="True" Background="Transparent"
@@ -54,7 +55,12 @@
                     <AppBarButton Label="More" Icon="Placeholder" />
                 </CommandBar.SecondaryCommands>
             </CommandBar>
-
+            <ListView Margin="{StaticResource contentPosition}">
+                <ListViewItem>All about Windows Phone</ListViewItem>
+                <ListViewItem>Docker Blog</ListViewItem>
+                <ListViewItem>Morning Dew</ListViewItem>
+                <ListViewItem>NAD Electronics</ListViewItem>
+            </ListView>
         </Grid>
 
     </Grid>
