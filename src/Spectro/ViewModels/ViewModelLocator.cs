@@ -17,10 +17,18 @@ namespace Spectro.ViewModels
 
             SimpleIoc.Default.Register(() => _navigationService);
             Register<MainViewModel, MainPage>();
+            Register<NewsFeedListViewModel, NewsFeedList>();
             Register<NavigationRootViewModel, NavigationRoot>();
+            Register<ProfileViewModel, ProfilePage>();
         }
 
-        public MainViewModel MainViewModel => ServiceLocator.Current.GetInstance<MainViewModel>();
+        //public MainViewModel MainViewModel => ServiceLocator.Current.GetInstance<MainViewModel>();
+
+        public NavigationRootViewModel NavViewModel => ServiceLocator.Current.GetInstance<NavigationRootViewModel>();
+
+        public NewsFeedListViewModel NewsList => ServiceLocator.Current.GetInstance<NewsFeedListViewModel>();
+
+        public ProfileViewModel ProfileVM => ServiceLocator.Current.GetInstance<ProfileViewModel>();
 
         public void Register<VM, V>() where VM : class
         {

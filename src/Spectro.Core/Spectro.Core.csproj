@@ -4,4 +4,16 @@
     <TargetFramework>netstandard1.4</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Interfaces\INavigationService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Interfaces\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Realm.Database" Version="1.6.0" />
+  </ItemGroup>
+
 </Project>

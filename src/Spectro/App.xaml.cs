@@ -4,6 +4,7 @@ using Spectro.Services;
 
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
+using ReactiveReorderingTest.Helpers;
 
 namespace Spectro
 {
@@ -34,6 +35,7 @@ namespace Spectro
         /// <param name="e">Details about the launch request and process.</param>
         protected override async void OnLaunched(LaunchActivatedEventArgs e)
         {
+            FluentHelpers.SetupTitlebar();
             if (!e.PrelaunchActivated)
             {
                 await ActivationService.ActivateAsync(e); 

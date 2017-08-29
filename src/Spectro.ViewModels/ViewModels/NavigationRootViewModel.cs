@@ -1,27 +1,41 @@
 ﻿using GalaSoft.MvvmLight;
-using System.Collections.ObjectModel;
+using GalaSoft.MvvmLight.Command;
+using GalaSoft.MvvmLight.Views;
+using Microsoft.Practices.ServiceLocation;
 using System;
+using System.Diagnostics;
 
 namespace Spectro.ViewModels
 {
     public class NavigationRootViewModel : ViewModelBase
     {
-        private ObservableCollection<object> _menuItems = new ObservableCollection<object>();
+        private RelayCommand<string> _navigateCommand;
 
         public NavigationRootViewModel()
         {
-            BuildMenuItems();
         }
 
-        public ObservableCollection<object> NavigationMenuItems
+        public RelayCommand<string> NavigateCommand
         {
-            get => _menuItems;
+            get
+            {
+                return _navigateCommand
+                       ?? (_navigateCommand = new RelayCommand<string>(
+                           p => {
+                               Debug.WriteLine("Hit");
+                              // ServiceLocator.Current.GetInstance<INavigationService>("NavigationService");
+                           },
+                           p => true));
+
+                //ServiceLocator.Current.GetInstance<NavigationServiceEx>().Frame.
+
+                //return _navigateCommand
+                //       ?? (_navigateCommand = new RelayCommand<string>(
+                //           p => _navigationService.NavigateTo(ViewModelLocator.SecondPageKey, p),
+                //           p => !string.IsNullOrEmpty(p)));
+            }
         }
 
-        private void BuildMenuItems()
-        {
-            _menuItems.Add("One");
-            _menuItems.Add("Two");
-        }
+       
     }
 }
