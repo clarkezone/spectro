@@ -20,9 +20,12 @@ namespace Spectro.ViewModels
             Register<NewsFeedListViewModel, NewsFeedList>();
             Register<NavigationRootViewModel, NavigationRoot>();
             Register<ProfileViewModel, ProfilePage>();
+            Register<SettingsViewModel, SettingsPage>();
         }
 
         //public MainViewModel MainViewModel => ServiceLocator.Current.GetInstance<MainViewModel>();
+
+        public SettingsViewModel SettingsViewModel => ServiceLocator.Current.GetInstance<SettingsViewModel>();
 
         public NavigationRootViewModel NavViewModel => ServiceLocator.Current.GetInstance<NavigationRootViewModel>();
 

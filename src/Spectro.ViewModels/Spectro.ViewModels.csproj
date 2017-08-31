@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ViewModels\SettingsViewModel.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MvvmLightLibs" Version="5.3.0" />
     <PackageReference Include="Realm.Database" Version="1.6.0" />
   </ItemGroup>

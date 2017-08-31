@@ -1,4 +1,6 @@
 ﻿using GalaSoft.MvvmLight.Ioc;
+using GalaSoft.MvvmLight.Views;
+using Microsoft.Practices.ServiceLocation;
 using Spectro.Services;
 using Spectro.ViewModels;
 using System;
@@ -19,6 +21,7 @@ namespace Spectro.Views
         public NavigationRoot()
         {
             this.InitializeComponent();
+            ServiceLocator.Current.GetInstance<NavigationServiceEx>().Frame = appNavFrame;
         }
 
         private void Page_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
@@ -36,6 +39,26 @@ namespace Spectro.Views
         public void NavigateToProfileTapped(object sender, RoutedEventArgs args)
         {
             Vm.NavigateCommand.Execute("");
+        }
+
+        public void ItemInvoked(object sender, NavigationViewItemInvokedEventArgs args)
+        {
+            //Expeectiving navigationex
+
+            //TODO: localize this
+            //TODO: switch statement
+            if (args.InvokedItem.ToString() == "Profile")
+            {
+                ServiceLocator.Current.GetInstance<NavigationServiceEx>().Navigate(typeof(ProfileViewModel).FullName);
+            } else
+            {
+                ServiceLocator.Current.GetInstance<NavigationServiceEx>().Navigate(typeof(NewsFeedListViewModel).FullName);
+            }
+
+            if (args.IsSettingsInvoked)
+            {
+                ServiceLocator.Current.GetInstance<NavigationServiceEx>().Navigate(typeof(SettingsViewModel).FullName);
+            }
         }
 
     }
