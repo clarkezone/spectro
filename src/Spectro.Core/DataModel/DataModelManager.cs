@@ -1,12 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Realms;
+using System.Threading;
 
-namespace Spectro.Models
+namespace Spectro.DataModel
 {
-    class DataModelManager
+    public  class DataModelManager
     {
+        const string REALMDBNAME = "testdb";
+        static ThreadLocal<Realm> instance;
+
+        public static Realm RealmInstance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new ThreadLocal<Realm>();
+                }
+
+                if (instance.Value == null)
+                {
+                    instance.Value = Realm.GetInstance(REALMDBNAME);
+                }
+
+                return instance.Value;
+            }
+        }
     }
 }

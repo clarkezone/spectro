@@ -1,9 +1,10 @@
 using GalaSoft.MvvmLight.Ioc;
 
 using Microsoft.Practices.ServiceLocation;
-
+using Spectro.Models.UWP;
 using Spectro.Services;
 using Spectro.Views;
+using System.Collections;
 
 namespace Spectro.ViewModels
 {
@@ -17,13 +18,18 @@ namespace Spectro.ViewModels
 
             SimpleIoc.Default.Register(() => _navigationService);
             Register<MainViewModel, MainPage>();
-            Register<NewsFeedListViewModel, NewsFeedList>();
+
+            //TODO: is there a better place to put this as it is a data not a navigation thing?  Eg where the default template initializes it's datasource?
+            SimpleIoc.Default.Register<RealmAllNewsFeedsSource>();
+
+            //SimpleIoc.Default.Register(() => new NewsFeedListViewModel(SimpleIoc.Default.GetInstance<RealmAllNewsFeedsSource> as IList));
+            SimpleIoc.Default.Register<NewsFeedListViewModel>();
+            _navigationService.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
+
             Register<NavigationRootViewModel, NavigationRoot>();
             Register<ProfileViewModel, ProfilePage>();
             Register<SettingsViewModel, SettingsPage>();
         }
-
-        //public MainViewModel MainViewModel => ServiceLocator.Current.GetInstance<MainViewModel>();
 
         public SettingsViewModel SettingsViewModel => ServiceLocator.Current.GetInstance<SettingsViewModel>();
 

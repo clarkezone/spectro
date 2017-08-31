@@ -6,7 +6,7 @@ using Windows.UI.Xaml.Controls;
 namespace Spectro.Views
 {
     /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
+    /// The main view displaying list of subscribed feeds
     /// </summary>
     public sealed partial class NewsFeedList : Page
     {

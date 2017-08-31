@@ -2,7 +2,7 @@
 using System;
 
 
-namespace Spectro.Models
+namespace Spectro.DataModel
 {
     public class NewsFeed : RealmObject
     {
