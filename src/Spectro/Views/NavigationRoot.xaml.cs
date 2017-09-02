@@ -22,7 +22,6 @@ namespace Spectro.Views
         {
             this.InitializeComponent();
             ServiceLocator.Current.GetInstance<NavigationServiceEx>().Frame = appNavFrame;
-            navview.SelectedIndex = 0;
         }
 
         private void Page_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
