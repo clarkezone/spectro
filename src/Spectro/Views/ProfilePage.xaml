@@ -7,7 +7,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <TextBlock>Profile Page</TextBlock>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Margin="{StaticResource topPosition}">
+        <Grid Margin="{StaticResource MediumLeftRightMargin}">
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}">Profile Page</TextBlock>
+        </Grid>
     </Grid>
 </Page>

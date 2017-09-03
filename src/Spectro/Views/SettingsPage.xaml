@@ -14,7 +14,7 @@
         <Thickness x:Key="EightTopMargin">0, 8, 0, 0</Thickness>
     </Page.Resources>
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Margin="{StaticResource topPosition}">
         <Grid Margin="{StaticResource MediumLeftRightMargin}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="48"/>

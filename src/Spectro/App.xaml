@@ -11,6 +11,7 @@
            
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Styles/TextBlock.xaml"/>
+                <ResourceDictionary Source="/Styles/FluentGlobal.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
