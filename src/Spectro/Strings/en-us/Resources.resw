@@ -156,4 +156,19 @@
   <data name="NavigationRoot_Profile.Content" xml:space="preserve">
     <value>Profile</value>
   </data>
+  <data name="NewsFeedList_Filter_all.Content" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="NewsFeedList_Filter_focus.Content" xml:space="preserve">
+    <value>Focus</value>
+  </data>
+  <data name="NewsFeedList_Filter_saved.Content" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="NewsFeedList_Filter_unread.Content" xml:space="preserve">
+    <value>Unread</value>
+  </data>
+  <data name="NewsFeedList_Title.Text" xml:space="preserve">
+    <value>Filter</value>
+  </data>
 </root>
