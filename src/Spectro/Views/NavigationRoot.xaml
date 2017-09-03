@@ -18,14 +18,15 @@
                             AlwaysShowHeader="False"
                             ItemInvoked="ItemInvoked"
                             >
+            <!--Not using databinding for items as they never change-->
             <RS3:NavigationView.MenuItems>
-                <RS3:NavigationViewItem IsSelected="True">Feeds</RS3:NavigationViewItem>
-                <RS3:NavigationViewItem >Profile</RS3:NavigationViewItem>
+                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_Feeds">UFeeds</RS3:NavigationViewItem>
+                <RS3:NavigationViewItem x:Uid="NavigationRoot_Profile">UProfile</RS3:NavigationViewItem>
             </RS3:NavigationView.MenuItems>
             <Frame x:Name="appNavFrame" >
             </Frame>
         </RS3:NavigationView>
-        <!-- Todo: use a system resource for title; read text from app name -->
-        <TextBlock Style="{ThemeResource CaptionTextBlockStyle}" Margin="7,7,0,0" VerticalAlignment="Top">Spectro for NewsBlur</TextBlock>
+        <!-- Todo: read text from app name -->
+        <TextBlock Style="{ThemeResource CaptionTextBlockStyle}" Margin="12,8,0,0" VerticalAlignment="Top" Text="{x:Bind AppName}"></TextBlock>
     </Grid>
 </Page>

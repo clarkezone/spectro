@@ -36,7 +36,7 @@ namespace Spectro.Models.UWP
         }
         #endregion
 
-        List<NewsFeed> cache = null;
+        //List<NewsFeed> cache = null;
 
         #region IList
         public object this[int index]
@@ -49,12 +49,12 @@ namespace Spectro.Models.UWP
 
                 // we really need skip / take.  The following code proves that read perf is an issue
 
-                if (cache == null)
-                {
-                    //cache = query.Take(200).ToList();
-                    cache = query.ToList();
-                }
-                return cache[index];
+                //if (cache == null)
+                //{
+                //    //cache = query.Take(200).ToList();
+                //    cache = query.ToList();
+                //}
+                //return cache[index];
             }
 
             set

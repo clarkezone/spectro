@@ -120,7 +120,7 @@
   <data name="Main_Title.Text" xml:space="preserve">
     <value>Main</value>
   </data>
-   <data name="Settings_Title.Text" xml:space="preserve">
+  <data name="Settings_Title.Text" xml:space="preserve">
     <value>Settings</value>
   </data>
   <data name="Settings_Theme.Text" xml:space="preserve">
@@ -135,19 +135,25 @@
   <data name="Settings_Theme_Light.Content" xml:space="preserve">
     <value>Light</value>
   </data>
-  <data name="Settings_About.Text" xml:space="preserve">    
+  <data name="Settings_About.Text" xml:space="preserve">
     <value>About this application</value>
   </data>
-  <data name="Settings_AboutDescription.Text" xml:space="preserve">    
+  <data name="Settings_AboutDescription.Text" xml:space="preserve">
     <value>Settings page placeholder text.  Your app description goes here.</value>
   </data>
-  <data name="Settings_PrivacyTermsLink.Content" xml:space="preserve">    
+  <data name="Settings_PrivacyTermsLink.Content" xml:space="preserve">
     <value>Privacy Statement</value>
   </data>
-  <data name="Settings_PrivacyTermsLink.NavigateUri" xml:space="preserve">  
+  <data name="Settings_PrivacyTermsLink.NavigateUri" xml:space="preserve">
     <value>https://YourPrivacyUrlGoesHere/</value>
   </data>
-  <data name="Settings_Personalization.Text" xml:space="preserve">   
+  <data name="Settings_Personalization.Text" xml:space="preserve">
     <value>Personalization</value>
+  </data>
+  <data name="NavigationRoot_Feeds.Content" xml:space="preserve">
+    <value>Feeds</value>
+  </data>
+  <data name="NavigationRoot_Profile.Content" xml:space="preserve">
+    <value>Profile</value>
   </data>
 </root>
