@@ -27,9 +27,7 @@
         <Grid Grid.Column="0" Margin="{StaticResource topPosition}">
             <StackPanel>
                 <TextBlock Margin="12,0,0,0" x:Name="filterHeader" Style="{ThemeResource TitleTextBlockStyle}" x:Uid="NewsFeedList_Title">UFilter</TextBlock>
-                <!--
-<ListView Margin="0,8,0,0" x:Name="lstFilter" ItemsSource="{x:Bind Vm.ItemSource}">
-                    -->
+                <!-- <ListView Margin="0,8,0,0" x:Name="lstFilter" ItemsSource="{x:Bind Vm.ItemSource}"> -->
                 <ListView Margin="0,8,0,0" x:Name="lstFilter" >
                     <ListViewItem x:Name="all" IsSelected="True" x:Uid="NewsFeedList_Filter_all">UAll</ListViewItem>
                     <ListViewItem x:Name="unread" x:Uid="NewsFeedList_Filter_unread">UUnread</ListViewItem>
@@ -40,22 +38,15 @@
         </Grid>
 
         <Grid Grid.Column="1" Margin="{StaticResource topPosition}">
-            <CommandBar 
-                         Margin="{StaticResource commandbarPosition}"
-                         x:Name="commands" IsDynamicOverflowEnabled="True" Background="Transparent"
-                             >
+            <CommandBar Margin="{StaticResource commandbarPosition}" x:Name="commands" IsDynamicOverflowEnabled="True" Background="Transparent">
                 <CommandBar.PrimaryCommands>
-                    <AppBarButton AccessKey="N" Label="New Folder" Icon="NewFolder"
-                            
-                                      >
+                    <AppBarButton AccessKey="N" Label="UNew Folder" Icon="NewFolder">
                     </AppBarButton>
-                    <AppBarButton AccessKey="A" Label="Add" Icon="Add">
-
+                    <AppBarButton AccessKey="A" Label="UAdd" Icon="Add">
                     </AppBarButton>
-
                 </CommandBar.PrimaryCommands>
                 <CommandBar.SecondaryCommands>
-                    <AppBarButton Label="More" Icon="Placeholder" />
+                    <AppBarButton Label="UMore" Icon="Placeholder" />
                 </CommandBar.SecondaryCommands>
             </CommandBar>
             <ListView Margin="{StaticResource contentPosition}">
