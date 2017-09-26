@@ -1,0 +1,12 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Spectro.Styles">
+
+
+    <Thickness x:Key="topPosition">0,35,0,0</Thickness>
+    <Thickness x:Key="MediumLeftRightMargin">12,0,12,0</Thickness>
+    <Thickness x:Key="commandbarPosition">0,0,0,0</Thickness>
+    <Thickness x:Key="contentPosition">0,40,0,0</Thickness>
+    
+</ResourceDictionary>
