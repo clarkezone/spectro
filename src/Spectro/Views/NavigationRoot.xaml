@@ -10,6 +10,7 @@
     xmlns:RS3="using:Windows.UI.Xaml.Controls?IsApiContractPresent(Windows.Foundation.UniversalApiContract,5)"
     xmlns:RS2="using:Microsoft.Toolkit.Uwp.UI.Controls?IsApiContractNotPresent(Windows.Foundation.UniversalApiContract,5)"
     Loaded="Page_Loaded"
+    xmlns:appmodel="using:Windows.ApplicationModel"
     >
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
@@ -26,7 +27,6 @@
             <Frame x:Name="appNavFrame" >
             </Frame>
         </RS3:NavigationView>
-        <!-- Todo: read text from app name -->
-        <TextBlock Style="{ThemeResource CaptionTextBlockStyle}" Margin="12,8,0,0" VerticalAlignment="Top" Text="{x:Bind AppName}"></TextBlock>
+        <TextBlock Style="{ThemeResource CaptionTextBlockStyle}" Margin="12,8,0,0" VerticalAlignment="Top" Text="{x:Bind appmodel:Package.Current.DisplayName}"></TextBlock>
     </Grid>
 </Page>

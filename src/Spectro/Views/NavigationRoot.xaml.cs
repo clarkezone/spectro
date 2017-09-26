@@ -18,9 +18,6 @@ namespace Spectro.Views
     {
         public NavigationRootViewModel Vm => (NavigationRootViewModel)DataContext;
 
-        // Expose as a property on View rather than viewmodel since this is plat specific
-        public string AppName { get { return Windows.ApplicationModel.Package.Current.DisplayName; } }
-
         public NavigationRoot()
         {
             this.InitializeComponent();
