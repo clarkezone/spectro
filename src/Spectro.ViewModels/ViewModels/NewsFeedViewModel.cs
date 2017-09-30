@@ -10,7 +10,7 @@ namespace Spectro.ViewModels
 
         }
 
-        public NewsFeed Episode { get; set; }
+        public NewsFeed Feed { get; set; }
 
     }
 }

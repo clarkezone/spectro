@@ -8,6 +8,7 @@ using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
 using Windows.UI.Xaml.Data;
+using Spectro.Core.DataModel;
 
 namespace Spectro.Models.UWP
 {
@@ -21,7 +22,42 @@ namespace Spectro.Models.UWP
         public RealmAllNewsFeedsSource()
         {
             r = DataModelManager.RealmInstance;
-            query = r.All<NewsFeed>().OrderBy(ob => ob.Title);
+
+            // Need to be calling in to the library in order for the datatypes to be referenced externally
+            // to trigger fody correctly
+            query = DataRoot.GetAllStuff(r);
+
+            if (query.Count()==0)
+            {
+                CreateDummyData();
+            }
+        }
+
+        private void CreateDummyData()
+        {
+            NewsFeed nf = new NewsFeed();
+
+            nf.Title = "Foo";
+            nf.UriKey = "http://foo";
+            var trans = r.BeginWrite();
+            r.Add(nf);
+
+            nf = new NewsFeed();
+            nf.Title = "Bar";
+            nf.UriKey = "http://bar";
+            r.Add(nf);
+
+            nf = new NewsFeed();
+            nf.Title = "Baz";
+            nf.UriKey = "http://baz";
+            r.Add(nf);
+
+            nf = new NewsFeed();
+            nf.Title = "Bingo";
+            nf.UriKey = "http://bingo";
+            r.Add(nf);
+
+            trans.Commit();
         }
 
         #region IItemsRangeInfo
@@ -44,7 +80,7 @@ namespace Spectro.Models.UWP
             get
             {
                 //TODO: this should be a factory or some other binding
-                return new NewsFeedViewModel() { Episode = query.ElementAt(index) };
+                return new NewsFeedViewModel() { Feed = query.ElementAt(index) };
                 //return query.ElementAt(index);
 
                 // we really need skip / take.  The following code proves that read perf is an issue

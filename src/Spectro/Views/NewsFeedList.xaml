@@ -5,6 +5,8 @@
     xmlns:local="using:Spectro.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:datamodel="using:Spectro.DataModel"
+    xmlns:viewmodels="using:Spectro.ViewModels"
     mc:Ignorable="d"
     DataContext="{Binding NewsList, Source={StaticResource Locator}}"
     >
@@ -42,11 +44,19 @@
                     <AppBarButton Label="UMore" Icon="Placeholder" />
                 </CommandBar.SecondaryCommands>
             </CommandBar>
-            <ListView Margin="{StaticResource contentPosition}">
-                <ListViewItem>All about Windows Phone</ListViewItem>
-                <ListViewItem>Docker Blog</ListViewItem>
-                <ListViewItem>Morning Dew</ListViewItem>
-                <ListViewItem>NAD Electronics</ListViewItem>
+            <ListView Margin="{StaticResource contentPosition}" ItemsSource="{x:Bind Vm.ItemSource}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"></Setter>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="viewmodels:NewsFeedViewModel">
+                        <Grid>
+                            <TextBlock Text="{x:Bind Feed.Title}"></TextBlock>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
             </ListView>
         </Grid>
 

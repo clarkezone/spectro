@@ -1,6 +1,7 @@
 using GalaSoft.MvvmLight.Ioc;
 
 using Microsoft.Practices.ServiceLocation;
+using Spectro.DataModel;
 using Spectro.Models.UWP;
 using Spectro.Services;
 using Spectro.Views;
@@ -23,8 +24,8 @@ namespace Spectro.ViewModels
             SimpleIoc.Default.Register<RealmAllNewsFeedsSource>();
 
             //Creating a new NewsFeedListViewModel blows up here.. that needs figuring out before we can use DI successfully
-            //SimpleIoc.Default.Register(() => new NewsFeedListViewModel(SimpleIoc.Default.GetInstance<RealmAllNewsFeedsSource> as IList));
-            SimpleIoc.Default.Register<NewsFeedListViewModel>();
+            SimpleIoc.Default.Register(() => new NewsFeedListViewModel(SimpleIoc.Default.GetInstance<RealmAllNewsFeedsSource>() as IList));
+            //SimpleIoc.Default.Register<NewsFeedListViewModel>();
             _navigationService.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
 
             Register<NavigationRootViewModel, NavigationRoot>();

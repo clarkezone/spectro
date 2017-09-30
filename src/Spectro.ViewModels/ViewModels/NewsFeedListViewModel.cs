@@ -6,10 +6,9 @@ namespace Spectro.ViewModels
 {
     public class NewsFeedListViewModel : ViewModelBase
     {
-        //public NewsFeedListViewModel(IList list)
-        public NewsFeedListViewModel()
+        public NewsFeedListViewModel(IList list)
         {
-            //this.ItemSource = list;
+            this.ItemSource = list;
         }
 
         public IList ItemSource { get; private set; }

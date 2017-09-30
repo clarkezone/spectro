@@ -27,6 +27,7 @@
             <Frame x:Name="appNavFrame" >
             </Frame>
         </RS3:NavigationView>
+        <!-- how to handle position with / without back button-->
         <TextBlock Style="{ThemeResource CaptionTextBlockStyle}" Margin="12,8,0,0" VerticalAlignment="Top" Text="{x:Bind appmodel:Package.Current.DisplayName}"></TextBlock>
     </Grid>
 </Page>
