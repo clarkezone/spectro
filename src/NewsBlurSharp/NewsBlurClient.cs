@@ -139,6 +139,23 @@ namespace NewsBlurSharp
             return response.Response;
         }
 
+        #region Stories
+
+        public async Task<object> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var options = new Dictionary<String, String>();
+            options.AddIfNotNull("page", pageIndex);
+            options.AddIfNotNull("order", (invertOrder) ? "oldest" : null);
+            options.AddIfNotNull("read_filter", (filterReadStories) ? "unread" : null);
+            options.AddIfNotNull("include_hidden", includeHiddenStories);
+
+            var response = await GetResponse<object>("reader/feed", feedId.ToString(), options, cancellationToken);
+
+            return response.Response;
+        }
+
+        #endregion
+
         private HttpClientHandler GetHandlerFromFactory(IClientHandlerFactory handlerFactory)
         {
             var handler = handlerFactory?.CreateHandler() as HttpClientHandler ?? new HttpClientHandler();
