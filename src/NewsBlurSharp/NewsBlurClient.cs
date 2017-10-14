@@ -181,9 +181,9 @@ namespace NewsBlurSharp
             var data = new Dictionary<String, String>();
             data.Add("story_hash", storyHash);
 
-			var response = await PostResponse<object>("reader", "mark_story_hash_as_unread", data);
+            var response = await PostResponse<object>("reader", "mark_story_hash_as_unread", data);
 
-			return response.Response;
+            return response.Response;
         }
 
         #endregion
