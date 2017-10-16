@@ -1,9 +1,11 @@
 ﻿using GalaSoft.MvvmLight.Ioc;
 using GalaSoft.MvvmLight.Views;
 using Microsoft.Practices.ServiceLocation;
+using NewsBlurSharp;
 using Spectro.Services;
 using Spectro.ViewModels;
 using System;
+using Windows.Security.Authentication.Web;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 
@@ -61,5 +63,11 @@ namespace Spectro.Views
             }
         }
 
+        private async void login(object sender, RoutedEventArgs e)
+        {
+            NewsBlurClient c = new NewsBlurClient();
+            var response = await c.LoginAsync("james@clarkezone.net", "winBlue.,.,");
+            
+        }
     }
 }

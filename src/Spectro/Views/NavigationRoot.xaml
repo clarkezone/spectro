@@ -28,6 +28,7 @@
                 <StackPanel Orientation="Horizontal">
                     <HyperlinkButton x:Name="MoreInfoBtn"
                              Content="ULogin"
+                             Click="login"
                              />
                     <RS3:PersonPicture Height="50" Width="50"></RS3:PersonPicture>
                 </StackPanel>
