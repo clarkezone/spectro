@@ -21,7 +21,6 @@ namespace Spectro.Views
         public NavigationRoot()
         {
             this.InitializeComponent();
-            //ServiceLocator.Current.GetInstance<NavigationServiceEx>().Frame = appNavFrame;
             Singleton<NavigationServiceEx>.Instance.Frame = appNavFrame;
         }
 
