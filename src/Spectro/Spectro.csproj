@@ -111,6 +111,8 @@
     <Compile Include="Helpers\EnumToBooleanConverter.cs" />
     <Compile Include="Helpers\FluentHelpers.cs" />
     <Compile Include="Helpers\Json.cs" />
+    <Compile Include="Helpers\MVVMHelpers.cs" />
+    <Compile Include="Helpers\RelayCommand.cs" />
     <Compile Include="Helpers\SettingsStorageExtensions.cs" />
     <Compile Include="Models\RealmAllNewsFeedsSource.cs" />
     <Compile Include="Services\ActivationService.cs" />

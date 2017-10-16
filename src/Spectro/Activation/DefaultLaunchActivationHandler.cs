@@ -4,18 +4,19 @@ using System.Threading.Tasks;
 using Spectro.Services;
 
 using Windows.ApplicationModel.Activation;
+using Spectro.Helpers;
 
 namespace Spectro.Activation
 {
     internal class DefaultLaunchActivationHandler : ActivationHandler<LaunchActivatedEventArgs>
     {
         private readonly string _navElement;
-    
+
         private NavigationServiceEx NavigationService
         {
             get
             {
-                return Microsoft.Practices.ServiceLocation.ServiceLocator.Current.GetInstance<NavigationServiceEx>();
+                return Singleton<NavigationServiceEx>.Instance;
             }
         }
     

@@ -10,6 +10,7 @@ using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
+using Spectro.Helpers;
 
 namespace Spectro.Services
 {
@@ -24,7 +25,7 @@ namespace Spectro.Services
         {
             get
             {
-                return Microsoft.Practices.ServiceLocation.ServiceLocator.Current.GetInstance<NavigationServiceEx>();
+                return Singleton< NavigationServiceEx>.Instance;
             }
         }
         
