@@ -35,12 +35,12 @@ namespace Spectro.Views
 
         public void NavigateToFeedsTapped(object sender, RoutedEventArgs args)
         {
-            Vm.NavigateCommand.Execute("");
+            //Vm.NavigateCommand.Execute("");
         }
 
         public void NavigateToProfileTapped(object sender, RoutedEventArgs args)
         {
-            Vm.NavigateCommand.Execute("");
+            ..Vm.NavigateCommand.Execute("");
         }
 
         public void ItemInvoked(object sender, NavigationViewItemInvokedEventArgs args)
