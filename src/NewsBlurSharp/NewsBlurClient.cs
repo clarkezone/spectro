@@ -190,7 +190,7 @@ namespace NewsBlurSharp
 
         #region Social
 
-        public async Task<object> GetUserProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<object> GetUserPublicProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken))
         {
             var data = new Dictionary<String, String>();
             data.Add("user_id", userID.ToString());
@@ -198,6 +198,13 @@ namespace NewsBlurSharp
             var response = await GetResponse<object>("social", "profile", data, cancellationToken);
 
             return response.Response;            
+        }
+
+        public async Task<object> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var response = await GetResponse<object>("social", "load_user_profile");
+
+            return response.Response;
         }
 
         #endregion
@@ -263,8 +270,11 @@ namespace NewsBlurSharp
             var url = $"{BaseUrl}{endPoint}/{method}";
             url = url.TrimEnd('/');
 
-            var queryString = options.ToQueryString();
-            url = $"{url}?{queryString}";
+            if(options != null)
+            {
+                var queryString = options.ToQueryString();
+                url = $"{url}?{queryString}";
+            }
 
             _logger.Debug("GET: {0}", url);
             var requestTime = DateTime.Now;
