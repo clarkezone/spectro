@@ -188,6 +188,20 @@ namespace NewsBlurSharp
 
         #endregion
 
+        #region Social
+
+        public async Task<object> GetUserProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var data = new Dictionary<String, String>();
+            data.Add("user_id", userID.ToString());
+
+            var response = await GetResponse<object>("social", "profile", data, cancellationToken);
+
+            return response.Response;            
+        }
+
+        #endregion
+
         private HttpClientHandler GetHandlerFromFactory(IClientHandlerFactory handlerFactory)
         {
             var handler = handlerFactory?.CreateHandler() as HttpClientHandler ?? new HttpClientHandler();

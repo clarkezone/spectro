@@ -30,7 +30,6 @@ namespace NewsBlurSharp.Tests
 
             var response = await _subject.MarkStoryUnreadAsync(storyHash);
             Assert.NotNull(response);
-            Console.WriteLine(response.ToString());
         }
 
         [Fact]
@@ -41,7 +40,6 @@ namespace NewsBlurSharp.Tests
 
             var response = await _subject.MarkStoriesReadAsync(hashes);
             Assert.NotNull(response);
-            Console.WriteLine(response.ToString());
         }
     }
 }
