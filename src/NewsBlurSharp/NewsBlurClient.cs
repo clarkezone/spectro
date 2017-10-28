@@ -139,6 +139,76 @@ namespace NewsBlurSharp
             return response.Response;
         }
 
+        #region Stories
+
+        public async Task<object> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var options = new Dictionary<String, String>();
+            options.AddIfNotNull("page", pageIndex);
+            options.AddIfNotNull("order", (invertOrder) ? "oldest" : null);
+            options.AddIfNotNull("read_filter", (filterReadStories) ? "unread" : null);
+            options.AddIfNotNull("include_hidden", includeHiddenStories);
+
+            var response = await GetResponse<object>("reader/feed", feedId.ToString(), options, cancellationToken);
+
+            return response.Response;
+        }
+
+        public async Task<object> MarkStoriesReadAsync(List<String> storyHashList)
+        {
+            String hashString = "";
+            bool firstHash = false;
+
+            foreach(String hash in storyHashList){
+                if (!firstHash)
+                    hashString += "&";
+                else
+                    firstHash = true;
+
+                hashString += "story_hash=" + hash;
+            }
+
+            var data = new Dictionary<String, String>();
+            data.Add("story_hash", hashString);
+
+            var response = await PostResponse<object>("reader", "mark_story_hashes_as_read", data);
+
+            return response.Response;
+        }
+
+        public async Task<object> MarkStoryUnreadAsync(String storyHash)
+        {
+            var data = new Dictionary<String, String>();
+            data.Add("story_hash", storyHash);
+
+            var response = await PostResponse<object>("reader", "mark_story_hash_as_unread", data);
+
+            return response.Response;
+        }
+
+        #endregion
+
+        #region Social
+
+        public async Task<object> GetUserPublicProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var data = new Dictionary<String, String>();
+            data.Add("user_id", userID.ToString());
+
+            var response = await GetResponse<object>("social", "profile", data, cancellationToken);
+
+            return response.Response;            
+        }
+
+        public async Task<object> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var response = await GetResponse<object>("social", "load_user_profile");
+
+            return response.Response;
+        }
+
+        #endregion
+
         private HttpClientHandler GetHandlerFromFactory(IClientHandlerFactory handlerFactory)
         {
             var handler = handlerFactory?.CreateHandler() as HttpClientHandler ?? new HttpClientHandler();
@@ -200,8 +270,11 @@ namespace NewsBlurSharp
             var url = $"{BaseUrl}{endPoint}/{method}";
             url = url.TrimEnd('/');
 
-            var queryString = options.ToQueryString();
-            url = $"{url}?{queryString}";
+            if(options != null)
+            {
+                var queryString = options.ToQueryString();
+                url = $"{url}?{queryString}";
+            }
 
             _logger.Debug("GET: {0}", url);
             var requestTime = DateTime.Now;
