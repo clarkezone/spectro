@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Realm.Database" Version="1.6.0" />
+    <PackageReference Include="Realm.Database" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>

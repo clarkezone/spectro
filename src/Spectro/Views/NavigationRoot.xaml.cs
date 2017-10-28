@@ -16,7 +16,7 @@ namespace Spectro.Views
     /// </summary>
     public sealed partial class NavigationRoot : Page
     {
-        public NavigationRootViewModel Vm => (NavigationRootViewModel)DataContext;
+        public NavigationRootViewModel Vm => (App.Current.Resources["Locator"] as ViewModelLocator).NavViewModel;
 
         public NavigationRoot()
         {

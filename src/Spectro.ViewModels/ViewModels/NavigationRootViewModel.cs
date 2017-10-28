@@ -1,36 +1,44 @@
-﻿using System.Diagnostics;
+﻿using Spectro.Commands;
+using Spectro.Core.Interfaces;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace Spectro.ViewModels
 {
-    public class NavigationRootViewModel 
+    public class NavigationRootViewModel : INotifyPropertyChanged
     {
-        //private RelayCommand<string> _navigateCommand;
+        private ILoginService loginService;
+        private LoginLogoutCommand loginCommand;
 
-        public NavigationRootViewModel()
+        public NavigationRootViewModel(ILoginService service)
         {
+            this.loginService = service;
         }
 
-        //public RelayCommand<string> NavigateCommand
-        //{
-        //    get
-        //    {
-        //        return _navigateCommand
-        //               ?? (_navigateCommand = new RelayCommand<string>(
-        //                   p => {
-        //                       Debug.WriteLine("Hit");
-        //                      // ServiceLocator.Current.GetInstance<INavigationService>("NavigationService");
-        //                   },
-        //                   p => true));
+        public LoginLogoutCommand LoginLogoutCommand
+        {
+            get
+            {
+                return loginCommand
+                       ?? (loginCommand = new LoginLogoutCommand(loginService, this));
+            }
+        }
 
-        //        //ServiceLocator.Current.GetInstance<NavigationServiceEx>().Frame.
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        //        //return _navigateCommand
-        //        //       ?? (_navigateCommand = new RelayCommand<string>(
-        //        //           p => _navigationService.NavigateTo(ViewModelLocator.SecondPageKey, p),
-        //        //           p => !string.IsNullOrEmpty(p)));
-        //    }
-        //}
+        internal void NotifyLoginButtonStateChanged()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LoginButtonText)));
+        }
 
-       
+        public string LoginButtonText
+        {
+            get
+            {
+                return
+                  loginService.IsLoggedIn() ? "Logout" : "Login";
+            }
+        }
+
     }
 }

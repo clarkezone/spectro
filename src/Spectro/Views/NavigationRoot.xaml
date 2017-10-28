@@ -27,8 +27,8 @@
             <RS3:NavigationView.PaneFooter>
                 <StackPanel Orientation="Horizontal">
                     <HyperlinkButton x:Name="MoreInfoBtn"
-                             Content="ULogin"
-                             Click="login"
+                             Content="{x:Bind Vm.LoginButtonText, Mode=OneWay}"
+                             Command="{x:Bind Vm.LoginLogoutCommand}"
                              />
                     <RS3:PersonPicture Height="50" Width="50"></RS3:PersonPicture>
                 </StackPanel>

@@ -14,7 +14,6 @@ namespace Spectro.ViewModels
 
         public ViewModelLocator()
         {
-
             Singleton<NavigationServiceEx>.Instance.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
 
             Register<NavigationRootViewModel, NavigationRoot>();
@@ -29,7 +28,7 @@ namespace Spectro.ViewModels
                 if (_settingsviewmodel == null)
                 {
                     _settingsviewmodel = new SettingsViewModel();
-                    _navigationRootViewModel = new NavigationRootViewModel();
+
                     _newsFeedListViewmodel = new NewsFeedListViewModel(new RealmAllNewsFeedsSource());
                     _profileViewModel = new ProfileViewModel();
                 }
@@ -37,9 +36,29 @@ namespace Spectro.ViewModels
             }
         }
 
-        public NavigationRootViewModel NavViewModel => _navigationRootViewModel;
+        public NavigationRootViewModel NavViewModel {
 
-        public NewsFeedListViewModel NewsList => _newsFeedListViewmodel;
+            get
+            {
+                if (_navigationRootViewModel == null)
+                {
+                    _navigationRootViewModel = new NavigationRootViewModel(new LoginLogoutService());
+                }
+                return _navigationRootViewModel;
+            }
+        }
+
+        public NewsFeedListViewModel NewsList
+        {
+            get
+            {
+                if (_newsFeedListViewmodel == null)
+                {
+                    _newsFeedListViewmodel = new NewsFeedListViewModel(new RealmAllNewsFeedsSource());
+                }
+                return _newsFeedListViewmodel;
+            }
+        }
 
         public ProfileViewModel ProfileVM => _profileViewModel;
 
