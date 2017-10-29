@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Spectro.Core.Interfaces
 {
-    interface ICredentialsPrompt
+    public interface ICredentialsPrompt
     {
+        Task<bool> PromptCredentials();
+        void ShowProgress();
+        void HideProgress();
+        Task ShowError(string v);
+        (string, string) GetUsernamePassword();
     }
 }

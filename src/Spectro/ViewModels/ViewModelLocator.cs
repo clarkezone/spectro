@@ -1,3 +1,4 @@
+using Spectro.Core.Interfaces;
 using Spectro.Core.Services;
 using Spectro.Helpers;
 using Spectro.Models.UWP;
@@ -64,7 +65,7 @@ namespace Spectro.ViewModels
 
         public ProfileViewModel ProfileVM => _profileViewModel;
 
-        public void Register<VM, V>() where VM : class
+        private void Register<VM, V>() where VM : class
         {
             //SimpleIoc.Default.Register<VM>();
             Singleton<NavigationServiceEx>.Instance.Configure(typeof(VM).FullName, typeof(V));

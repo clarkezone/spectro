@@ -108,6 +108,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Activation\ActivationHandler.cs" />
+    <Compile Include="Controls\LoginControl.xaml.cs">
+      <DependentUpon>LoginControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Helpers\EnumToBooleanConverter.cs" />
     <Compile Include="Helpers\FluentHelpers.cs" />
     <Compile Include="Helpers\Json.cs" />
@@ -144,6 +147,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Controls\LoginControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Styles\FluentGlobal.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

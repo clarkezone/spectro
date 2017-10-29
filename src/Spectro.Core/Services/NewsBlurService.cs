@@ -27,23 +27,33 @@ namespace Spectro.Core.Services
             }
         }
 
-        public async Task Login()
+        public async Task Login(ICredentialsPrompt prompt)
         {
-            string username = "";
-            string password = "";
-            var result = await _api.LoginAsync(username, password);
+            bool credentialsProvided = await prompt.PromptCredentials();
 
-            if (result.IsSuccess)
+            if (credentialsProvided)
             {
-                var instance = DataModelManager.RealmInstance;
-                var trans = instance.BeginWrite();
-                var currentSession = GetSession(instance);
-                currentSession.AuthCookieToken = result.AuthCookieToken;
-                currentSession.CurrentUserId = result.UserId;
+                var details = prompt.GetUsernamePassword();
+
+                var result = await _api.LoginAsync(details.Item1, details.Item2);
+
+                if (result.IsSuccess)
+                {
+                    prompt.ShowProgress();
+                    var instance = DataModelManager.RealmInstance;
+                    var trans = instance.BeginWrite();
+                    var currentSession = GetSession(instance);
+                    currentSession.AuthCookieToken = result.AuthCookieToken;
+                    currentSession.CurrentUserId = result.UserId;
+                    prompt.HideProgress();
+                } else
+                {
+                    await prompt.ShowError("uLogin failed");
+                }
             }
         }
 
-        public async Task Logout()
+        public async Task Logout(ICredentialsPrompt prompt)
         {
             await _api.LogoutAsync();
 

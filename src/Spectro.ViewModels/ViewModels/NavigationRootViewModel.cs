@@ -2,6 +2,7 @@
 using Spectro.Core.Interfaces;
 using System.ComponentModel;
 using System.Diagnostics;
+using System;
 
 namespace Spectro.ViewModels
 {
@@ -9,6 +10,7 @@ namespace Spectro.ViewModels
     {
         private INewsBlurService loginService;
         private LoginLogoutCommand loginCommand;
+        private ICredentialsPrompt _credentialsPrompt;
 
         public NavigationRootViewModel(INewsBlurService service)
         {
@@ -21,6 +23,14 @@ namespace Spectro.ViewModels
             {
                 return loginCommand
                        ?? (loginCommand = new LoginLogoutCommand(loginService, this));
+            }
+        }
+
+        public ICredentialsPrompt CredentialsPrompt
+        {
+            get
+            {
+                return _credentialsPrompt;
             }
         }
 
@@ -40,5 +50,9 @@ namespace Spectro.ViewModels
             }
         }
 
+        public void RegisterCredentialsUX(ICredentialsPrompt ux)
+        {
+            _credentialsPrompt = ux;
+        }
     }
 }

@@ -7,8 +7,8 @@ namespace Spectro.Core.Interfaces
     {
         Session CurrentSession { get; }
 
-        Task Login();
+        Task Login(ICredentialsPrompt prompt);
 
-        Task Logout();
+        Task Logout(ICredentialsPrompt prompt);
     }
 }
