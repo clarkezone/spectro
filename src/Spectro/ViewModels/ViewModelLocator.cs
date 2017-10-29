@@ -4,6 +4,7 @@ using Spectro.Helpers;
 using Spectro.Models.UWP;
 using Spectro.Services;
 using Spectro.Views;
+using System;
 
 namespace Spectro.ViewModels
 {
@@ -45,7 +46,8 @@ namespace Spectro.ViewModels
             {
                 if (_navigationRootViewModel == null)
                 {
-                    _navigationRootViewModel = new NavigationRootViewModel(new NewsBlurService(REALMNAME));
+                    Func<string, string> resourceLookup = (what) => { return ResourceExtensions.GetLocalized(what); };
+                    _navigationRootViewModel = new NavigationRootViewModel(new NewsBlurService(REALMNAME, resourceLookup), resourceLookup);
                 }
                 return _navigationRootViewModel;
             }

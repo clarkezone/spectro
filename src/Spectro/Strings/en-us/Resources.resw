@@ -171,4 +171,28 @@
   <data name="NewsFeedList_Title.Text" xml:space="preserve">
     <value>Filter</value>
   </data>
+  <data name="Login_DialogTitle.PrimaryButtonText" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Login_DialogTitle.SecondaryButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Login_DialogTitle.Title" xml:space="preserve">
+    <value>Login to NewsBlur service</value>
+  </data>
+  <data name="Login_Password.Text" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Login_UserName.Text" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Login_EmptyUNPW" xml:space="preserve">
+    <value>Empty username or password</value>
+  </data>
+  <data name="Login_Failed" xml:space="preserve">
+    <value>Login to NewsBlur failed.  Please check your username and password</value>
+  </data>
+  <data name="NavigationRoot_Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
 </root>

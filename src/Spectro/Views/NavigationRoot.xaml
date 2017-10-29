@@ -26,11 +26,15 @@
             </RS3:NavigationView.MenuItems>
             <RS3:NavigationView.PaneFooter>
                 <StackPanel Orientation="Horizontal">
+                    <RS3:PersonPicture Height="25" Width="25" Margin="12,0,5,0">
+                        <RS3:PersonPicture.ProfilePicture>
+                            <BitmapImage UriSource="{x:Bind Vm.ProfileImageUri, Mode=OneWay}"></BitmapImage>
+                        </RS3:PersonPicture.ProfilePicture>
+                    </RS3:PersonPicture>
                     <HyperlinkButton x:Name="MoreInfoBtn"
                              Content="{x:Bind Vm.LoginButtonText, Mode=OneWay}"
                              Command="{x:Bind Vm.LoginLogoutCommand}"
                              />
-                    <RS3:PersonPicture Height="50" Width="50"></RS3:PersonPicture>
                 </StackPanel>
             </RS3:NavigationView.PaneFooter>
             <Frame x:Name="appNavFrame" >
@@ -39,7 +43,7 @@
         <!-- how to handle position with / without back button-->
         <TextBlock Style="{ThemeResource CaptionTextBlockStyle}" Margin="12,8,0,0" VerticalAlignment="Top" Text="{x:Bind appmodel:Package.Current.DisplayName}"></TextBlock>
 
-        <controls:LoginControl x:Name="credentialsPrompt">
+        <controls:LoginControl x:Name="credentialsPrompt" >
 
         </controls:LoginControl>
         <ProgressBar x:Name="serviceProgress" IsIndeterminate="True" IsEnabled="True" VerticalAlignment="Top" HorizontalAlignment="Stretch" Height="10" Visibility="Collapsed"></ProgressBar>

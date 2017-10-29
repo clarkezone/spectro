@@ -37,7 +37,7 @@ namespace Spectro.Commands
                 });
             }
             
-            viewModel.NotifyLoginButtonStateChanged();
+            viewModel.NotifyLoginStateChanged();
         }
     }
 }

@@ -11,6 +11,12 @@ namespace Spectro.Controls
         public LoginControl()
         {
             this.InitializeComponent();
+            this.Opened += LoginControl_Opened;
+        }
+
+        private void LoginControl_Opened(ContentDialog sender, ContentDialogOpenedEventArgs args)
+        {
+            password.Password = string.Empty;
         }
 
         private void ContentDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)

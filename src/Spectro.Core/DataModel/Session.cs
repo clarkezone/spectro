@@ -20,6 +20,10 @@ namespace Spectro.Core.DataModel
 
         public string AuthCookieToken { get; set; }
 
+        public string UserName { get; set; }
+
+        public string PhotoUrl { get; set; }
+
         public bool IsLoggedIn
         {
             get

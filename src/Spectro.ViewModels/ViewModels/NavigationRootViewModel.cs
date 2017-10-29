@@ -1,7 +1,6 @@
 ﻿using Spectro.Commands;
 using Spectro.Core.Interfaces;
 using System.ComponentModel;
-using System.Diagnostics;
 using System;
 
 namespace Spectro.ViewModels
@@ -11,10 +10,18 @@ namespace Spectro.ViewModels
         private INewsBlurService loginService;
         private LoginLogoutCommand loginCommand;
         private ICredentialsPrompt _credentialsPrompt;
+        Func<string, string> _getResource;
 
-        public NavigationRootViewModel(INewsBlurService service)
+        public NavigationRootViewModel(INewsBlurService service, Func<string,string> getResource)
         {
             this.loginService = service;
+            this.loginService.CurrentSession.PropertyChanged += CurrentSession_PropertyChanged;
+            _getResource = getResource;
+        }
+
+        private void CurrentSession_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            NotifyLoginStateChanged();
         }
 
         public LoginLogoutCommand LoginLogoutCommand
@@ -36,9 +43,10 @@ namespace Spectro.ViewModels
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        internal void NotifyLoginButtonStateChanged()
+        internal void NotifyLoginStateChanged()
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LoginButtonText)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ProfileImageUri)));
         }
 
         public string LoginButtonText
@@ -46,7 +54,16 @@ namespace Spectro.ViewModels
             get
             {
                 return
-                  loginService.CurrentSession.IsLoggedIn ? "Logout" : "Login";
+                  loginService.CurrentSession.IsLoggedIn ? loginService.CurrentSession.UserName : _getResource("NavigationRoot_Login");
+            }
+        }
+
+        public Uri ProfileImageUri
+        {
+            get
+            {
+                return
+                  loginService.CurrentSession.IsLoggedIn ? new Uri(loginService.CurrentSession.PhotoUrl) : null;
             }
         }
 

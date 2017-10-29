@@ -7,10 +7,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Title="uLogin to NewsBlur service"
+    x:Uid="Login_DialogTitle"
     PrimaryButtonText="uLogin"
     SecondaryButtonText="uCancel"
     PrimaryButtonClick="ContentDialog_PrimaryButtonClick"
-    SecondaryButtonClick="ContentDialog_SecondaryButtonClick">
+    SecondaryButtonClick="ContentDialog_SecondaryButtonClick"
+    DefaultButton="Primary"
+Width="500"
+    >
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -18,14 +22,14 @@
             <ColumnDefinition></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition></RowDefinition>
-            <RowDefinition></RowDefinition>
+            <RowDefinition Height="40"></RowDefinition>
+            <RowDefinition Height="40"></RowDefinition>
         </Grid.RowDefinitions>
-            <TextBlock >uUser Name</TextBlock>
-        <TextBox Grid.Column="1" x:Name="username"></TextBox>
-        
-        <TextBlock Grid.Row="1">uPassword</TextBlock>
-           
-            <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="password"></PasswordBox>
+        <TextBlock x:Uid="Login_UserName" VerticalAlignment="Center">uUser Name</TextBlock>
+        <TextBox Grid.Column="1" x:Name="username" Width="200" VerticalAlignment="Center"></TextBox>
+
+        <TextBlock Grid.Row="1" x:Uid="Login_Password" VerticalAlignment="Center">uPassword</TextBlock>
+
+        <PasswordBox Grid.Row="1" Grid.Column="1" x:Name="password" Width="200" VerticalAlignment="Center"></PasswordBox>
     </Grid>
 </ContentDialog>
