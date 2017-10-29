@@ -128,14 +128,14 @@ namespace NewsBlurSharp
         }
         #endregion
 
-        public async Task<object> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<NewsBlurSharp.Model.Response.GetFeedResponse.Rootobject> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             var options = new Dictionary<string, string>();
             options.AddIfNotNull("include_favicons", includeFavIcons);
             options.AddIfNotNull("flat", isFlatStructure);
             options.AddIfNotNull("update_counts", updateCounts);
 
-            var response = await GetResponse<object>("reader", "feeds", options, cancellationToken);
+            var response = await GetResponse<NewsBlurSharp.Model.Response.GetFeedResponse.Rootobject>("reader", "feeds", options, cancellationToken);
 
             return response.Response;
         }

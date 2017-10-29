@@ -12,6 +12,7 @@ namespace Spectro.Core.Services
 {
     public class NewsBlurService : INewsBlurService
     {
+        private Synchronizer _sync;
         private NewsBlurClient _api = new NewsBlurClient();
         Func<string, string> _getResource;
 
@@ -19,7 +20,14 @@ namespace Spectro.Core.Services
         {
             DataModelManager.Configure(RealmName);
             _getResource = getResource;
-            GetSession(DataModelManager.RealmInstance);
+            var session = GetSession(DataModelManager.RealmInstance);
+            _sync = new Synchronizer(_api, this);
+            
+            if (session.IsLoggedIn)
+            {
+                //TODO need initializer pattern from BuildCast
+                var ignore = _sync.StartSync();
+            }
         }
 
         public Session CurrentSession
