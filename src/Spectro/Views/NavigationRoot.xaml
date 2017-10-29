@@ -21,12 +21,22 @@
                             >
             <!--Not using databinding for items as they never change-->
             <RS3:NavigationView.MenuItems>
-                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_Feeds">UFeeds</RS3:NavigationViewItem>
-                <RS3:NavigationViewItem x:Uid="NavigationRoot_Profile">UProfile</RS3:NavigationViewItem>
+                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_Feeds">
+                    <RS3:NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Bookmarks"></SymbolIcon>
+                    </RS3:NavigationViewItem.Icon>
+                    UFeeds
+                </RS3:NavigationViewItem>
+                <RS3:NavigationViewItem x:Uid="NavigationRoot_Profile">
+                    <RS3:NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="OtherUser"></SymbolIcon>
+                    </RS3:NavigationViewItem.Icon>
+                    UProfile
+                </RS3:NavigationViewItem>
             </RS3:NavigationView.MenuItems>
             <RS3:NavigationView.PaneFooter>
                 <StackPanel Orientation="Horizontal">
-                    <RS3:PersonPicture Height="25" Width="25" Margin="12,0,5,0">
+                    <RS3:PersonPicture Height="25" Width="25" Margin="12,0,12,0">
                         <RS3:PersonPicture.ProfilePicture>
                             <BitmapImage UriSource="{x:Bind Vm.ProfileImageUri, Mode=OneWay}"></BitmapImage>
                         </RS3:PersonPicture.ProfilePicture>
