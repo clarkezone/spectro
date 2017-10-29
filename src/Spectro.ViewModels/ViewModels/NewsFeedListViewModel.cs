@@ -1,10 +1,8 @@
-﻿using GalaSoft.MvvmLight;
-using Microsoft.Practices.ServiceLocation;
-using System.Collections;
+﻿using System.Collections;
 
 namespace Spectro.ViewModels
 {
-    public class NewsFeedListViewModel : ViewModelBase
+    public class NewsFeedListViewModel
     {
         public NewsFeedListViewModel(IList list)
         {

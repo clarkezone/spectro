@@ -1,8 +1,6 @@
-using GalaSoft.MvvmLight;
-
 namespace Spectro.ViewModels
 {
-    public class MainViewModel : ViewModelBase
+    public class MainViewModel
     {
         public MainViewModel()
         {

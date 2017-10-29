@@ -1,9 +1,8 @@
-﻿using GalaSoft.MvvmLight;
-using Spectro.DataModel;
+﻿using Spectro.DataModel;
 
 namespace Spectro.ViewModels
 {
-    public class NewsFeedViewModel : ViewModelBase
+    public class NewsFeedViewModel
     {
         public NewsFeedViewModel()
         {

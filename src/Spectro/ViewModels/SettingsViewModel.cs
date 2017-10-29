@@ -1,17 +1,16 @@
-﻿using System;
-using System.Windows.Input;
-
-using GalaSoft.MvvmLight;
-using GalaSoft.MvvmLight.Command;
+﻿using System.Windows.Input;
 
 using Windows.ApplicationModel;
 using Windows.UI.Xaml;
 
 using Spectro.Services;
+using Spectro.Helpers;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Spectro.ViewModels
 {
-    public class SettingsViewModel : ViewModelBase
+    public class SettingsViewModel : INotifyPropertyChanged
     {
         // TODO WTS: Add other settings as necessary. For help see https://github.com/Microsoft/WindowsTemplateStudio/blob/master/docs/pages/settings.md
         private ElementTheme _elementTheme = ThemeSelectorService.Theme;
@@ -20,7 +19,14 @@ namespace Spectro.ViewModels
         {
             get { return _elementTheme; }
 
-            set { Set(ref _elementTheme, value); }
+            set
+            {
+                if (value != _elementTheme)
+                {
+                    _elementTheme = value;
+                    RaisePropertyChanged();
+                }
+            }
         }
 
         private string _versionDescription;
@@ -29,10 +35,19 @@ namespace Spectro.ViewModels
         {
             get { return _versionDescription; }
 
-            set { Set(ref _versionDescription, value); }
+            set {
+
+                if (value != _versionDescription)
+                {
+                    _versionDescription = value;
+                    RaisePropertyChanged();
+                }
+            }
         }
 
         private ICommand _switchThemeCommand;
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public ICommand SwitchThemeCommand
         {
@@ -67,6 +82,11 @@ namespace Spectro.ViewModels
             var version = packageId.Version;
 
             return $"{package.DisplayName} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+        }
+
+        private void RaisePropertyChanged([CallerMemberName] string caller = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(caller));
         }
     }
 }

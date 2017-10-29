@@ -10,6 +10,7 @@ using NewsBlurSharp.Extensions;
 using NewsBlurSharp.Http;
 using NewsBlurSharp.Logging;
 using NewsBlurSharp.Model.Response;
+using NewsBlurSharp.Model.Response.ProfileResponse;
 
 namespace NewsBlurSharp
 {
@@ -200,9 +201,9 @@ namespace NewsBlurSharp
             return response.Response;            
         }
 
-        public async Task<object> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<Rootobject> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            var response = await GetResponse<object>("social", "load_user_profile");
+            var response = await GetResponse<Rootobject>("social", "load_user_profile");
 
             return response.Response;
         }
