@@ -7,10 +7,10 @@ namespace Spectro.ViewModels
 {
     public class NavigationRootViewModel : INotifyPropertyChanged
     {
-        private ILoginService loginService;
+        private INewsBlurService loginService;
         private LoginLogoutCommand loginCommand;
 
-        public NavigationRootViewModel(ILoginService service)
+        public NavigationRootViewModel(INewsBlurService service)
         {
             this.loginService = service;
         }
@@ -36,7 +36,7 @@ namespace Spectro.ViewModels
             get
             {
                 return
-                  loginService.IsLoggedIn() ? "Logout" : "Login";
+                  loginService.CurrentSession.IsLoggedIn ? "Logout" : "Login";
             }
         }
 

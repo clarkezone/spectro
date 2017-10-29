@@ -8,10 +8,10 @@ namespace Spectro.Commands
 {
     public class LoginLogoutCommand : ICommand
     {
-        ILoginService loginService;
+        INewsBlurService loginService;
         NavigationRootViewModel viewModel;
 
-        public LoginLogoutCommand(ILoginService service, NavigationRootViewModel model)
+        public LoginLogoutCommand(INewsBlurService service, NavigationRootViewModel model)
         {
             this.loginService = service;
             this.viewModel = model;
@@ -26,7 +26,7 @@ namespace Spectro.Commands
 
         public void Execute(object parameter)
         {
-            if (this.loginService.IsLoggedIn())
+            if (this.loginService.CurrentSession.IsLoggedIn)
             {
                 this.loginService.Logout();
             }

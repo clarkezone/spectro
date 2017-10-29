@@ -1,3 +1,4 @@
+using Spectro.Core.Services;
 using Spectro.Helpers;
 using Spectro.Models.UWP;
 using Spectro.Services;
@@ -7,6 +8,7 @@ namespace Spectro.ViewModels
 {
     public class ViewModelLocator
     {
+        const string REALMNAME = "NewsBlurStore";
         SettingsViewModel _settingsviewmodel;
         NavigationRootViewModel _navigationRootViewModel;
         NewsFeedListViewModel _newsFeedListViewmodel;
@@ -42,7 +44,7 @@ namespace Spectro.ViewModels
             {
                 if (_navigationRootViewModel == null)
                 {
-                    _navigationRootViewModel = new NavigationRootViewModel(new LoginLogoutService());
+                    _navigationRootViewModel = new NavigationRootViewModel(new NewsBlurService(REALMNAME));
                 }
                 return _navigationRootViewModel;
             }

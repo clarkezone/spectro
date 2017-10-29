@@ -4,12 +4,7 @@ using System.Text;
 
 namespace Spectro.Core.Interfaces
 {
-    public interface ILoginService
+    interface ICredentialsPrompt
     {
-        bool IsLoggedIn();
-
-        void Login();
-
-        void Logout();
     }
 }
