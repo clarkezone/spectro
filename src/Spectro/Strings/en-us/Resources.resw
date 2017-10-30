@@ -169,7 +169,7 @@
     <value>Unread</value>
   </data>
   <data name="NewsFeedList_Title.Text" xml:space="preserve">
-    <value>Filter</value>
+    <value>Subscriptions</value>
   </data>
   <data name="Login_DialogTitle.PrimaryButtonText" xml:space="preserve">
     <value>Login</value>
