@@ -30,7 +30,7 @@ namespace Spectro.Core.Services
                 _api.SetCookieSessionId(session.AuthCookieToken);
 
                 //TODO need initializer pattern from BuildCast
-                var ignore = _sync.StartSync(_prompt);
+                var ignore = _sync.StartSync();
             }
         }
 
@@ -72,8 +72,8 @@ namespace Spectro.Core.Services
                     currentSession.UserName = profile.user_profile.username;
                     currentSession.PhotoUrl = profile.user_profile.photo_url;
                     trans.Commit();
-                    var ignore = _sync.StartSync(_prompt);
-                    _prompt.HideProgress();
+                    var ignore = _sync.StartSync();
+                    
                 } else
                 {
                     _prompt.HideProgress();

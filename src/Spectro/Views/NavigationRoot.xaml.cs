@@ -9,6 +9,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using System.Threading.Tasks;
 using Windows.UI.Popups;
+using Microsoft.Toolkit.Uwp.Helpers;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -74,12 +75,19 @@ namespace Spectro.Views
 
         public void ShowProgress()
         {
-            serviceProgress.Visibility = Visibility.Visible;
+            //TODO task
+            DispatcherHelper.ExecuteOnUIThreadAsync(() => {
+                serviceProgress.Visibility = Visibility.Visible;
+            });
         }
 
         public void HideProgress()
         {
-            serviceProgress.Visibility = Visibility.Collapsed;
+            //TODO task
+            DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+            {
+                serviceProgress.Visibility = Visibility.Collapsed;
+            });
         }
 
         public async Task ShowError(string v)

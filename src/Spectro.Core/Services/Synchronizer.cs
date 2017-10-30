@@ -14,6 +14,7 @@ namespace Spectro.Core.Services
         private bool _isSynchronizing;
         private NewsBlurService _service;
         private object _syncLock = new object();
+        private ICredentialsPrompt _prompt;
 
         public Synchronizer(NewsBlurClient api, NewsBlurService parent)
         {
@@ -22,7 +23,7 @@ namespace Spectro.Core.Services
             _service = parent;
         }
 
-        public async Task StartSync(ICredentialsPrompt prompt)
+        public async Task StartSync()
         {
             //TODO: bail if not logged in
             //TODO: show progress dots
@@ -35,7 +36,7 @@ namespace Spectro.Core.Services
 
                 _isSynchronizing = true;
             }
-            prompt?.ShowProgress();
+            _prompt?.ShowProgress();
             await Task.Run(async () => {
                 await Task.Delay(1000);
 
@@ -72,18 +73,19 @@ namespace Spectro.Core.Services
                 {
                     _isSynchronizing = false;
                 }
-
+                _prompt?.HideProgress();
                 //TODO: dispatcherhelp stop progress
             });
         }
 
         internal void RegisterCredentialPrompt(ICredentialsPrompt prompt)
         {
+            _prompt = prompt;
             lock (_syncLock)
             {
                 if (_isSynchronizing)
                 {
-                    prompt.ShowProgress();
+                    _prompt.ShowProgress();
                 }
             }
         }
