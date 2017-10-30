@@ -23,8 +23,10 @@ namespace Spectro.Core.Services
             _getResource = getResource;
             var session = GetSession(DataModelManager.RealmInstance);
             _sync = new Synchronizer(_api, this);
-            
-            
+        }
+
+        private void StartSync(Session session)
+        {
             if (session.IsLoggedIn)
             {
                 _api.SetCookieSessionId(session.AuthCookieToken);
@@ -116,6 +118,7 @@ namespace Spectro.Core.Services
         {
             _prompt = prompt;
             _sync.RegisterCredentialPrompt(prompt);
+            StartSync(CurrentSession);
         }
     }
 }

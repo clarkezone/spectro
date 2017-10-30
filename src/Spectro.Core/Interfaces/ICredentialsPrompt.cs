@@ -12,5 +12,6 @@ namespace Spectro.Core.Interfaces
         void HideProgress();
         Task ShowError(string v);
         (string, string) GetUsernamePassword();
+        bool HaveNetwork();
     }
 }

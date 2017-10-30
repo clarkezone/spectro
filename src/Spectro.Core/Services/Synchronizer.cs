@@ -36,46 +36,51 @@ namespace Spectro.Core.Services
 
                 _isSynchronizing = true;
             }
-            _prompt?.ShowProgress();
-            await Task.Run(async () => {
-                await Task.Delay(1000);
-
-                var results = await _api.GetFeedsAsync(true);
-
-                var trans = DataModelManager.RealmInstance.BeginWrite();
-
-                foreach (var item in results.feeds.FeedItems)
+            if (_prompt !=null && _prompt.HaveNetwork())
+            {
+                _prompt?.ShowProgress();
+                await Task.Run(async () =>
                 {
-                    //TODO: dependency inject the realmness
-                    var exists = DataModelManager.RealmInstance.All<NewsFeed>().Where(fe => fe.Id == item.id).FirstOrDefault();
-                    if (exists == null)
+                    await Task.Delay(1000);
+
+                    var results = await _api.GetFeedsAsync(false);
+
+                    var trans = DataModelManager.RealmInstance.BeginWrite();
+
+                    foreach (var item in results.feeds.FeedItems)
                     {
-                        try
+                        //TODO: dependency inject the realmness
+                        var exists = DataModelManager.RealmInstance.All<NewsFeed>().Where(fe => fe.Id == item.id).FirstOrDefault();
+                        if (exists == null)
                         {
-                            NewsFeed nf = new NewsFeed()
+                            try
                             {
-                                Id = item.id,
-                                UriKey = item.properties.feed_address,
-                                Title = item.properties.feed_title,
-                                IconUri = item.properties.favicon_url
-                            };
-                            DataModelManager.RealmInstance.Add(nf);
-                        } catch (Exception ex)
-                        {
-                            Debug.WriteLine(ex.Message);
+                                NewsFeed nf = new NewsFeed()
+                                {
+                                    Id = item.id,
+                                    UriKey = item.properties.feed_address,
+                                    Title = item.properties.feed_title,
+                                    IconUri = item.properties.favicon_url
+                                };
+                                DataModelManager.RealmInstance.Add(nf);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine(ex.Message);
+                            }
                         }
                     }
-                }
 
-                trans.Commit();
+                    trans.Commit();
 
-                lock (_syncLock)
-                {
-                    _isSynchronizing = false;
-                }
-                _prompt?.HideProgress();
-                //TODO: dispatcherhelp stop progress
-            });
+                    lock (_syncLock)
+                    {
+                        _isSynchronizing = false;
+                    }
+                    _prompt?.HideProgress();
+                    //TODO: dispatcherhelp stop progress
+                });
+            }
         }
 
         internal void RegisterCredentialPrompt(ICredentialsPrompt prompt)

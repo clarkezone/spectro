@@ -100,6 +100,11 @@ namespace Spectro.Views
         {
             return credentialsPrompt.GetUsernamePassword();
         }
+
+        public bool HaveNetwork()
+        {
+            return Microsoft.Toolkit.Uwp.Connectivity.NetworkHelper.Instance.ConnectionInformation.IsInternetAvailable;
+        }
         #endregion
     }
 }
