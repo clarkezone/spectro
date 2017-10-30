@@ -15,6 +15,7 @@ namespace Spectro.Core.Services
         private Synchronizer _sync;
         private NewsBlurClient _api = new NewsBlurClient();
         Func<string, string> _getResource;
+        private ICredentialsPrompt _prompt;
 
         public NewsBlurService(string RealmName, Func<string, string> getResource)
         {
@@ -26,7 +27,7 @@ namespace Spectro.Core.Services
             if (session.IsLoggedIn)
             {
                 //TODO need initializer pattern from BuildCast
-                var ignore = _sync.StartSync();
+                var ignore = _sync.StartSync(_prompt);
             }
         }
 
@@ -39,21 +40,21 @@ namespace Spectro.Core.Services
             }
         }
 
-        public async Task Login(ICredentialsPrompt prompt)
+        public async Task Login()
         {
-            bool credentialsProvided = await prompt.PromptCredentials();
+            bool credentialsProvided = await _prompt.PromptCredentials();
 
             if (credentialsProvided)
             {
-                var details = prompt.GetUsernamePassword();
+                var details = _prompt.GetUsernamePassword();
 
                 if (string.IsNullOrEmpty(details.Item1) || string.IsNullOrEmpty(details.Item1))
                 {
-                    await prompt.ShowError(_getResource("Login_EmptyUNPW"));
+                    await _prompt.ShowError(_getResource("Login_EmptyUNPW"));
                     return;
                 }
 
-                prompt.ShowProgress();
+                _prompt.ShowProgress();
 
                 var result = await _api.LoginAsync(details.Item1, details.Item2);
 
@@ -68,16 +69,17 @@ namespace Spectro.Core.Services
                     currentSession.UserName = profile.user_profile.username;
                     currentSession.PhotoUrl = profile.user_profile.photo_url;
                     trans.Commit();
-                    prompt.HideProgress();
+                    var ignore = _sync.StartSync(_prompt);
+                    _prompt.HideProgress();
                 } else
                 {
-                    prompt.HideProgress();
-                    await prompt.ShowError(_getResource("Login_Failed"));
+                    _prompt.HideProgress();
+                    await _prompt.ShowError(_getResource("Login_Failed"));
                 }
             }
         }
 
-        public async Task Logout(ICredentialsPrompt prompt)
+        public async Task Logout()
         {
             try
             {
@@ -105,6 +107,12 @@ namespace Spectro.Core.Services
             }
 
             return session;
+        }
+
+        public void RegisterCredentialPrompt(ICredentialsPrompt prompt)
+        {
+            _prompt = prompt;
+            _sync.RegisterCredentialPrompt(prompt);
         }
     }
 }

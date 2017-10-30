@@ -9,9 +9,10 @@ namespace Spectro.DataModel
         [PrimaryKey]
         public string UriKey { get; set; }
 
+        public int Id { get; set; }
+
         public string Title { get; set; }
 
-        public string Descrtiption { get; set; }
-
+        public string IconUri { get; set; }
     }
 }

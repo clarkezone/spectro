@@ -16,7 +16,7 @@ namespace NewsBlurSharp.Model.Response.GetFeedResponse
         public bool is_staff { get; set; }
         public string result { get; set; }
         public bool authenticated { get; set; }
-        public Feed[] feeds { get; set; }
+        public Feeds feeds { get; set; }
         public Social_Services social_services { get; set; }
         public object categories { get; set; }
         public Social_Feeds[] social_feeds { get; set; }
@@ -125,45 +125,45 @@ namespace NewsBlurSharp.Model.Response.GetFeedResponse
 
     public class Feeds
     {
+        public Feed[] FeedItems { get; set; }
 
-
-        public _1186180 _1186180 { get; set; }
-        public _569 _569 { get; set; }
-        public _6605581 _6605581 { get; set; }
-        public _1665281 _1665281 { get; set; }
-        public _776101 _776101 { get; set; }
-        public _6188470 _6188470 { get; set; }
-        public _3556 _3556 { get; set; }
-        public _588075 _588075 { get; set; }
-        public _48 _48 { get; set; }
-        public _3581 _3581 { get; set; }
-        public _45 _45 { get; set; }
-        public _183139 _183139 { get; set; }
-        public _551953 _551953 { get; set; }
-        public _526 _526 { get; set; }
-        public _6043968 _6043968 { get; set; }
-        public _5261603 _5261603 { get; set; }
-        public _1480028 _1480028 { get; set; }
-        public _1095 _1095 { get; set; }
-        public _5994357 _5994357 { get; set; }
-        public _2661956 _2661956 { get; set; }
-        public _64313 _64313 { get; set; }
-        public _76 _76 { get; set; }
-        public _38 _38 { get; set; }
-        public _5984253 _5984253 { get; set; }
-        public _576138 _576138 { get; set; }
-        public _2 _2 { get; set; }
-        public _21309 _21309 { get; set; }
-        public _161 _161 { get; set; }
-        public _5752038 _5752038 { get; set; }
-        public _12 _12 { get; set; }
-        public _1627 _1627 { get; set; }
-        public _1340342 _1340342 { get; set; }
-        public _6227976 _6227976 { get; set; }
-        public _50 _50 { get; set; }
-        public _208613 _208613 { get; set; }
-        public _34 _34 { get; set; }
-        public _97265 _97265 { get; set; }
+        //public _1186180 _1186180 { get; set; }
+        //public _569 _569 { get; set; }
+        //public _6605581 _6605581 { get; set; }
+        //public _1665281 _1665281 { get; set; }
+        //public _776101 _776101 { get; set; }
+        //public _6188470 _6188470 { get; set; }
+        //public _3556 _3556 { get; set; }
+        //public _588075 _588075 { get; set; }
+        //public _48 _48 { get; set; }
+        //public _3581 _3581 { get; set; }
+        //public _45 _45 { get; set; }
+        //public _183139 _183139 { get; set; }
+        //public _551953 _551953 { get; set; }
+        //public _526 _526 { get; set; }
+        //public _6043968 _6043968 { get; set; }
+        //public _5261603 _5261603 { get; set; }
+        //public _1480028 _1480028 { get; set; }
+        //public _1095 _1095 { get; set; }
+        //public _5994357 _5994357 { get; set; }
+        //public _2661956 _2661956 { get; set; }
+        //public _64313 _64313 { get; set; }
+        //public _76 _76 { get; set; }
+        //public _38 _38 { get; set; }
+        //public _5984253 _5984253 { get; set; }
+        //public _576138 _576138 { get; set; }
+        //public _2 _2 { get; set; }
+        //public _21309 _21309 { get; set; }
+        //public _161 _161 { get; set; }
+        //public _5752038 _5752038 { get; set; }
+        //public _12 _12 { get; set; }
+        //public _1627 _1627 { get; set; }
+        //public _1340342 _1340342 { get; set; }
+        //public _6227976 _6227976 { get; set; }
+        //public _50 _50 { get; set; }
+        //public _208613 _208613 { get; set; }
+        //public _34 _34 { get; set; }
+        //public _97265 _97265 { get; set; }
     }
 
     public class Feed

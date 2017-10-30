@@ -1,14 +1,15 @@
 ﻿using System.Collections;
+using System.Collections.Specialized;
 
 namespace Spectro.ViewModels
 {
     public class NewsFeedListViewModel
     {
-        public NewsFeedListViewModel(IList list)
+        public NewsFeedListViewModel(INotifyCollectionChanged list)
         {
             this.ItemSource = list;
         }
 
-        public IList ItemSource { get; private set; }
+        public INotifyCollectionChanged ItemSource { get; private set; }
     }
 }

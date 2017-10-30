@@ -9,7 +9,6 @@ namespace Spectro.ViewModels
     {
         private INewsBlurService loginService;
         private LoginLogoutCommand loginCommand;
-        private ICredentialsPrompt _credentialsPrompt;
         Func<string, string> _getResource;
 
         public NavigationRootViewModel(INewsBlurService service, Func<string,string> getResource)
@@ -30,14 +29,6 @@ namespace Spectro.ViewModels
             {
                 return loginCommand
                        ?? (loginCommand = new LoginLogoutCommand(loginService, this));
-            }
-        }
-
-        public ICredentialsPrompt CredentialsPrompt
-        {
-            get
-            {
-                return _credentialsPrompt;
             }
         }
 
@@ -69,7 +60,7 @@ namespace Spectro.ViewModels
 
         public void RegisterCredentialsUX(ICredentialsPrompt ux)
         {
-            _credentialsPrompt = ux;
+            loginService.RegisterCredentialPrompt(ux);
         }
     }
 }

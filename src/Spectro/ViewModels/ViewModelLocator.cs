@@ -1,7 +1,7 @@
-using Spectro.Core.Interfaces;
+using Realms;
 using Spectro.Core.Services;
+using Spectro.DataModel;
 using Spectro.Helpers;
-using Spectro.Models.UWP;
 using Spectro.Services;
 using Spectro.Views;
 using System;
@@ -33,7 +33,6 @@ namespace Spectro.ViewModels
                 {
                     _settingsviewmodel = new SettingsViewModel();
 
-                    _newsFeedListViewmodel = new NewsFeedListViewModel(new RealmAllNewsFeedsSource());
                     _profileViewModel = new ProfileViewModel();
                 }
                 return _settingsviewmodel;
@@ -59,7 +58,7 @@ namespace Spectro.ViewModels
             {
                 if (_newsFeedListViewmodel == null)
                 {
-                    _newsFeedListViewmodel = new NewsFeedListViewModel(new RealmAllNewsFeedsSource());
+                    _newsFeedListViewmodel = new NewsFeedListViewModel(DataModelManager.RealmInstance.All<NewsFeed>().AsRealmCollection());
                 }
                 return _newsFeedListViewmodel;
             }

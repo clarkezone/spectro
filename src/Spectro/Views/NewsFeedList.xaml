@@ -51,9 +51,9 @@
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="viewmodels:NewsFeedViewModel">
+                    <DataTemplate x:DataType="datamodel:NewsFeed">
                         <Grid>
-                            <TextBlock Text="{x:Bind Feed.Title}"></TextBlock>
+                            <TextBlock Text="{x:Bind Title}"></TextBlock>
                         </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>

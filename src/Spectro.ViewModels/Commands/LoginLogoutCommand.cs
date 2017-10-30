@@ -28,11 +28,11 @@ namespace Spectro.Commands
         {
             if (this.loginService.CurrentSession.IsLoggedIn)
             {
-                this.loginService.Logout(viewModel.CredentialsPrompt);
+                this.loginService.Logout();
             }
             else
             {
-                this.loginService.Login(viewModel.CredentialsPrompt).ContinueWith((e) => {
+                this.loginService.Login().ContinueWith((e) => {
                     Debug.WriteLine(e.IsFaulted);
                 });
             }

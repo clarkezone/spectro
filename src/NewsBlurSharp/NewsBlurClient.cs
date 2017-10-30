@@ -11,6 +11,10 @@ using NewsBlurSharp.Http;
 using NewsBlurSharp.Logging;
 using NewsBlurSharp.Model.Response;
 using NewsBlurSharp.Model.Response.ProfileResponse;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using System.Linq;
+using System.Diagnostics;
 
 namespace NewsBlurSharp
 {
@@ -128,6 +132,66 @@ namespace NewsBlurSharp
         }
         #endregion
 
+
+        public class FeedResolver : DefaultContractResolver
+        {
+            public new static readonly FeedResolver Instance = new FeedResolver();
+
+            //protected override JsonContract CreateContract(Type objectType)
+            protected override JsonObjectContract CreateObjectContract(Type objectType)
+            {
+                if (objectType == typeof(NewsBlurSharp.Model.Response.GetFeedResponse.Feeds))
+                {
+                    var cont = base.CreateObjectContract(objectType);
+                    cont.Converter = new FeedConverter();
+                    return cont;
+                }
+
+                return base.CreateObjectContract(objectType);
+            }
+        }
+
+        public class FeedConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                if (objectType == typeof(NewsBlurSharp.Model.Response.GetFeedResponse.Feeds))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                List<NewsBlurSharp.Model.Response.GetFeedResponse.Feed> items = new List<Model.Response.GetFeedResponse.Feed>();
+                bool read = false;
+                while (read = reader.Read()) {
+                    Debug.WriteLine(reader.TokenType);
+                    if (reader.TokenType!=JsonToken.PropertyName)
+                    {
+                        break;
+                    }
+                    
+                    string id = reader.Value as string;
+
+                    read = reader.Read();
+
+                    var outobj = serializer.Deserialize(reader, typeof(NewsBlurSharp.Model.Response.GetFeedResponse.FeedProperties)) as NewsBlurSharp.Model.Response.GetFeedResponse.FeedProperties;
+
+                    items.Add(new NewsBlurSharp.Model.Response.GetFeedResponse.Feed() { id = int.Parse(id), properties = outobj });
+                }
+
+                return new NewsBlurSharp.Model.Response.GetFeedResponse.Feeds() { FeedItems = items.ToArray() };
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                
+            }
+        }
+
         public async Task<NewsBlurSharp.Model.Response.GetFeedResponse.Rootobject> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             var options = new Dictionary<string, string>();
@@ -135,10 +199,14 @@ namespace NewsBlurSharp
             options.AddIfNotNull("flat", isFlatStructure);
             options.AddIfNotNull("update_counts", updateCounts);
 
-            var response = await GetResponse<NewsBlurSharp.Model.Response.GetFeedResponse.Rootobject>("reader", "feeds", options, cancellationToken);
+            JsonSerializerSettings settings = new JsonSerializerSettings { ContractResolver = new FeedResolver() };
+
+            var response = await GetResponse<NewsBlurSharp.Model.Response.GetFeedResponse.Rootobject>("reader", "feeds", options, cancellationToken, settings);
 
             return response.Response;
         }
+
+
 
         #region Stories
 
@@ -160,7 +228,8 @@ namespace NewsBlurSharp
             String hashString = "";
             bool firstHash = false;
 
-            foreach(String hash in storyHashList){
+            foreach (String hash in storyHashList)
+            {
                 if (!firstHash)
                     hashString += "&";
                 else
@@ -198,7 +267,7 @@ namespace NewsBlurSharp
 
             var response = await GetResponse<object>("social", "profile", data, cancellationToken);
 
-            return response.Response;            
+            return response.Response;
         }
 
         public async Task<Rootobject> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
@@ -264,14 +333,20 @@ namespace NewsBlurSharp
             return await HandleBaseResponse<TResponseType>(response).ConfigureAwait(false);
         }
 
-        private async Task<BaseResponse<TResponseType>> GetResponse<TResponseType>(string endPoint, string method, Dictionary<string, string> options = null, CancellationToken cancellationToken = default(CancellationToken), [CallerMemberName] string callingMethod = "")
+        private async Task<BaseResponse<TResponseType>> GetResponse<TResponseType>(string endPoint, 
+            string method, 
+            Dictionary<string, string> options = null, 
+            CancellationToken cancellationToken = default(CancellationToken),
+            JsonSerializerSettings settings = null,
+            [CallerMemberName] string callingMethod = ""
+            )
 
         {
             _logger.Debug(callingMethod);
             var url = $"{BaseUrl}{endPoint}/{method}";
             url = url.TrimEnd('/');
 
-            if(options != null)
+            if (options != null)
             {
                 var queryString = options.ToQueryString();
                 url = $"{url}?{queryString}";
@@ -291,10 +366,10 @@ namespace NewsBlurSharp
 
             _logger.Debug("Received {0} status code after {1} ms from {2}: {3}", response.StatusCode, duration.TotalMilliseconds, "GET", url);
 
-            return await HandleBaseResponse<TResponseType>(response).ConfigureAwait(false);
+            return await HandleBaseResponse<TResponseType>(response, settings).ConfigureAwait(false);
         }
 
-        private async Task<BaseResponse<TResponseType>> HandleBaseResponse<TResponseType>(HttpResponseMessage response)
+        private async Task<BaseResponse<TResponseType>> HandleBaseResponse<TResponseType>(HttpResponseMessage response, JsonSerializerSettings settings = null)
         {
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -314,7 +389,7 @@ namespace NewsBlurSharp
                 //}
             }
 
-            var item = await responseString.DeserialiseAsync<TResponseType>().ConfigureAwait(false);
+            var item = await responseString.DeserialiseAsync<TResponseType>(settings).ConfigureAwait(false);
             var cookies = _cookieJar.GetCookies(response.RequestMessage.RequestUri);
 
             foreach (Cookie cookie in cookies)
