@@ -159,7 +159,8 @@ namespace NewsBlurSharp
             String hashString = "";
             bool firstHash = false;
 
-            foreach(String hash in storyHashList){
+            foreach (String hash in storyHashList)
+            {
                 if (!firstHash)
                     hashString += "&";
                 else
@@ -197,7 +198,7 @@ namespace NewsBlurSharp
 
             var response = await GetResponse<object>("social", "profile", data, cancellationToken);
 
-            return response.Response;            
+            return response.Response;
         }
 
         public async Task<object> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
@@ -252,7 +253,17 @@ namespace NewsBlurSharp
 
             HandlerNeedsRecreating();
 
-            var response = await _httpClient.PostAsync(url, new FormUrlEncodedContent(postData), cancellationToken).ConfigureAwait(false);
+            HttpResponseMessage response;
+
+            if (postData != null)
+            {
+                response = await _httpClient.PostAsync(url, new FormUrlEncodedContent(postData), cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                response = await _httpClient.PostAsync(url, null, cancellationToken).ConfigureAwait(false);
+            }
+
 
             var duration = DateTime.Now - requestTime;
 
@@ -270,7 +281,7 @@ namespace NewsBlurSharp
             var url = $"{BaseUrl}{endPoint}/{method}";
             url = url.TrimEnd('/');
 
-            if(options != null)
+            if (options != null)
             {
                 var queryString = options.ToQueryString();
                 url = $"{url}?{queryString}";

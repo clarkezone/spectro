@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using NewsBlurSharp.Model.Response;
 using Xunit;
 
 namespace NewsBlurSharp.Tests
@@ -16,9 +17,16 @@ namespace NewsBlurSharp.Tests
         [Fact]
         public async Task SignInWithCorrectCredentials()
         {
-            var response = await _subject.LoginAsync("spectrotest", "1ICwn*3^o4g5", CancellationToken.None);
+            LoginResponse response = await _subject.LoginAsync("spectrotest", "1ICwn*3^o4g5", CancellationToken.None);
+            _subject.SetCookieSessionId(response.AuthCookieToken);
 
             Assert.NotNull(response);
+        }
+
+        [Fact]
+        public async Task SignOutUser()
+        {
+            await _subject.LogoutAsync();
         }
     }
 }
