@@ -24,8 +24,11 @@ namespace Spectro.Core.Services
             var session = GetSession(DataModelManager.RealmInstance);
             _sync = new Synchronizer(_api, this);
             
+            
             if (session.IsLoggedIn)
             {
+                _api.SetCookieSessionId(session.AuthCookieToken);
+
                 //TODO need initializer pattern from BuildCast
                 var ignore = _sync.StartSync(_prompt);
             }
