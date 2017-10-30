@@ -4,6 +4,7 @@ using Spectro.DataModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using System.Diagnostics;
 
 namespace Spectro.Core.Services
 {
@@ -48,10 +49,20 @@ namespace Spectro.Core.Services
                     var exists = DataModelManager.RealmInstance.All<NewsFeed>().Where(fe => fe.Id == item.id).FirstOrDefault();
                     if (exists == null)
                     {
-                        NewsFeed nf = new NewsFeed() { Id = item.id,
-                            UriKey = item.properties.feed_address,
-                            Title = item.properties.feed_title, IconUri = item.properties.favicon_url };
-                        DataModelManager.RealmInstance.Add(nf);
+                        try
+                        {
+                            NewsFeed nf = new NewsFeed()
+                            {
+                                Id = item.id,
+                                UriKey = item.properties.feed_address,
+                                Title = item.properties.feed_title,
+                                IconUri = item.properties.favicon_url
+                            };
+                            DataModelManager.RealmInstance.Add(nf);
+                        } catch (Exception ex)
+                        {
+                            Debug.WriteLine(ex.Message);
+                        }
                     }
                 }
 

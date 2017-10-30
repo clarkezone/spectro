@@ -17,7 +17,7 @@ namespace Spectro.ViewModels.Tests
 
             var mock = new Mock<INewsBlurService>();
             
-            mock.Setup(fw => fw.Login(mockCreds.Object)).Returns(Task.CompletedTask);
+            //mock.Setup(fw => fw.Login(mockCreds.Object)).Returns(Task.CompletedTask);
             
             NavigationRootViewModel model = new NavigationRootViewModel(mock.Object, null);
             model.LoginLogoutCommand.Execute(null);
