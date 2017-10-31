@@ -159,6 +159,12 @@
   <data name="NavigationRoot_SavedStories.Content" xml:space="preserve">
     <value>Saved Stories</value>
   </data>
+  <data name="NavigationRoot_GlobalSharedStories.Content" xml:space="preserve">
+    <value>Global Shared Stories</value>
+  </data>
+  <data name="NavigationRoot_AllSharedStories.Content" xml:space="preserve">
+    <value>All Shared Stories</value>
+  </data>
   <data name="NavigationRoot_Profile.Content" xml:space="preserve">
     <value>Profile</value>
   </data>

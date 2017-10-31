@@ -19,26 +19,47 @@
                             AlwaysShowHeader="False"
                             ItemInvoked="ItemInvoked"
                             >
+            <NavigationView.AutoSuggestBox>
+                <AutoSuggestBox x:Name="find" QueryIcon="Find" PlaceholderText="Search for newsfeed"/>
+            </NavigationView.AutoSuggestBox>
             <!--Not using databinding for items as they never change-->
             <RS3:NavigationView.MenuItems>
                 <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_AllStories">
                     <RS3:NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Bookmarks"></SymbolIcon>
+                        <FontIcon Glyph="&#xE12A;"></FontIcon>
                     </RS3:NavigationViewItem.Icon>
                     UFeeds
                 </RS3:NavigationViewItem>
                 <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_ReadStories">
                     <RS3:NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Bookmarks"></SymbolIcon>
+                        <FontIcon Glyph="&#xE930;"></FontIcon>
                     </RS3:NavigationViewItem.Icon>
                     UFeeds
                 </RS3:NavigationViewItem>
                 <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_SavedStories">
                     <RS3:NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Bookmarks"></SymbolIcon>
+                        <FontIcon Glyph="&#xECC5;"></FontIcon>
                     </RS3:NavigationViewItem.Icon>
                     UFeeds
                 </RS3:NavigationViewItem>
+                
+                <RS3:NavigationViewItemSeparator></RS3:NavigationViewItemSeparator>
+                
+                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_GlobalSharedStories">
+                    <RS3:NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE909;"></FontIcon>
+                    </RS3:NavigationViewItem.Icon>
+                    UGlobalSharedStories
+                </RS3:NavigationViewItem>
+                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_AllSharedStories">
+                    <RS3:NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE716;"></FontIcon>
+                    </RS3:NavigationViewItem.Icon>
+                    UAllSharedStories
+                </RS3:NavigationViewItem>
+
+                <RS3:NavigationViewItemSeparator></RS3:NavigationViewItemSeparator>
+
                 <RS3:NavigationViewItem x:Uid="NavigationRoot_Profile">
                     <RS3:NavigationViewItem.Icon>
                         <SymbolIcon Symbol="OtherUser"></SymbolIcon>

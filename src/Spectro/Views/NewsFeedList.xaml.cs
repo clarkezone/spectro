@@ -1,4 +1,5 @@
-﻿using Spectro.ViewModels;
+﻿using Spectro.DataModel;
+using Spectro.ViewModels;
 using Windows.UI.Xaml.Controls;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
@@ -15,6 +16,12 @@ namespace Spectro.Views
         public NewsFeedList()
         {
             this.InitializeComponent();
+        }
+
+        private void ListView_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            //TODO: command
+            Vm.SelectFeed(e.ClickedItem as NewsFeed);
         }
     }
 }

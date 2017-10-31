@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace Spectro.Core.Services
 {
@@ -49,7 +50,8 @@ namespace Spectro.Core.Services
                     var trans = DataModelManager.RealmInstance.BeginWrite();
 
                     foreach (var item in results.feeds.FeedItems)
-                    {
+                        //foreach (var item in results.feeds.FeedItems.Where(t => t.properties.feed_title == "AnandTech"))
+                        {
                         //TODO: dependency inject the realmness
                         //var thisFeed = DataModelManager.RealmInstance.All<NewsFeed>().Where(fe => fe.Id == item.id).FirstOrDefault();
                         //if (thisFeed == null)
@@ -119,6 +121,16 @@ namespace Spectro.Core.Services
                     //            var storyExists = DataModelManager.RealmInstance.All<Story>().Where(fe => fe.Id == storyId).FirstOrDefault();
                     //            if (storyExists == null)
                     //            {
+                    //                string summary = "";
+                    //                if (!string.IsNullOrEmpty(story.story_content))
+                    //                {
+                    //                    summary = Regex.Replace(story.story_content, "<.*?>", string.Empty);
+                    //                    if (summary.Length>150)
+                    //                    {
+                    //                        summary = summary.Substring(0, 150);
+                    //                    }
+                    //                }
+
                     //                Story s = new Story()
                     //                {
                     //                    Id = storyId,
@@ -126,7 +138,11 @@ namespace Spectro.Core.Services
                     //                    FeedId = story.story_feed_id,
                     //                    ReadStatus = story.read_status,
                     //                    //story.story_timestamp
+                    //                    Author = story.story_authors,
+                    //                    TimeStamp = story.story_timestamp,
+                    //                    ListImage = (story.image_urls.Count()>=1? story.image_urls[0]:""),
                     //                    Content = story.story_content,
+                    //                    Summary = summary,
                     //                    Feed = localFeed
                     //                };
                     //                DataModelManager.RealmInstance.Add(s);
@@ -138,7 +154,7 @@ namespace Spectro.Core.Services
                     //            //TODO: update counts in feed
                     //        }
 
-                    //        localFeed.UnreadCount = DataModelManager.RealmInstance.All<Story>().Where(st => st.ReadStatus == 0 && st.Feed==localFeed).Count();
+                    //        localFeed.UnreadCount = DataModelManager.RealmInstance.All<Story>().Where(st => st.ReadStatus == 0 && st.Feed == localFeed).Count();
 
                     //        // no need to do a story pass until this changes
                     //        localFeed.LastStoryDateDownloaded = localFeed.LastStoryDateFromService;
