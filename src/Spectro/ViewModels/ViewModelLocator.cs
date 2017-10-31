@@ -5,6 +5,7 @@ using Spectro.Helpers;
 using Spectro.Services;
 using Spectro.Views;
 using System;
+using System.Linq;
 
 namespace Spectro.ViewModels
 {
@@ -58,7 +59,8 @@ namespace Spectro.ViewModels
             {
                 if (_newsFeedListViewmodel == null)
                 {
-                    _newsFeedListViewmodel = new NewsFeedListViewModel(DataModelManager.RealmInstance.All<NewsFeed>().AsRealmCollection());
+                    _newsFeedListViewmodel = new NewsFeedListViewModel(
+                        DataModelManager.RealmInstance.All<NewsFeed>().Where(it=>it.UnreadCount > 0).OrderBy(ob=>ob.Title).AsRealmCollection());
                 }
                 return _newsFeedListViewmodel;
             }

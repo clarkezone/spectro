@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Spectro.Core.Services
 {
@@ -36,7 +37,7 @@ namespace Spectro.Core.Services
 
                 _isSynchronizing = true;
             }
-            if (_prompt !=null && _prompt.HaveNetwork())
+            if (_prompt != null && _prompt.HaveNetwork())
             {
                 _prompt?.ShowProgress();
                 await Task.Run(async () =>
@@ -50,19 +51,26 @@ namespace Spectro.Core.Services
                     foreach (var item in results.feeds.FeedItems)
                     {
                         //TODO: dependency inject the realmness
-                        var exists = DataModelManager.RealmInstance.All<NewsFeed>().Where(fe => fe.Id == item.id).FirstOrDefault();
-                        if (exists == null)
+                        //var thisFeed = DataModelManager.RealmInstance.All<NewsFeed>().Where(fe => fe.Id == item.id).FirstOrDefault();
+                        //if (thisFeed == null)
                         {
                             try
                             {
-                                NewsFeed nf = new NewsFeed()
+                                Debug.WriteLine(item.properties.last_story_date);
+                                var thisFeed = new NewsFeed()
                                 {
                                     Id = item.id,
-                                    UriKey = item.properties.feed_address,
+                                    FeedUri = item.properties.feed_address,
                                     Title = item.properties.feed_title,
-                                    IconUri = item.properties.favicon_url
+                                    IconUri = item.properties.favicon_url,
+                                    Active = item.properties.active,
+                                    LastStoryDateFromService = !string.IsNullOrEmpty(item.properties.last_story_date) ? DateTimeOffset.Parse(item.properties.last_story_date) : DateTimeOffset.MinValue
                                 };
-                                DataModelManager.RealmInstance.Add(nf);
+
+                                thisFeed.UnreadCount = DataModelManager.RealmInstance.All<Story>().Where(st => st.ReadStatus == 0 && st.FeedId == thisFeed.Id).Count();
+                                //thisFeed.UnreadCount = 0;
+
+                                DataModelManager.RealmInstance.Add(thisFeed, true);
                             }
                             catch (Exception ex)
                             {
@@ -72,6 +80,71 @@ namespace Spectro.Core.Services
                     }
 
                     trans.Commit();
+
+                    ////var query = DataModelManager.RealmInstance.All<NewsFeed>().Where(ld => ld.LastStoryDateDownloaded != ld.LastStoryDateFromService);
+                    //var query = DataModelManager.RealmInstance.All<NewsFeed>().Where(ld => ld.Active);
+                    //Debug.WriteLine($"Feeds needing update: {query.Count()}");
+
+                    //foreach (var localFeed in query)
+                    //{
+                    //    //TODO: full vs only unread
+                    //    if (localFeed.LastStoryDateDownloaded == localFeed.LastStoryDateFromService)
+                    //    {
+                    //        Debug.WriteLine($"Skipping {localFeed.Title}");
+                    //    }
+                    //    else
+                    //    {
+                    //        Debug.WriteLine($"DateFromService:{localFeed.LastStoryDateFromService} DateFromDownloaded:{localFeed.LastStoryDateDownloaded} ");
+                    //        NewsBlurSharp.Model.GetStoriesResponse.Rootobject result = null;
+                    //        AutoResetEvent ar = new AutoResetEvent(false);
+                    //        //var stories = await _api.GetStoriesAsync(localFeed.Id);
+                    //        var task = _api.GetStoriesAsync(localFeed.Id).ContinueWith(a =>
+                    //        {
+                    //            result = a.Result;
+                    //            ar.Set();
+                    //        });
+
+                    //        ar.WaitOne();
+
+                    //        if (result == null)
+                    //        {
+                    //            throw new Exception("Error: webcall failed");
+                    //        }
+
+                    //        var addedNewStory = false;
+                    //        trans = DataModelManager.RealmInstance.BeginWrite();
+                    //        foreach (var story in result.stories)
+                    //        {
+                    //            var storyId = story.id;
+                    //            var storyExists = DataModelManager.RealmInstance.All<Story>().Where(fe => fe.Id == storyId).FirstOrDefault();
+                    //            if (storyExists == null)
+                    //            {
+                    //                Story s = new Story()
+                    //                {
+                    //                    Id = storyId,
+                    //                    Title = story.story_title,
+                    //                    FeedId = story.story_feed_id,
+                    //                    ReadStatus = story.read_status,
+                    //                    //story.story_timestamp
+                    //                    Content = story.story_content,
+                    //                    Feed = localFeed
+                    //                };
+                    //                DataModelManager.RealmInstance.Add(s);
+                    //                addedNewStory = true;
+                    //            }
+                    //        }
+                    //        if (addedNewStory)
+                    //        {
+                    //            //TODO: update counts in feed
+                    //        }
+
+                    //        localFeed.UnreadCount = DataModelManager.RealmInstance.All<Story>().Where(st => st.ReadStatus == 0 && st.Feed==localFeed).Count();
+
+                    //        // no need to do a story pass until this changes
+                    //        localFeed.LastStoryDateDownloaded = localFeed.LastStoryDateFromService;
+                    //        trans.Commit();
+                    //    }
+                    //}
 
                     lock (_syncLock)
                     {

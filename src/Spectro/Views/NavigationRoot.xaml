@@ -21,7 +21,19 @@
                             >
             <!--Not using databinding for items as they never change-->
             <RS3:NavigationView.MenuItems>
-                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_Feeds">
+                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_AllStories">
+                    <RS3:NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Bookmarks"></SymbolIcon>
+                    </RS3:NavigationViewItem.Icon>
+                    UFeeds
+                </RS3:NavigationViewItem>
+                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_ReadStories">
+                    <RS3:NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Bookmarks"></SymbolIcon>
+                    </RS3:NavigationViewItem.Icon>
+                    UFeeds
+                </RS3:NavigationViewItem>
+                <RS3:NavigationViewItem IsSelected="True" x:Uid="NavigationRoot_SavedStories">
                     <RS3:NavigationViewItem.Icon>
                         <SymbolIcon Symbol="Bookmarks"></SymbolIcon>
                     </RS3:NavigationViewItem.Icon>

@@ -44,16 +44,16 @@
                             IsCacheEnabled="True"
                             Source="{x:Bind IconUri}"/>
                             <TextBlock Grid.Column="1" Text="{x:Bind Title}"></TextBlock>
-                            <TextBlock Grid.Column="2" Text="10"></TextBlock>
+                            <TextBlock Grid.Column="2" Text="{x:Bind UnreadCount}"></TextBlock>
                         </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Height="30">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
                 
                 <!-- <ListView Margin="0,8,0,0" x:Name="lstFilter" ItemsSource="{x:Bind Vm.ItemSource}"> -->
-                <ListView Margin="0,8,0,0" x:Name="lstFilter" MinHeight="30">
+                <ListView Margin="0,8,0,0" x:Name="lstFilter">
                     <ListView.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal"></StackPanel>
