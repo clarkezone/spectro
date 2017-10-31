@@ -1,21 +1,24 @@
-﻿using Spectro.Commands;
-using Spectro.Core.Interfaces;
+﻿using Spectro.Core.Interfaces;
 using System.ComponentModel;
 using System;
+using System.Diagnostics;
+using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight.Command;
+using Spectro.Core.Services;
 
 namespace Spectro.ViewModels
 {
-    public class NavigationRootViewModel : INotifyPropertyChanged
+    public class NavigationRootViewModel : ViewModelBase
     {
-        private INewsBlurService loginService;
-        private LoginLogoutCommand loginCommand;
-        Func<string, string> _getResource;
+        private readonly INewsBlurService _loginService;
+        private readonly ITranslationService _translationService;
+        private RelayCommand _loginCommand;
 
-        public NavigationRootViewModel(INewsBlurService service, Func<string,string> getResource)
+        public NavigationRootViewModel(INewsBlurService service, ITranslationService translationService)
         {
-            this.loginService = service;
-            this.loginService.CurrentSession.PropertyChanged += CurrentSession_PropertyChanged;
-            _getResource = getResource;
+            this._loginService = service;
+            _translationService = translationService;
+            this._loginService.CurrentSession.PropertyChanged += CurrentSession_PropertyChanged;
         }
 
         private void CurrentSession_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -23,44 +26,38 @@ namespace Spectro.ViewModels
             NotifyLoginStateChanged();
         }
 
-        public LoginLogoutCommand LoginLogoutCommand
-        {
-            get
-            {
-                return loginCommand
-                       ?? (loginCommand = new LoginLogoutCommand(loginService, this));
-            }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
+        public RelayCommand LoginLogoutCommand => _loginCommand
+                                                  ?? (_loginCommand = new RelayCommand(LoginLogout));
+        
         internal void NotifyLoginStateChanged()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LoginButtonText)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ProfileImageUri)));
+            RaisePropertyChanged(nameof(LoginButtonText));
+            RaisePropertyChanged(nameof(ProfileImageUri));
         }
 
-        public string LoginButtonText
-        {
-            get
-            {
-                return
-                  loginService.CurrentSession.IsLoggedIn ? loginService.CurrentSession.UserName : _getResource("NavigationRoot_Login");
-            }
-        }
+        public string LoginButtonText => _loginService.CurrentSession.IsLoggedIn ? _loginService.CurrentSession.UserName : _translationService.GetString("NavigationRoot_Login");
 
-        public Uri ProfileImageUri
-        {
-            get
-            {
-                return
-                  loginService.CurrentSession.IsLoggedIn ? new Uri(loginService.CurrentSession.PhotoUrl) : null;
-            }
-        }
+        public Uri ProfileImageUri => _loginService.CurrentSession.IsLoggedIn ? new Uri(_loginService.CurrentSession.PhotoUrl) : null;
 
         public void RegisterCredentialsUX(ICredentialsPrompt ux)
         {
-            loginService.RegisterCredentialPrompt(ux);
+            _loginService.RegisterCredentialPrompt(ux);
+        }
+
+        private void LoginLogout()
+        {
+            if (this._loginService.CurrentSession.IsLoggedIn)
+            {
+                this._loginService.Logout();
+            }
+            else
+            {
+                this._loginService.Login().ContinueWith((e) => {
+                    Debug.WriteLine(e.IsFaulted);
+                });
+            }
+
+            NotifyLoginStateChanged();
         }
     }
 }

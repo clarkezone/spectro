@@ -6,67 +6,40 @@ using Spectro.Services;
 using Spectro.Views;
 using System;
 using System.Linq;
+using GalaSoft.MvvmLight.Ioc;
+using Microsoft.Practices.ServiceLocation;
+using Spectro.Core.Interfaces;
 
 namespace Spectro.ViewModels
 {
     public class ViewModelLocator
     {
-        const string REALMNAME = "NewsBlurStore";
-        SettingsViewModel _settingsviewmodel;
-        NavigationRootViewModel _navigationRootViewModel;
-        NewsFeedListViewModel _newsFeedListViewmodel;
-        ProfileViewModel _profileViewModel;
-
         public ViewModelLocator()
         {
+            ServiceLocator.SetLocatorProvider(() => SimpleIoc.Default);
+
             Singleton<NavigationServiceEx>.Instance.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
+
+            SimpleIoc.Default.Register<ITranslationService, TranslationService>();
+            SimpleIoc.Default.Register<INewsBlurService, NewsBlurService>();
+
+            SimpleIoc.Default.Register<NavigationRootViewModel>();
+            SimpleIoc.Default.Register<ProfileViewModel>();
+            SimpleIoc.Default.Register<SettingsViewModel>();
+            SimpleIoc.Default.Register<NewsFeedListViewModel>();
 
             Register<NavigationRootViewModel, NavigationRoot>();
             Register<ProfileViewModel, ProfilePage>();
             Register<SettingsViewModel, SettingsPage>();
         }
 
-        public SettingsViewModel SettingsViewModel
-        {
-            get
-            {
-                if (_settingsviewmodel == null)
-                {
-                    _settingsviewmodel = new SettingsViewModel();
+        public SettingsViewModel SettingsViewModel => ServiceLocator.Current.GetInstance<SettingsViewModel>();
 
-                    _profileViewModel = new ProfileViewModel();
-                }
-                return _settingsviewmodel;
-            }
-        }
+        public NavigationRootViewModel NavViewModel => ServiceLocator.Current.GetInstance<NavigationRootViewModel>();
 
-        public NavigationRootViewModel NavViewModel {
+        public NewsFeedListViewModel NewsList => ServiceLocator.Current.GetInstance<NewsFeedListViewModel>();
 
-            get
-            {
-                if (_navigationRootViewModel == null)
-                {
-                    Func<string, string> resourceLookup = (what) => { return ResourceExtensions.GetLocalized(what); };
-                    _navigationRootViewModel = new NavigationRootViewModel(new NewsBlurService(REALMNAME, resourceLookup), resourceLookup);
-                }
-                return _navigationRootViewModel;
-            }
-        }
-
-        public NewsFeedListViewModel NewsList
-        {
-            get
-            {
-                if (_newsFeedListViewmodel == null)
-                {
-                    _newsFeedListViewmodel = new NewsFeedListViewModel(
-                        DataModelManager.RealmInstance.All<NewsFeed>().Where(it=>it.UnreadCount > 0).OrderBy(ob=>ob.Title).AsRealmCollection());
-                }
-                return _newsFeedListViewmodel;
-            }
-        }
-
-        public ProfileViewModel ProfileVM => _profileViewModel;
+        public ProfileViewModel Profile => ServiceLocator.Current.GetInstance<ProfileViewModel>();
 
         private void Register<VM, V>() where VM : class
         {

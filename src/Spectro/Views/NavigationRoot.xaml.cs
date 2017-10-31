@@ -20,7 +20,7 @@ namespace Spectro.Views
     /// </summary>
     public sealed partial class NavigationRoot : Page, ICredentialsPrompt
     {
-        public NavigationRootViewModel Vm => (App.Current.Resources["Locator"] as ViewModelLocator).NavViewModel;
+        public NavigationRootViewModel Vm => DataContext as NavigationRootViewModel;
 
         public NavigationRoot()
         {

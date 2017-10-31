@@ -12,15 +12,17 @@ namespace Spectro.Core.Services
 {
     public class NewsBlurService : INewsBlurService
     {
+        private const string RealmName = "NewsBlurStore";
+
+        private readonly ITranslationService _translationService;
         private Synchronizer _sync;
         private NewsBlurClient _api = new NewsBlurClient();
-        Func<string, string> _getResource;
         private ICredentialsPrompt _prompt;
 
-        public NewsBlurService(string RealmName, Func<string, string> getResource)
+        public NewsBlurService(ITranslationService translationService)
         {
+            _translationService = translationService;
             DataModelManager.Configure(RealmName);
-            _getResource = getResource;
             var session = GetSession(DataModelManager.RealmInstance);
             _sync = new Synchronizer(_api, this);
         }
@@ -55,7 +57,7 @@ namespace Spectro.Core.Services
 
                 if (string.IsNullOrEmpty(details.Item1) || string.IsNullOrEmpty(details.Item1))
                 {
-                    await _prompt.ShowError(_getResource("Login_EmptyUNPW"));
+                    await _prompt.ShowError(_translationService.GetString("Login_EmptyUNPW"));
                     return;
                 }
 
@@ -79,7 +81,7 @@ namespace Spectro.Core.Services
                 } else
                 {
                     _prompt.HideProgress();
-                    await _prompt.ShowError(_getResource("Login_Failed"));
+                    await _prompt.ShowError(_translationService.GetString("Login_Failed"));
                 }
             }
         }

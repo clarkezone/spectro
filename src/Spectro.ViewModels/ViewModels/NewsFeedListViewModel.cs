@@ -1,30 +1,27 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using Spectro.DataModel;
 using System.Linq;
 using Realms;
-using System.ComponentModel;
+using GalaSoft.MvvmLight;
 
 namespace Spectro.ViewModels
 {
-    public class NewsFeedListViewModel : INotifyPropertyChanged
+    public class NewsFeedListViewModel : ViewModelBase
     {
-        public NewsFeedListViewModel(INotifyCollectionChanged list)
+        public NewsFeedListViewModel()
         {
-            this.FeedItemSource = list;
+            // TODO: This should probably be done at another stage rather than in the ctor
+            this.FeedItemSource = DataModelManager.RealmInstance.All<NewsFeed>().Where(it => it.UnreadCount > 0).OrderBy(ob => ob.Title).AsRealmCollection();
         }
 
-        public INotifyCollectionChanged FeedItemSource { get; private set; }
+        public INotifyCollectionChanged FeedItemSource { get; }
 
         public INotifyCollectionChanged StoryItemSource { get; private set; }
-
-        public event PropertyChangedEventHandler PropertyChanged;
 
         public void SelectFeed(NewsFeed newsFeed)
         {
             StoryItemSource = DataModelManager.RealmInstance.All<Story>().Where(st => st.FeedId == newsFeed.Id && st.ReadStatus == 0).AsRealmCollection();
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StoryItemSource)));
+            RaisePropertyChanged(nameof(StoryItemSource));
         }
     }
 }
