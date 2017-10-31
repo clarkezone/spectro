@@ -8,18 +8,23 @@ using System.Diagnostics;
 
 namespace Spectro.Core.Services
 {
-    class Synchronizer
+    public interface ISynchronizer
+    {
+        Task StartSync();
+
+        void RegisterCredentialPrompt(ICredentialsPrompt prompt);
+    }
+
+    public class Synchronizer : ISynchronizer
     {
         private readonly INewsBlurClient _newsBlurClient;
         private bool _isSynchronizing;
-        private INewsBlurService _service;
         private readonly object _syncLock = new object();
         private ICredentialsPrompt _prompt;
 
-        public Synchronizer(INewsBlurClient newsBlurClient, INewsBlurService parent)
+        public Synchronizer(INewsBlurClient newsBlurClient)
         {
             _newsBlurClient = newsBlurClient;
-            _service = parent;
         }
 
         public async Task StartSync()
@@ -169,7 +174,7 @@ namespace Spectro.Core.Services
             }
         }
 
-        internal void RegisterCredentialPrompt(ICredentialsPrompt prompt)
+        public void RegisterCredentialPrompt(ICredentialsPrompt prompt)
         {
             _prompt = prompt;
             lock (_syncLock)

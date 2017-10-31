@@ -16,18 +16,19 @@ namespace Spectro.Core.Services
 
         private readonly ITranslationService _translationService;
         private readonly INewsBlurClient _newsBlurClient;
-        private readonly Synchronizer _sync;
+        private readonly ISynchronizer _synchronizer;
         private ICredentialsPrompt _prompt;
 
         public NewsBlurService(
             ITranslationService translationService,
-            INewsBlurClient newsBlurClient)
+            INewsBlurClient newsBlurClient,
+            ISynchronizer synchronizer)
         {
             _translationService = translationService;
             _newsBlurClient = newsBlurClient;
+            _synchronizer = synchronizer;
             DataModelManager.Configure(RealmName);
             var session = GetSession(DataModelManager.RealmInstance);
-            _sync = new Synchronizer(_newsBlurClient, this);
         }
 
         private void StartSync(Session session)
@@ -37,7 +38,7 @@ namespace Spectro.Core.Services
                 _newsBlurClient.SetCookieSessionId(session.AuthCookieToken);
 
                 //TODO need initializer pattern from BuildCast
-                var ignore = _sync.StartSync();
+                var ignore = _synchronizer.StartSync();
             }
         }
 
@@ -58,7 +59,7 @@ namespace Spectro.Core.Services
             {
                 var details = _prompt.GetUsernamePassword();
 
-                if (string.IsNullOrEmpty(details.Item1) || string.IsNullOrEmpty(details.Item1))
+                if (string.IsNullOrEmpty(details.Username) || string.IsNullOrEmpty(details.Username))
                 {
                     await _prompt.ShowError(_translationService.GetString("Login_EmptyUNPW"));
                     return;
@@ -66,7 +67,7 @@ namespace Spectro.Core.Services
 
                 _prompt.ShowProgress();
 
-                var result = await _newsBlurClient.LoginAsync(details.Item1, details.Item2);
+                var result = await _newsBlurClient.LoginAsync(details.Username, details.Password);
 
                 if (result.IsSuccess)
                 {
@@ -79,7 +80,7 @@ namespace Spectro.Core.Services
                     currentSession.UserName = profile.user_profile.username;
                     currentSession.PhotoUrl = profile.user_profile.photo_url;
                     trans.Commit();
-                    var ignore = _sync.StartSync();
+                    var ignore = _synchronizer.StartSync();
                     
                 } else
                 {
@@ -122,7 +123,7 @@ namespace Spectro.Core.Services
         public void RegisterCredentialPrompt(ICredentialsPrompt prompt)
         {
             _prompt = prompt;
-            _sync.RegisterCredentialPrompt(prompt);
+            _synchronizer.RegisterCredentialPrompt(prompt);
             StartSync(CurrentSession);
         }
     }

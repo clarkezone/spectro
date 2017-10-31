@@ -1,11 +1,7 @@
-using Realms;
 using Spectro.Core.Services;
-using Spectro.DataModel;
 using Spectro.Helpers;
 using Spectro.Services;
 using Spectro.Views;
-using System;
-using System.Linq;
 using GalaSoft.MvvmLight.Ioc;
 using Microsoft.Practices.ServiceLocation;
 using NewsBlurSharp;
@@ -22,6 +18,7 @@ namespace Spectro.ViewModels
             Singleton<NavigationServiceEx>.Instance.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
 
             SimpleIoc.Default.Register<INewsBlurClient>(() => new NewsBlurClient());
+            SimpleIoc.Default.Register<ISynchronizer, Synchronizer>();
             SimpleIoc.Default.Register<ITranslationService, TranslationService>();
             SimpleIoc.Default.Register<INewsBlurService, NewsBlurService>();
 

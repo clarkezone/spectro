@@ -8,7 +8,7 @@ namespace Spectro.Core.Interfaces
         void ShowProgress();
         void HideProgress();
         Task ShowError(string v);
-        (string, string) GetUsernamePassword();
+        (string Username, string Password) GetUsernamePassword();
         bool HaveNetwork();
     }
 }
