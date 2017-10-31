@@ -6,34 +6,34 @@ namespace Spectro.DataModel
 {
     public  class DataModelManager
     {
-        private static string REALMDBNAME = "";
-        private static ThreadLocal<Realm> instance;
+        private static string _realmDbName = "";
+        private static ThreadLocal<Realm> _instance;
 
         public static void Configure(string instanceName)
         {
-            REALMDBNAME = instanceName;
+            _realmDbName = instanceName;
         }
 
         public static Realm RealmInstance
         {
             get
             {
-                if (string.IsNullOrEmpty(REALMDBNAME))
+                if (string.IsNullOrEmpty(_realmDbName))
                 {
                     throw new InvalidOperationException("No RealmName specified");
                 }
 
-                if (instance == null)
+                if (_instance == null)
                 {
-                    instance = new ThreadLocal<Realm>();
+                    _instance = new ThreadLocal<Realm>();
                 }
 
-                if (instance.Value == null)
+                if (_instance.Value == null)
                 {
-                    instance.Value = Realm.GetInstance(REALMDBNAME);
+                    _instance.Value = Realm.GetInstance(_realmDbName);
                 }
 
-                return instance.Value;
+                return _instance.Value;
             }
         }
     }

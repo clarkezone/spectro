@@ -4,13 +4,12 @@ using Windows.ApplicationModel;
 using Windows.UI.Xaml;
 
 using Spectro.Services;
-using Spectro.Helpers;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight.Command;
 
 namespace Spectro.ViewModels
 {
-    public class SettingsViewModel : INotifyPropertyChanged
+    public class SettingsViewModel : ViewModelBase
     {
         // TODO WTS: Add other settings as necessary. For help see https://github.com/Microsoft/WindowsTemplateStudio/blob/master/docs/pages/settings.md
         private ElementTheme _elementTheme = ThemeSelectorService.Theme;
@@ -47,8 +46,6 @@ namespace Spectro.ViewModels
 
         private ICommand _switchThemeCommand;
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
         public ICommand SwitchThemeCommand
         {
             get
@@ -66,10 +63,6 @@ namespace Spectro.ViewModels
             }
         }
 
-        public SettingsViewModel()
-        {
-        }
-
         public void Initialize()
         {
             VersionDescription = GetVersionDescription();
@@ -82,11 +75,6 @@ namespace Spectro.ViewModels
             var version = packageId.Version;
 
             return $"{package.DisplayName} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
-        }
-
-        private void RaisePropertyChanged([CallerMemberName] string caller = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(caller));
         }
     }
 }

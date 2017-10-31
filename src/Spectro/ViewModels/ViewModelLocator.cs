@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using GalaSoft.MvvmLight.Ioc;
 using Microsoft.Practices.ServiceLocation;
+using NewsBlurSharp;
 using Spectro.Core.Interfaces;
 
 namespace Spectro.ViewModels
@@ -20,6 +21,7 @@ namespace Spectro.ViewModels
 
             Singleton<NavigationServiceEx>.Instance.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
 
+            SimpleIoc.Default.Register<INewsBlurClient>(() => new NewsBlurClient());
             SimpleIoc.Default.Register<ITranslationService, TranslationService>();
             SimpleIoc.Default.Register<INewsBlurService, NewsBlurService>();
 

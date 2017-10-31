@@ -5,23 +5,20 @@ using System.Linq;
 using System.Threading.Tasks;
 using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Text.RegularExpressions;
 
 namespace Spectro.Core.Services
 {
     class Synchronizer
     {
-        private NewsBlurClient _api;
+        private readonly INewsBlurClient _newsBlurClient;
         private bool _isSynchronizing;
-        private NewsBlurService _service;
-        private object _syncLock = new object();
+        private INewsBlurService _service;
+        private readonly object _syncLock = new object();
         private ICredentialsPrompt _prompt;
 
-        public Synchronizer(NewsBlurClient api, NewsBlurService parent)
+        public Synchronizer(INewsBlurClient newsBlurClient, INewsBlurService parent)
         {
-            //TODO: this should be an interface
-            _api = api;
+            _newsBlurClient = newsBlurClient;
             _service = parent;
         }
 
@@ -45,7 +42,7 @@ namespace Spectro.Core.Services
                 {
                     await Task.Delay(1000);
 
-                    var results = await _api.GetFeedsAsync(false);
+                    var results = await _newsBlurClient.GetFeedsAsync(false);
 
                     var trans = DataModelManager.RealmInstance.BeginWrite();
 

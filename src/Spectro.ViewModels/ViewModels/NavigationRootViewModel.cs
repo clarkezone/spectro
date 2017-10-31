@@ -39,10 +39,7 @@ namespace Spectro.ViewModels
 
         public Uri ProfileImageUri => _loginService.CurrentSession.IsLoggedIn ? new Uri(_loginService.CurrentSession.PhotoUrl) : null;
 
-        public void RegisterCredentialsUX(ICredentialsPrompt ux)
-        {
-            _loginService.RegisterCredentialPrompt(ux);
-        }
+        public void RegisterCredentialsUX(ICredentialsPrompt ux) => _loginService.RegisterCredentialPrompt(ux);
 
         private void LoginLogout()
         {

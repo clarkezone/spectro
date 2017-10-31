@@ -130,7 +130,6 @@
     <Compile Include="Helpers\FluentHelpers.cs" />
     <Compile Include="Helpers\Json.cs" />
     <Compile Include="Helpers\MVVMHelpers.cs" />
-    <Compile Include="Helpers\RelayCommand.cs" />
     <Compile Include="Helpers\SettingsStorageExtensions.cs" />
     <Compile Include="Services\ActivationService.cs" />
     <Compile Include="Activation\DefaultLaunchActivationHandler.cs" />

@@ -15,23 +15,26 @@ namespace Spectro.Core.Services
         private const string RealmName = "NewsBlurStore";
 
         private readonly ITranslationService _translationService;
-        private Synchronizer _sync;
-        private NewsBlurClient _api = new NewsBlurClient();
+        private readonly INewsBlurClient _newsBlurClient;
+        private readonly Synchronizer _sync;
         private ICredentialsPrompt _prompt;
 
-        public NewsBlurService(ITranslationService translationService)
+        public NewsBlurService(
+            ITranslationService translationService,
+            INewsBlurClient newsBlurClient)
         {
             _translationService = translationService;
+            _newsBlurClient = newsBlurClient;
             DataModelManager.Configure(RealmName);
             var session = GetSession(DataModelManager.RealmInstance);
-            _sync = new Synchronizer(_api, this);
+            _sync = new Synchronizer(_newsBlurClient, this);
         }
 
         private void StartSync(Session session)
         {
             if (session.IsLoggedIn)
             {
-                _api.SetCookieSessionId(session.AuthCookieToken);
+                _newsBlurClient.SetCookieSessionId(session.AuthCookieToken);
 
                 //TODO need initializer pattern from BuildCast
                 var ignore = _sync.StartSync();
@@ -63,11 +66,11 @@ namespace Spectro.Core.Services
 
                 _prompt.ShowProgress();
 
-                var result = await _api.LoginAsync(details.Item1, details.Item2);
+                var result = await _newsBlurClient.LoginAsync(details.Item1, details.Item2);
 
                 if (result.IsSuccess)
                 {
-                    var profile = await _api.GetUserProfileAsync();
+                    var profile = await _newsBlurClient.GetUserProfileAsync();
                     var instance = DataModelManager.RealmInstance;
                     var currentSession = GetSession(instance);
                     var trans = instance.BeginWrite();
@@ -90,7 +93,7 @@ namespace Spectro.Core.Services
         {
             try
             {
-                await _api.LogoutAsync();
+                await _newsBlurClient.LogoutAsync();
             }
             catch (ArgumentNullException) { }
 

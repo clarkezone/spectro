@@ -18,7 +18,7 @@ using System.Diagnostics;
 
 namespace NewsBlurSharp
 {
-    public class NewsBlurClient
+    public class NewsBlurClient : INewsBlurClient
     {
         private const string NewsBlurSessionId = "newsblur_sessionid";
         private readonly IClientHandlerFactory _handlerFactory;
