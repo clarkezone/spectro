@@ -3,7 +3,6 @@ using Spectro.Helpers;
 using Spectro.Services;
 using Spectro.Views;
 using GalaSoft.MvvmLight.Ioc;
-using Microsoft.Practices.ServiceLocation;
 using NewsBlurSharp;
 using Spectro.Core.Interfaces;
 
@@ -13,8 +12,6 @@ namespace Spectro.ViewModels
     {
         public ViewModelLocator()
         {
-            ServiceLocator.SetLocatorProvider(() => SimpleIoc.Default);
-
             Singleton<NavigationServiceEx>.Instance.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
 
             SimpleIoc.Default.Register<INewsBlurClient>(() => new NewsBlurClient());
@@ -32,13 +29,13 @@ namespace Spectro.ViewModels
             Register<SettingsViewModel, SettingsPage>();
         }
 
-        public SettingsViewModel SettingsViewModel => ServiceLocator.Current.GetInstance<SettingsViewModel>();
+        public SettingsViewModel SettingsViewModel => SimpleIoc.Default.GetInstance<SettingsViewModel>();
 
-        public NavigationRootViewModel NavViewModel => ServiceLocator.Current.GetInstance<NavigationRootViewModel>();
+        public NavigationRootViewModel NavViewModel => SimpleIoc.Default.GetInstance<NavigationRootViewModel>();
 
-        public NewsFeedListViewModel NewsList => ServiceLocator.Current.GetInstance<NewsFeedListViewModel>();
+        public NewsFeedListViewModel NewsList => SimpleIoc.Default.GetInstance<NewsFeedListViewModel>();
 
-        public ProfileViewModel Profile => ServiceLocator.Current.GetInstance<ProfileViewModel>();
+        public ProfileViewModel Profile => SimpleIoc.Default.GetInstance<ProfileViewModel>();
 
         private void Register<VM, V>() where VM : class
         {

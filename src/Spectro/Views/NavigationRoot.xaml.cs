@@ -96,7 +96,7 @@ namespace Spectro.Views
             await md.ShowAsync();
         }
 
-        public (string, string) GetUsernamePassword()
+        public (string Username, string Password) GetUsernamePassword()
         {
             return credentialsPrompt.GetUsernamePassword();
         }
