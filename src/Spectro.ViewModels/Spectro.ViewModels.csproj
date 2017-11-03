@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Cimbalino.Toolkit.Core" Version="2.5.2" />
     <PackageReference Include="MvvmLightLibsStd10" Version="5.4.0.1-alpha" />
     <PackageReference Include="Realm.Database" Version="2.0.0" />
   </ItemGroup>

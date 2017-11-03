@@ -1,10 +1,8 @@
-﻿using NewsBlurSharp;
-using Spectro.Core.Interfaces;
+﻿using Spectro.Core.Interfaces;
 using Spectro.Helpers;
 using Spectro.Services;
 using Spectro.ViewModels;
 using System;
-using Windows.Security.Authentication.Web;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using System.Threading.Tasks;
@@ -18,7 +16,7 @@ namespace Spectro.Views
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class NavigationRoot : Page, ICredentialsPrompt
+    public sealed partial class NavigationRoot : ICredentialsPrompt
     {
         public NavigationRootViewModel Vm => DataContext as NavigationRootViewModel;
 
@@ -28,7 +26,7 @@ namespace Spectro.Views
             Singleton<NavigationServiceEx>.Instance.Frame = appNavFrame;
         }
 
-        private void Page_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             //TODO: replace with viewmodellocator
 

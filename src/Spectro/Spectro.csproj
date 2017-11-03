@@ -92,6 +92,15 @@
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Cimbalino.Toolkit">
+      <Version>2.5.2</Version>
+    </PackageReference>
+    <PackageReference Include="Cimbalino.Toolkit.Controls">
+      <Version>2.5.2</Version>
+    </PackageReference>
+    <PackageReference Include="Cimbalino.Toolkit.Core">
+      <Version>2.5.2</Version>
+    </PackageReference>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>6.0.1</Version>
     </PackageReference>
@@ -154,6 +163,7 @@
     <Compile Include="Views\SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\SpectroViewBase.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App.xaml.cs">

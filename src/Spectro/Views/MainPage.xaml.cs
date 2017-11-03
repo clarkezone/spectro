@@ -4,7 +4,7 @@ using Windows.UI.Xaml.Controls;
 
 namespace Spectro.Views
 {
-    public sealed partial class MainPage : Page
+    public sealed partial class MainPage
     {
         private MainViewModel ViewModel
         {

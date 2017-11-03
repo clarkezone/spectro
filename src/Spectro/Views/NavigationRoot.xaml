@@ -1,93 +1,91 @@
-﻿<Page x:Class="Spectro.Views.NavigationRoot"
-      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:RS2="using:Microsoft.Toolkit.Uwp.UI.Controls?IsApiContractNotPresent(Windows.Foundation.UniversalApiContract,5)"
-      xmlns:RS3="using:Windows.UI.Xaml.Controls?IsApiContractPresent(Windows.Foundation.UniversalApiContract,5)"
-      xmlns:appmodel="using:Windows.ApplicationModel"
-      xmlns:controls="using:Spectro.Controls"
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:local="using:Spectro.Views"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      DataContext="{Binding NavViewModel, Source={StaticResource Locator}}"
-      Loaded="Page_Loaded"
-      mc:Ignorable="d">
+﻿<local:SpectroViewBase x:Class="Spectro.Views.NavigationRoot"
+                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:controls="using:Spectro.Controls"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:local="using:Spectro.Views"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:appmodel="using:Windows.ApplicationModel"
+                       DataContext="{Binding NavViewModel, Source={StaticResource Locator}}"
+                       Loaded="Page_Loaded"
+                       mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <RS3:NavigationView x:Name="navview"
-                            AlwaysShowHeader="False"
-                            IsSettingsVisible="True"
-                            ItemInvoked="ItemInvoked">
+        <NavigationView x:Name="navview"
+                        AlwaysShowHeader="False"
+                        IsSettingsVisible="True"
+                        ItemInvoked="ItemInvoked">
             <NavigationView.AutoSuggestBox>
                 <AutoSuggestBox x:Name="find"
                                 PlaceholderText="Search for newsfeed"
                                 QueryIcon="Find" />
             </NavigationView.AutoSuggestBox>
             <!--  Not using databinding for items as they never change  -->
-            <RS3:NavigationView.MenuItems>
-                <RS3:NavigationViewItem x:Uid="NavigationRoot_AllStories"
-                                        IsSelected="True">
-                    <RS3:NavigationViewItem.Icon>
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Uid="NavigationRoot_AllStories"
+                                    IsSelected="True">
+                    <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE12A;" />
-                    </RS3:NavigationViewItem.Icon>
+                    </NavigationViewItem.Icon>
                     UFeeds
-                </RS3:NavigationViewItem>
-                <RS3:NavigationViewItem x:Uid="NavigationRoot_ReadStories"
-                                        IsSelected="True">
-                    <RS3:NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="NavigationRoot_ReadStories"
+                                    IsSelected="True">
+                    <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE930;" />
-                    </RS3:NavigationViewItem.Icon>
+                    </NavigationViewItem.Icon>
                     UFeeds
-                </RS3:NavigationViewItem>
-                <RS3:NavigationViewItem x:Uid="NavigationRoot_SavedStories"
-                                        IsSelected="True">
-                    <RS3:NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="NavigationRoot_SavedStories"
+                                    IsSelected="True">
+                    <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xECC5;" />
-                    </RS3:NavigationViewItem.Icon>
+                    </NavigationViewItem.Icon>
                     UFeeds
-                </RS3:NavigationViewItem>
+                </NavigationViewItem>
 
-                <RS3:NavigationViewItemSeparator />
+                <NavigationViewItemSeparator />
 
-                <RS3:NavigationViewItem x:Uid="NavigationRoot_GlobalSharedStories"
-                                        IsSelected="True">
-                    <RS3:NavigationViewItem.Icon>
+                <NavigationViewItem x:Uid="NavigationRoot_GlobalSharedStories"
+                                    IsSelected="True">
+                    <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE909;" />
-                    </RS3:NavigationViewItem.Icon>
+                    </NavigationViewItem.Icon>
                     UGlobalSharedStories
-                </RS3:NavigationViewItem>
-                <RS3:NavigationViewItem x:Uid="NavigationRoot_AllSharedStories"
-                                        IsSelected="True">
-                    <RS3:NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="NavigationRoot_AllSharedStories"
+                                    IsSelected="True">
+                    <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE716;" />
-                    </RS3:NavigationViewItem.Icon>
+                    </NavigationViewItem.Icon>
                     UAllSharedStories
-                </RS3:NavigationViewItem>
+                </NavigationViewItem>
 
-                <RS3:NavigationViewItemSeparator />
+                <NavigationViewItemSeparator />
 
-                <RS3:NavigationViewItem x:Uid="NavigationRoot_Profile">
-                    <RS3:NavigationViewItem.Icon>
+                <NavigationViewItem x:Uid="NavigationRoot_Profile">
+                    <NavigationViewItem.Icon>
                         <SymbolIcon Symbol="OtherUser" />
-                    </RS3:NavigationViewItem.Icon>
+                    </NavigationViewItem.Icon>
                     UProfile
-                </RS3:NavigationViewItem>
-            </RS3:NavigationView.MenuItems>
-            <RS3:NavigationView.PaneFooter>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+            <NavigationView.PaneFooter>
                 <StackPanel Orientation="Horizontal">
-                    <RS3:PersonPicture Width="25"
-                                       Height="25"
-                                       Margin="12,0,12,0">
-                        <RS3:PersonPicture.ProfilePicture>
+                    <PersonPicture Width="25"
+                                   Height="25"
+                                   Margin="12,0,12,0">
+                        <PersonPicture.ProfilePicture>
                             <BitmapImage UriSource="{x:Bind Vm.ProfileImageUri, Mode=OneWay}" />
-                        </RS3:PersonPicture.ProfilePicture>
-                    </RS3:PersonPicture>
+                        </PersonPicture.ProfilePicture>
+                    </PersonPicture>
                     <HyperlinkButton x:Name="MoreInfoBtn"
                                      Command="{x:Bind Vm.LoginLogoutCommand}"
                                      Content="{x:Bind Vm.LoginButtonText, Mode=OneWay}" />
                 </StackPanel>
-            </RS3:NavigationView.PaneFooter>
+            </NavigationView.PaneFooter>
             <Frame x:Name="appNavFrame" />
-        </RS3:NavigationView>
+        </NavigationView>
         <!--  how to handle position with / without back button  -->
         <TextBlock Margin="12,8,0,0"
                    VerticalAlignment="Top"
@@ -103,4 +101,4 @@
                      IsIndeterminate="True"
                      Visibility="Collapsed" />
     </Grid>
-</Page>
+</local:SpectroViewBase>
