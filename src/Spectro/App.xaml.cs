@@ -1,9 +1,8 @@
-using System;
-
 using Spectro.Services;
 using Spectro.Helpers;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
+using GalaSoft.MvvmLight.Ioc;
 
 namespace Spectro
 {
@@ -12,8 +11,7 @@ namespace Spectro
     /// </summary>
     sealed partial class App : Application
     {
-        private Lazy<ActivationService> _activationService;
-        private ActivationService ActivationService { get { return _activationService.Value; } }
+        private IActivationService ActivationService => SimpleIoc.Default.GetInstance<IActivationService>();
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -22,9 +20,6 @@ namespace Spectro
         public App()
         {
             InitializeComponent();
-
-            //Deferred execution until used. Check https://msdn.microsoft.com/library/dd642331(v=vs.110).aspx for further info on Lazy<T> class.
-            _activationService = new Lazy<ActivationService>(CreateActivationService);
         }
 
         /// <summary>
@@ -48,11 +43,6 @@ namespace Spectro
         protected override async void OnActivated(IActivatedEventArgs args)
         {
             await ActivationService.ActivateAsync(args);
-        }
-    
-        private ActivationService CreateActivationService()
-        {
-            return new ActivationService(this, typeof(ViewModels.NavigationRootViewModel));
         }
     }
 }

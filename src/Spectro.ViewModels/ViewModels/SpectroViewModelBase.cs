@@ -7,10 +7,10 @@ namespace Spectro.ViewModels
 {
     public abstract class SpectroViewModelBase : ViewModelBase, IHandleNavigatedFrom, IHandleNavigatedTo
     {
-        public Task OnNavigatedFromAsync(NavigationServiceNavigationEventArgs eventArgs)
+        public virtual Task OnNavigatedFromAsync(NavigationServiceNavigationEventArgs eventArgs)
             => Task.CompletedTask;
 
-        public Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
+        public virtual Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
             => Task.CompletedTask;
     }
 }

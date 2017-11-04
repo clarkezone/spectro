@@ -7,15 +7,13 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using System.Threading.Tasks;
 using Windows.UI.Popups;
+using Windows.UI.Xaml.Navigation;
+using GalaSoft.MvvmLight.Ioc;
 using Microsoft.Toolkit.Uwp.Helpers;
-
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
+using Spectro.Core.Services;
 
 namespace Spectro.Views
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
     public sealed partial class NavigationRoot : ICredentialsPrompt
     {
         public NavigationRootViewModel Vm => DataContext as NavigationRootViewModel;
@@ -23,44 +21,33 @@ namespace Spectro.Views
         public NavigationRoot()
         {
             this.InitializeComponent();
-            Singleton<NavigationServiceEx>.Instance.Frame = appNavFrame;
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            //TODO: replace with viewmodellocator
-
-            appNavFrame.Navigate(typeof(NewsFeedList));
             Vm.RegisterCredentialsUX(this);
-        }
-
-        public void NavigateToFeedsTapped(object sender, RoutedEventArgs args)
-        {
-            //Vm.NavigateCommand.Execute("");
-        }
-
-        public void NavigateToProfileTapped(object sender, RoutedEventArgs args)
-        {
-            //Vm.NavigateCommand.Execute("");
         }
 
         public void ItemInvoked(object sender, NavigationViewItemInvokedEventArgs args)
         {
-            //Expeectiving navigationex
-
-            //TODO: localize this
-            //TODO: switch statement
-            if (args.InvokedItem.ToString() == "Profile")
-            {
-                Singleton<NavigationServiceEx>.Instance.Navigate(typeof(ProfileViewModel).FullName);
-            } else
-            {
-                Singleton<NavigationServiceEx>.Instance.Navigate(typeof(NewsFeedListViewModel).FullName);
-            }
-
+            var navigation = SimpleIoc.Default.GetInstance<ISpectroNavigationService>();
             if (args.IsSettingsInvoked)
             {
-                Singleton<NavigationServiceEx>.Instance.Navigate(typeof(SettingsViewModel).FullName);
+                navigation.NavigateToSettings();
+            }
+            
+            if (!(args.InvokedItem is NavigationViewItem item))
+            {
+                return;
+            }
+
+            if (item.Tag.ToString() == "Profile")
+            {
+                navigation.NavigateToProfile();
+            }
+            else
+            {
+                navigation.NavigateToNewsFeed();
             }
         }
 
@@ -104,5 +91,11 @@ namespace Spectro.Views
             return Microsoft.Toolkit.Uwp.Connectivity.NetworkHelper.Instance.ConnectionInformation.IsInternetAvailable;
         }
         #endregion
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            SimpleIoc.Default.GetInstance<ISpectroNavigationService>().RegisterFrame(AppNavFrame);
+            base.OnNavigatedTo(e);
+        }
     }
 }

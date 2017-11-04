@@ -2,22 +2,29 @@
 using System.ComponentModel;
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
+using Cimbalino.Toolkit.Services;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using Spectro.Core.Services;
 
 namespace Spectro.ViewModels
 {
-    public class NavigationRootViewModel : ViewModelBase
+    public class NavigationRootViewModel : SpectroViewModelBase
     {
         private readonly INewsBlurService _loginService;
         private readonly ITranslationService _translationService;
+        private readonly ISpectroNavigationService _navigationService;
         private RelayCommand _loginCommand;
 
-        public NavigationRootViewModel(INewsBlurService service, ITranslationService translationService)
+        public NavigationRootViewModel(
+            INewsBlurService service,
+            ITranslationService translationService,
+            ISpectroNavigationService navigationService)
         {
             this._loginService = service;
             _translationService = translationService;
+            _navigationService = navigationService;
             this._loginService.CurrentSession.PropertyChanged += CurrentSession_PropertyChanged;
         }
 
@@ -28,7 +35,7 @@ namespace Spectro.ViewModels
 
         public RelayCommand LoginLogoutCommand => _loginCommand
                                                   ?? (_loginCommand = new RelayCommand(LoginLogout));
-        
+
         internal void NotifyLoginStateChanged()
         {
             RaisePropertyChanged(nameof(LoginButtonText));
@@ -41,6 +48,12 @@ namespace Spectro.ViewModels
 
         public void RegisterCredentialsUX(ICredentialsPrompt ux) => _loginService.RegisterCredentialPrompt(ux);
 
+        public override Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
+        {
+            _navigationService.NavigateToNewsFeed();
+            return base.OnNavigatedToAsync(eventArgs);
+        }
+
         private void LoginLogout()
         {
             if (this._loginService.CurrentSession.IsLoggedIn)
@@ -49,7 +62,8 @@ namespace Spectro.ViewModels
             }
             else
             {
-                this._loginService.Login().ContinueWith((e) => {
+                this._loginService.Login().ContinueWith((e) =>
+                {
                     Debug.WriteLine(e.IsFaulted);
                 });
             }

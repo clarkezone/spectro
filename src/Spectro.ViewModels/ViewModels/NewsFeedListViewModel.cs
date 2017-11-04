@@ -1,20 +1,19 @@
 ﻿using System.Collections.Specialized;
 using Spectro.DataModel;
 using System.Linq;
+using System.Threading.Tasks;
+using Cimbalino.Toolkit.Services;
 using Realms;
-using GalaSoft.MvvmLight;
 
 namespace Spectro.ViewModels
 {
-    public class NewsFeedListViewModel : ViewModelBase
+    public class NewsFeedListViewModel : SpectroViewModelBase
     {
         public NewsFeedListViewModel()
         {
-            // TODO: This should probably be done at another stage rather than in the ctor
-            this.FeedItemSource = DataModelManager.RealmInstance.All<NewsFeed>().Where(it => it.UnreadCount > 0).OrderBy(ob => ob.Title).AsRealmCollection();
         }
 
-        public INotifyCollectionChanged FeedItemSource { get; }
+        public INotifyCollectionChanged FeedItemSource { get; private set; }
 
         public INotifyCollectionChanged StoryItemSource { get; private set; }
 
@@ -22,6 +21,12 @@ namespace Spectro.ViewModels
         {
             StoryItemSource = DataModelManager.RealmInstance.All<Story>().Where(st => st.FeedId == newsFeed.Id && st.ReadStatus == 0).AsRealmCollection();
             RaisePropertyChanged(nameof(StoryItemSource));
+        }
+
+        public override Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
+        {
+            this.FeedItemSource = DataModelManager.RealmInstance.All<NewsFeed>().Where(it => it.UnreadCount > 0).OrderBy(ob => ob.Title).AsRealmCollection();
+            return base.OnNavigatedToAsync(eventArgs);
         }
     }
 }
