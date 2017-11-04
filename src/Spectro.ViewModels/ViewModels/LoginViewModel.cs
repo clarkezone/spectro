@@ -67,12 +67,18 @@ namespace Spectro.ViewModels
                 if (await _authenticationService.Login(Username, Password))
                 {
                     _navigationService.NavigateToRootNavigation();
+                    ClearDown();
                 }
             }
             catch (Exception)
             {
                 
             }
+        }
+
+        private void ClearDown()
+        {
+            Username = Password = null;
         }
     }
 }

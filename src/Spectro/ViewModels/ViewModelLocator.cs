@@ -18,7 +18,6 @@ namespace Spectro.ViewModels
             SimpleIoc.Default.Register<INewsBlurClient>(() => new NewsBlurClient());
             SimpleIoc.Default.Register<ISynchronizer, Synchronizer>();
             SimpleIoc.Default.Register<ITranslationService, TranslationService>();
-            SimpleIoc.Default.Register<INewsBlurService, NewsBlurService>();
             SimpleIoc.Default.Register<ISpectroNavigationService, SpectroNavigationService>();
             SimpleIoc.Default.Register<IActivationService, ActivationService>();
             SimpleIoc.Default.Register<IAuthenticationService, AuthenticationService>();
