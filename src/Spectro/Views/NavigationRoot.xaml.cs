@@ -8,7 +8,7 @@ namespace Spectro.Views
 {
     public sealed partial class NavigationRoot
     {
-        public NavigationRootViewModel Vm => DataContext as NavigationRootViewModel;
+        public NavigationRootViewModel ViewModel => DataContext as NavigationRootViewModel;
 
         public NavigationRoot()
         {

@@ -80,12 +80,12 @@
                                    Height="25"
                                    Margin="12,0,12,0">
                         <PersonPicture.ProfilePicture>
-                            <BitmapImage UriSource="{x:Bind Vm.ProfileImageUri, Mode=OneWay}" />
+                            <BitmapImage UriSource="{x:Bind ViewModel.ProfileImageUri, Mode=OneWay}" />
                         </PersonPicture.ProfilePicture>
                     </PersonPicture>
                     <HyperlinkButton x:Name="MoreInfoBtn"
-                                     Command="{x:Bind Vm.LoginLogoutCommand}"
-                                     Content="{x:Bind Vm.LoginButtonText, Mode=OneWay}" />
+                                     Command="{x:Bind ViewModel.LoginLogoutCommand}"
+                                     Content="{x:Bind ViewModel.LoginButtonText, Mode=OneWay}" />
                 </StackPanel>
             </NavigationView.PaneFooter>
             <Frame x:Name="AppNavFrame" />
@@ -96,12 +96,12 @@
                    Style="{ThemeResource CaptionTextBlockStyle}"
                    Text="{x:Bind appmodel:Package.Current.DisplayName}" />
 
-        <ProgressBar x:Name="serviceProgress"
+        <ProgressBar x:Name="ServiceProgress"
                      Height="10"
                      HorizontalAlignment="Stretch"
                      VerticalAlignment="Top"
-                     IsEnabled="True"
-                     IsIndeterminate="True"
-                     Visibility="Collapsed" />
+                     IsEnabled="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                     IsIndeterminate="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                     Visibility="{x:Bind BooleanToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
     </Grid>
 </local:SpectroViewBase>

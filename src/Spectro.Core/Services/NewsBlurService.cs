@@ -119,7 +119,6 @@ namespace Spectro.Core.Services
         public void RegisterCredentialPrompt(ICredentialsPrompt prompt)
         {
             _prompt = prompt;
-            _synchronizer.RegisterCredentialPrompt(prompt);
             StartSync(CurrentSession);
         }
     }

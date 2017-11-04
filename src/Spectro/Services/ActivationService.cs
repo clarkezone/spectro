@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Spectro.Core.Interfaces;
+using Spectro.Core.Services;
 using Spectro.Views;
 
 namespace Spectro.Services
@@ -32,6 +34,20 @@ namespace Spectro.Services
             _navigationService = navigationService;
             _dataCacheService = dataCacheService;
             _authenticationService = authenticationService;
+            _authenticationService.LoggedInStatusChanged += AuthenticationServiceOnLoggedInStatusChanged;
+        }
+
+        private void AuthenticationServiceOnLoggedInStatusChanged(object sender, LoggedInStatusChangedEventArgs e)
+        {
+            if (!e.IsLoggedIn)
+            {
+                var frame = new Frame();
+                frame.Navigate(typeof(LoginPage));
+                _navigationService.RegisterFrame(frame);
+
+                Window.Current.Content = frame;
+                Window.Current.Activate();
+            }
         }
 
         public async Task ActivateAsync(object activationArgs)
