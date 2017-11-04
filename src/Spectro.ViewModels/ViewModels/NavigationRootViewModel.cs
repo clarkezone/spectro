@@ -1,6 +1,5 @@
 ﻿using Spectro.Core.Interfaces;
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Cimbalino.Toolkit.Services;
 using Spectro.Core.Commands;
@@ -14,8 +13,6 @@ namespace Spectro.ViewModels
         private readonly ISpectroNavigationService _navigationService;
         private readonly IAuthenticationService _authenticationService;
         private AsyncRelayCommand _loginCommand;
-
-        private ICredentialsPrompt _credentialsPrompt;
 
         public NavigationRootViewModel(
             ITranslationService translationService,
@@ -44,8 +41,6 @@ namespace Spectro.ViewModels
 
         public Uri ProfileImageUri => _authenticationService.IsLoggedIn ? new Uri(_authenticationService.LoggedInUser.PhotoUrl) : null;
 
-        public void RegisterCredentialsUX(ICredentialsPrompt ux) => _credentialsPrompt = ux;
-
         public override Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
         {
             _navigationService.NavigateToNewsFeed();
@@ -54,23 +49,9 @@ namespace Spectro.ViewModels
 
         private async Task LoginLogout()
         {
-            if (_authenticationService.IsLoggedIn)
-            {
-                await _authenticationService.Logout();
-            }
-            else
-            {
-                if (await _credentialsPrompt.PromptCredentials())
-                {
-                    var credentials = _credentialsPrompt.GetUsernamePassword();
-                    await _authenticationService.Login(credentials.Username, credentials.Password).ContinueWith(e =>
-                    {
-                        Debug.WriteLine(e.IsFaulted);
-                    });
-                }
-            }
+            await _authenticationService.Logout();
 
-            NotifyLoginStateChanged();
+            _navigationService.NavigateToLogin();
         }
     }
 }

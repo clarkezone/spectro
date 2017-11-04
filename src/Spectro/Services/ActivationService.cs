@@ -22,13 +22,16 @@ namespace Spectro.Services
     {
         private readonly ISpectroNavigationService _navigationService;
         private readonly IDataCacheService _dataCacheService;
+        private readonly IAuthenticationService _authenticationService;
 
         public ActivationService(
             ISpectroNavigationService navigationService,
-            IDataCacheService dataCacheService)
+            IDataCacheService dataCacheService,
+            IAuthenticationService authenticationService)
         {
             _navigationService = navigationService;
             _dataCacheService = dataCacheService;
+            _authenticationService = authenticationService;
         }
 
         public async Task ActivateAsync(object activationArgs)
@@ -43,30 +46,31 @@ namespace Spectro.Services
                 if (Window.Current.Content == null)
                 {
                     var frame = new Frame();
-                    frame.Navigate(typeof(NavigationRoot));
+                    var initialPage = _authenticationService.IsLoggedIn ? typeof(NavigationRoot) : typeof(LoginPage);
+                    frame.Navigate(initialPage);
                     // Create a Frame to act as the navigation context and navigate to the first page
                     Window.Current.Content = frame;
+
+                    // Ensure the current window is active
+                    Window.Current.Activate();
                 }
             }
 
             var activationHandler = GetActivationHandlers()
-                                                .FirstOrDefault(h => h.CanHandle(activationArgs));
+                .FirstOrDefault(h => h.CanHandle(activationArgs));
 
             if (activationHandler != null)
             {
                 await activationHandler.HandleAsync(activationArgs);
             }
 
-            if (IsInteractive(activationArgs))
+            if (IsInteractive(activationArgs) && _authenticationService.IsLoggedIn)
             {
                 var defaultHandler = new DefaultLaunchActivationHandler(typeof(NewsFeedList), _navigationService);
                 if (defaultHandler.CanHandle(activationArgs))
                 {
                     await defaultHandler.HandleAsync(activationArgs);
                 }
-
-                // Ensure the current window is active
-                Window.Current.Activate();
 
                 // Tasks after activation
                 await StartupAsync();
@@ -75,13 +79,10 @@ namespace Spectro.Services
 
         private async Task InitializeAsync()
         {
-            await Task.CompletedTask;
+            await _dataCacheService.Startup();            
         }
 
-        private async Task StartupAsync()
-        {
-            await Task.CompletedTask;
-        }
+        private Task StartupAsync() => Task.CompletedTask;
 
         private IEnumerable<ActivationHandler> GetActivationHandlers()
         {

@@ -28,14 +28,19 @@ namespace Spectro.ViewModels
             SimpleIoc.Default.Register<ProfileViewModel>();
             SimpleIoc.Default.Register<SettingsViewModel>();
             SimpleIoc.Default.Register<NewsFeedListViewModel>();
+            SimpleIoc.Default.Register<LoginViewModel>();
         }
 
-        public SettingsViewModel SettingsViewModel => SimpleIoc.Default.GetInstance<SettingsViewModel>();
+        public SettingsViewModel SettingsViewModel => Get<SettingsViewModel>();
 
-        public NavigationRootViewModel NavViewModel => SimpleIoc.Default.GetInstance<NavigationRootViewModel>();
+        public NavigationRootViewModel NavViewModel => Get<NavigationRootViewModel>();
 
-        public NewsFeedListViewModel NewsList => SimpleIoc.Default.GetInstance<NewsFeedListViewModel>();
+        public NewsFeedListViewModel NewsList => Get<NewsFeedListViewModel>();
 
-        public ProfileViewModel Profile => SimpleIoc.Default.GetInstance<ProfileViewModel>();
+        public ProfileViewModel Profile => Get<ProfileViewModel>();
+
+        public LoginViewModel Login => Get<LoginViewModel>();
+
+        private static T Get<T>() => SimpleIoc.Default.GetInstance<T>();
     }
 }
