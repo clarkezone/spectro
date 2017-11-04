@@ -1,39 +1,38 @@
 ﻿using Spectro.Core.Interfaces;
-using System.ComponentModel;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Cimbalino.Toolkit.Services;
-using GalaSoft.MvvmLight.Command;
+using Spectro.Core.Commands;
 using Spectro.Core.Services;
 
 namespace Spectro.ViewModels
 {
     public class NavigationRootViewModel : SpectroViewModelBase
     {
-        private readonly INewsBlurService _loginService;
         private readonly ITranslationService _translationService;
         private readonly ISpectroNavigationService _navigationService;
-        private RelayCommand _loginCommand;
+        private readonly IAuthenticationService _authenticationService;
+        private AsyncRelayCommand _loginCommand;
+
+        private ICredentialsPrompt _credentialsPrompt;
 
         public NavigationRootViewModel(
-            INewsBlurService service,
             ITranslationService translationService,
-            ISpectroNavigationService navigationService)
+            ISpectroNavigationService navigationService,
+            IAuthenticationService authenticationService)
         {
-            this._loginService = service;
             _translationService = translationService;
             _navigationService = navigationService;
-            this._loginService.CurrentSession.PropertyChanged += CurrentSession_PropertyChanged;
+            _authenticationService = authenticationService;
+            _authenticationService.LoggedInStatusChanged += AuthenticationServiceOnLoggedInStatusChanged;
         }
 
-        private void CurrentSession_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            NotifyLoginStateChanged();
-        }
+        private void AuthenticationServiceOnLoggedInStatusChanged(object sender, LoggedInStatusChangedEventArgs e) 
+            => NotifyLoginStateChanged();
 
-        public RelayCommand LoginLogoutCommand => _loginCommand
-                                                  ?? (_loginCommand = new RelayCommand(LoginLogout));
+        public AsyncRelayCommand LoginLogoutCommand => _loginCommand
+                                                  ?? (_loginCommand = new AsyncRelayCommand(LoginLogout));
 
         internal void NotifyLoginStateChanged()
         {
@@ -41,11 +40,11 @@ namespace Spectro.ViewModels
             RaisePropertyChanged(nameof(ProfileImageUri));
         }
 
-        public string LoginButtonText => _loginService.CurrentSession.IsLoggedIn ? _loginService.CurrentSession.UserName : _translationService.GetString("NavigationRoot_Login");
+        public string LoginButtonText => _authenticationService.IsLoggedIn ? _authenticationService.LoggedInUser.Username : _translationService.GetString("NavigationRoot_Login");
 
-        public Uri ProfileImageUri => _loginService.CurrentSession.IsLoggedIn ? new Uri(_loginService.CurrentSession.PhotoUrl) : null;
+        public Uri ProfileImageUri => _authenticationService.IsLoggedIn ? new Uri(_authenticationService.LoggedInUser.PhotoUrl) : null;
 
-        public void RegisterCredentialsUX(ICredentialsPrompt ux) => _loginService.RegisterCredentialPrompt(ux);
+        public void RegisterCredentialsUX(ICredentialsPrompt ux) => _credentialsPrompt = ux;
 
         public override Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
         {
@@ -53,18 +52,22 @@ namespace Spectro.ViewModels
             return base.OnNavigatedToAsync(eventArgs);
         }
 
-        private void LoginLogout()
+        private async Task LoginLogout()
         {
-            if (this._loginService.CurrentSession.IsLoggedIn)
+            if (_authenticationService.IsLoggedIn)
             {
-                this._loginService.Logout();
+                await _authenticationService.Logout();
             }
             else
             {
-                this._loginService.Login().ContinueWith((e) =>
+                if (await _credentialsPrompt.PromptCredentials())
                 {
-                    Debug.WriteLine(e.IsFaulted);
-                });
+                    var credentials = _credentialsPrompt.GetUsernamePassword();
+                    await _authenticationService.Login(credentials.Username, credentials.Password).ContinueWith(e =>
+                    {
+                        Debug.WriteLine(e.IsFaulted);
+                    });
+                }
             }
 
             NotifyLoginStateChanged();

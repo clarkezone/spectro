@@ -7,7 +7,7 @@ using Spectro.Activation;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Spectro.Core.Services;
+using Spectro.Core.Interfaces;
 using Spectro.Views;
 
 namespace Spectro.Services
@@ -21,10 +21,14 @@ namespace Spectro.Services
     internal class ActivationService : IActivationService
     {
         private readonly ISpectroNavigationService _navigationService;
+        private readonly IDataCacheService _dataCacheService;
 
-        public ActivationService(ISpectroNavigationService navigationService)
+        public ActivationService(
+            ISpectroNavigationService navigationService,
+            IDataCacheService dataCacheService)
         {
             _navigationService = navigationService;
+            _dataCacheService = dataCacheService;
         }
 
         public async Task ActivateAsync(object activationArgs)

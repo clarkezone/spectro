@@ -1,5 +1,5 @@
 ﻿using Windows.ApplicationModel.Resources;
-using Spectro.Core.Services;
+using Spectro.Core.Interfaces;
 
 namespace Spectro.Services
 {

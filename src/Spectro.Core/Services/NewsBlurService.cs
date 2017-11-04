@@ -11,8 +11,6 @@ namespace Spectro.Core.Services
 {
     public class NewsBlurService : INewsBlurService
     {
-        private const string RealmName = "NewsBlurStore";
-
         private readonly ITranslationService _translationService;
         private readonly INewsBlurClient _newsBlurClient;
         private readonly ISynchronizer _synchronizer;
@@ -26,7 +24,6 @@ namespace Spectro.Core.Services
             _translationService = translationService;
             _newsBlurClient = newsBlurClient;
             _synchronizer = synchronizer;
-            DataModelManager.Configure(RealmName);
             var session = GetSession(DataModelManager.RealmInstance);
         }
 

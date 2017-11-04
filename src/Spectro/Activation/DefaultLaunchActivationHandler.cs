@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Spectro.Services;
 
 using Windows.ApplicationModel.Activation;
+using Spectro.Core.Interfaces;
 using Spectro.Core.Services;
 using Spectro.Helpers;
 

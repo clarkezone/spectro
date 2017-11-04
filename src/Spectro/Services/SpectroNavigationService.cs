@@ -1,4 +1,5 @@
 ﻿using Cimbalino.Toolkit.Services;
+using Spectro.Core.Interfaces;
 using Spectro.Core.Services;
 using Spectro.Views;
 

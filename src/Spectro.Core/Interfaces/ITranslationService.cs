@@ -1,4 +1,4 @@
-﻿namespace Spectro.Core.Services
+﻿namespace Spectro.Core.Interfaces
 {
     public interface ITranslationService
     {

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,10 +9,8 @@ using NewsBlurSharp.Extensions;
 using NewsBlurSharp.Http;
 using NewsBlurSharp.Logging;
 using NewsBlurSharp.Model.Response;
-using NewsBlurSharp.Model.Response.ProfileResponse;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using System.Linq;
 using System.Diagnostics;
 
 namespace NewsBlurSharp

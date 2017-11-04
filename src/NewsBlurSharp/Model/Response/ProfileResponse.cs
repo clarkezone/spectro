@@ -41,7 +41,7 @@ namespace NewsBlurSharp.Model.Response
         public string LargePhotoUrl { get; set; }
 
         [JsonProperty("custom_bgcolor")]
-        public object CustomBgcolor { get; set; }
+        public string CustomBgcolor { get; set; }
 
         [JsonProperty("id")]
         public string Id { get; set; }
@@ -56,10 +56,10 @@ namespace NewsBlurSharp.Model.Response
         public string FeedLink { get; set; }
 
         [JsonProperty("follower_user_ids")]
-        public object[] FollowerUserIds { get; set; }
+        public string[] FollowerUserIds { get; set; }
 
         [JsonProperty("location")]
-        public object Location { get; set; }
+        public string Location { get; set; }
 
         [JsonProperty("popular_publishers")]
         public object PopularPublishers { get; set; }
@@ -71,13 +71,13 @@ namespace NewsBlurSharp.Model.Response
         public string Username { get; set; }
 
         [JsonProperty("bio")]
-        public object Bio { get; set; }
+        public string Bio { get; set; }
 
         [JsonProperty("average_stories_per_month")]
         public int AverageStoriesPerMonth { get; set; }
 
         [JsonProperty("bb_permalink_direct")]
-        public object BbPermalinkDirect { get; set; }
+        public string BbPermalinkDirect { get; set; }
 
         [JsonProperty("feed_title")]
         public string FeedTitle { get; set; }
