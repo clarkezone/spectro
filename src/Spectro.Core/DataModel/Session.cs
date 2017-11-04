@@ -1,7 +1,4 @@
 ﻿using Realms;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Spectro.Core.DataModel
 {
@@ -9,14 +6,15 @@ namespace Spectro.Core.DataModel
     {
         public int CurrentUserId
         {
-            get { return CurrentUserId_; }
-
-            set { CurrentUserId_ = value;
+            get => _currentUserId;
+            set
+            {
+                _currentUserId = value;
                 OnPropertyChanged(nameof(IsLoggedIn));
             }
         }
 
-        public int CurrentUserId_ { get; set; }
+        private int _currentUserId;
 
         public string AuthCookieToken { get; set; }
 
@@ -24,12 +22,6 @@ namespace Spectro.Core.DataModel
 
         public string PhotoUrl { get; set; }
 
-        public bool IsLoggedIn
-        {
-            get
-            {
-                return CurrentUserId_ != 0;
-            }
-        }
+        public bool IsLoggedIn => _currentUserId != 0;
     }
 }

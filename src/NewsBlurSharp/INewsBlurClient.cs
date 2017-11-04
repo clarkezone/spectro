@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NewsBlurSharp.Model.Response;
-using NewsBlurSharp.Model.Response.ProfileResponse;
 
 namespace NewsBlurSharp
 {
@@ -18,6 +17,6 @@ namespace NewsBlurSharp
         Task<object> MarkStoriesReadAsync(List<String> storyHashList);
         Task<object> MarkStoryUnreadAsync(String storyHash);
         Task<object> GetUserPublicProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken));
-        Task<Rootobject> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task<ProfileResponse> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken));
     }
 }

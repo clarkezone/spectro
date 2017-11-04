@@ -4,7 +4,6 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Cimbalino.Toolkit.Services;
-using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using Spectro.Core.Services;
 

@@ -277,9 +277,9 @@ namespace NewsBlurSharp
             return response.Response;
         }
 
-        public async Task<Rootobject> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<ProfileResponse> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            var response = await GetResponse<Rootobject>("social", "load_user_profile");
+            var response = await GetResponse<ProfileResponse>("social", "load_user_profile", cancellationToken: cancellationToken);
 
             return response.Response;
         }

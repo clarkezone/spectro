@@ -1,84 +1,121 @@
-﻿namespace NewsBlurSharp.Model.Response.ProfileResponse
+﻿using Newtonsoft.Json;
+
+namespace NewsBlurSharp.Model.Response
 {
-
-    public class Rootobject
-    {
-        public Services services { get; set; }
-        public bool authenticated { get; set; }
-        public int user_id { get; set; }
-        public string result { get; set; }
-        public User_Profile user_profile { get; set; }
-    }
-
     public class Services
     {
-        public Facebook facebook { get; set; }
-        public Twitter twitter { get; set; }
-        public Gravatar gravatar { get; set; }
-        public Appdotnet appdotnet { get; set; }
-        public Upload upload { get; set; }
+        [JsonProperty("facebook")]
+        public Facebook Facebook { get; set; }
+
+        [JsonProperty("twitter")]
+        public Twitter Twitter { get; set; }
+
+        [JsonProperty("gravatar")]
+        public Gravatar Gravatar { get; set; }
+
+        [JsonProperty("appdotnet")]
+        public Appdotnet Appdotnet { get; set; }
+
+        [JsonProperty("upload")]
+        public Upload Upload { get; set; }
     }
 
-    public class Facebook
+    public class UserProfile
     {
-        public bool syncing { get; set; }
-        public string facebook_picture_url { get; set; }
-        public string facebook_uid { get; set; }
+        [JsonProperty("website")]
+        public object Website { get; set; }
+
+        [JsonProperty("following_user_ids")]
+        public object[] FollowingUserIds { get; set; }
+
+        [JsonProperty("following_count")]
+        public int FollowingCount { get; set; }
+
+        [JsonProperty("shared_stories_count")]
+        public int SharedStoriesCount { get; set; }
+
+        [JsonProperty("private")]
+        public object Private { get; set; }
+
+        [JsonProperty("large_photo_url")]
+        public string LargePhotoUrl { get; set; }
+
+        [JsonProperty("custom_bgcolor")]
+        public object CustomBgcolor { get; set; }
+
+        [JsonProperty("id")]
+        public string Id { get; set; }
+
+        [JsonProperty("feed_address")]
+        public string FeedAddress { get; set; }
+
+        [JsonProperty("user_id")]
+        public int UserId { get; set; }
+
+        [JsonProperty("feed_link")]
+        public string FeedLink { get; set; }
+
+        [JsonProperty("follower_user_ids")]
+        public object[] FollowerUserIds { get; set; }
+
+        [JsonProperty("location")]
+        public object Location { get; set; }
+
+        [JsonProperty("popular_publishers")]
+        public object PopularPublishers { get; set; }
+
+        [JsonProperty("follower_count")]
+        public int FollowerCount { get; set; }
+
+        [JsonProperty("username")]
+        public string Username { get; set; }
+
+        [JsonProperty("bio")]
+        public object Bio { get; set; }
+
+        [JsonProperty("average_stories_per_month")]
+        public int AverageStoriesPerMonth { get; set; }
+
+        [JsonProperty("bb_permalink_direct")]
+        public object BbPermalinkDirect { get; set; }
+
+        [JsonProperty("feed_title")]
+        public string FeedTitle { get; set; }
+
+        [JsonProperty("photo_service")]
+        public object PhotoService { get; set; }
+
+        [JsonProperty("stories_last_month")]
+        public int StoriesLastMonth { get; set; }
+
+        [JsonProperty("photo_url")]
+        public string PhotoUrl { get; set; }
+
+        [JsonProperty("custom_css")]
+        public object CustomCss { get; set; }
+
+        [JsonProperty("num_subscribers")]
+        public int NumSubscribers { get; set; }
+
+        [JsonProperty("protected")]
+        public object Protected { get; set; }
     }
 
-    public class Twitter
+    public class ProfileResponse
     {
-        public string twitter_username { get; set; }
-        public bool syncing { get; set; }
-        public string twitter_picture_url { get; set; }
-        public string twitter_uid { get; set; }
-    }
+        [JsonProperty("services")]
+        public Services Services { get; set; }
 
-    public class Gravatar
-    {
-        public string gravatar_picture_url { get; set; }
-    }
+        [JsonProperty("authenticated")]
+        public bool Authenticated { get; set; }
 
-    public class Appdotnet
-    {
-        public bool syncing { get; set; }
-        public object appdotnet_uid { get; set; }
-        public object appdotnet_picture_url { get; set; }
-    }
+        [JsonProperty("user_id")]
+        public int UserId { get; set; }
 
-    public class Upload
-    {
-        public object upload_picture_url { get; set; }
-    }
+        [JsonProperty("result")]
+        public string Result { get; set; }
 
-    public class User_Profile
-    {
-        public string website { get; set; }
-        public int[] following_user_ids { get; set; }
-        public int following_count { get; set; }
-        public int shared_stories_count { get; set; }
-        public bool _private { get; set; }
-        public string large_photo_url { get; set; }
-        public object custom_bgcolor { get; set; }
-        public string id { get; set; }
-        public string feed_address { get; set; }
-        public int user_id { get; set; }
-        public string feed_link { get; set; }
-        public int[] follower_user_ids { get; set; }
-        public string location { get; set; }
-        public object popular_publishers { get; set; }
-        public int follower_count { get; set; }
-        public string username { get; set; }
-        public string bio { get; set; }
-        public int average_stories_per_month { get; set; }
-        public object bb_permalink_direct { get; set; }
-        public string feed_title { get; set; }
-        public string photo_service { get; set; }
-        public int stories_last_month { get; set; }
-        public string photo_url { get; set; }
-        public object custom_css { get; set; }
-        public int num_subscribers { get; set; }
-        public bool _protected { get; set; }
+        [JsonProperty("user_profile")]
+        public UserProfile UserProfile { get; set; }
     }
-
 }

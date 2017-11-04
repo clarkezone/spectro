@@ -4,7 +4,6 @@ using Spectro.Core.DataModel;
 using Spectro.Core.Interfaces;
 using Spectro.DataModel;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -77,8 +76,8 @@ namespace Spectro.Core.Services
                     var trans = instance.BeginWrite();
                     currentSession.AuthCookieToken = result.AuthCookieToken;
                     currentSession.CurrentUserId = result.UserId;
-                    currentSession.UserName = profile.user_profile.username;
-                    currentSession.PhotoUrl = profile.user_profile.photo_url;
+                    currentSession.UserName = profile.UserProfile.Username;
+                    currentSession.PhotoUrl = profile.UserProfile.PhotoUrl;
                     trans.Commit();
                     var ignore = _synchronizer.StartSync();
                     
