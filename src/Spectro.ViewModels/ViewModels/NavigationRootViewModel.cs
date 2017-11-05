@@ -15,6 +15,7 @@ namespace Spectro.ViewModels
         private readonly IAuthenticationService _authenticationService;
         private readonly ISynchronizer _synchronizer;
         private readonly IProgressService _progressService;
+        private readonly IApplicationInformationService _applicationInformationService;
         private AsyncRelayCommand _loginCommand;
 
         public NavigationRootViewModel(
@@ -22,13 +23,15 @@ namespace Spectro.ViewModels
             ISpectroNavigationService navigationService,
             IAuthenticationService authenticationService,
             ISynchronizer synchronizer,
-            IProgressService progressService)
+            IProgressService progressService,
+            IApplicationInformationService applicationInformationService)
         {
             _translationService = translationService;
             _navigationService = navigationService;
             _authenticationService = authenticationService;
             _synchronizer = synchronizer;
             _progressService = progressService;
+            _applicationInformationService = applicationInformationService;
             _authenticationService.LoggedInStatusChanged += AuthenticationServiceOnLoggedInStatusChanged;
             progressService.ProgressStatusChanged += ProgressServiceOnProgressStatusChanged;
         }
@@ -43,6 +46,8 @@ namespace Spectro.ViewModels
             : _translationService.GetString("NavigationRoot_Login");
 
         public Uri ProfileImageUri => _authenticationService.IsLoggedIn ? new Uri(_authenticationService.LoggedInUser.PhotoUrl) : null;
+
+        public string ApplicationName => _applicationInformationService.AppName;
 
         private void ProgressServiceOnProgressStatusChanged(object sender, EventArgs e)
         {
