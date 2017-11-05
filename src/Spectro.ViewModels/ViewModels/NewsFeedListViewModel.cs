@@ -1,32 +1,35 @@
 ﻿using System.Collections.Specialized;
-using Spectro.DataModel;
 using System.Linq;
+using Spectro.DataModel;
 using System.Threading.Tasks;
+using Cimbalino.Toolkit.Extensions;
 using Cimbalino.Toolkit.Services;
-using Realms;
+using Spectro.Core.Interfaces;
 
 namespace Spectro.ViewModels
 {
     public class NewsFeedListViewModel : SpectroViewModelBase
     {
-        public NewsFeedListViewModel()
+        private readonly IDataCacheService _dataCacheService;
+
+        public NewsFeedListViewModel(IDataCacheService dataCacheService)
         {
+            _dataCacheService = dataCacheService;
         }
 
         public INotifyCollectionChanged FeedItemSource { get; private set; }
 
         public INotifyCollectionChanged StoryItemSource { get; private set; }
 
-        public void SelectFeed(NewsFeed newsFeed)
+        public async Task SelectFeed(NewsFeed newsFeed)
         {
-            StoryItemSource = DataModelManager.RealmInstance.All<Story>().Where(st => st.FeedId == newsFeed.Id && st.ReadStatus == 0).AsRealmCollection();
+            StoryItemSource = (await _dataCacheService.GetStories(x => x.FeedId == newsFeed.FeedId && x.ReadStatus == 0)).ToObservableCollection();
             RaisePropertyChanged(nameof(StoryItemSource));
         }
 
-        public override Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
+        public override async Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)
         {
-            this.FeedItemSource = DataModelManager.RealmInstance.All<NewsFeed>().Where(it => it.UnreadCount > 0).OrderBy(ob => ob.Title).AsRealmCollection();
-            return base.OnNavigatedToAsync(eventArgs);
+            FeedItemSource = (await _dataCacheService.GetNewsFeeds(it => it.UnreadCount > 0)).OrderBy(ob => ob.Title).ToList().ToObservableCollection();
         }
     }
 }

@@ -21,7 +21,7 @@ namespace Spectro.ViewModels
             SimpleIoc.Default.Register<ISpectroNavigationService, SpectroNavigationService>();
             SimpleIoc.Default.Register<IActivationService, ActivationService>();
             SimpleIoc.Default.Register<IAuthenticationService, AuthenticationService>();
-            SimpleIoc.Default.Register<IDataCacheService, DataCacheService>();
+            SimpleIoc.Default.Register<IDataCacheService, RealmDataCacheService>();
             SimpleIoc.Default.Register<IDispatcherService, DispatcherService>();
             SimpleIoc.Default.Register<IProgressService, ProgressService>();
             SimpleIoc.Default.Register<IThemeService, ThemeService>();

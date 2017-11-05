@@ -17,21 +17,30 @@ namespace Spectro.Core.Services
     {
         private readonly INewsBlurClient _newsBlurClient;
         private readonly IProgressService _progressService;
+        private readonly IAuthenticationService _authenticationService;
+        private readonly IDataCacheService _dataCacheService;
         private bool _isSynchronizing;
         private readonly object _syncLock = new object();
 
         public Synchronizer(
             INewsBlurClient newsBlurClient,
-            IProgressService progressService)
+            IProgressService progressService,
+            IAuthenticationService authenticationService,
+            IDataCacheService dataCacheService)
         {
             _newsBlurClient = newsBlurClient;
             _progressService = progressService;
+            _authenticationService = authenticationService;
+            _dataCacheService = dataCacheService;
         }
 
         public async Task StartSync()
         {
-            //TODO: bail if not logged in
-            //TODO: show progress dots
+            if (!_authenticationService.IsLoggedIn)
+            {
+                return;
+            }
+
             lock (_syncLock)
             {
                 if (_isSynchronizing)
@@ -50,19 +59,18 @@ namespace Spectro.Core.Services
 
                 var results = await _newsBlurClient.GetFeedsAsync(false);
 
-                var trans = DataModelManager.RealmInstance.BeginWrite();
+                _dataCacheService.BeginWrite();
 
                 foreach (var item in results.feeds.FeedItems)
                     //foreach (var item in results.feeds.FeedItems.Where(t => t.properties.feed_title == "AnandTech"))
                 {
-                    //TODO: dependency inject the realmness
-                    //var thisFeed = DataModelManager.RealmInstance.All<NewsFeed>().Where(fe => fe.Id == item.id).FirstOrDefault();
-                    //if (thisFeed == null)
+                    var thisFeed = (await _dataCacheService.GetNewsFeeds(fe => fe.Id == item.id)).FirstOrDefault();
+                    if (thisFeed == null)
                     {
                         try
                         {
                             Debug.WriteLine(item.properties.last_story_date);
-                            var thisFeed = new NewsFeed()
+                            thisFeed = new NewsFeed()
                             {
                                 Id = item.id,
                                 FeedUri = item.properties.feed_address,
@@ -72,10 +80,10 @@ namespace Spectro.Core.Services
                                 LastStoryDateFromService = !string.IsNullOrEmpty(item.properties.last_story_date) ? DateTimeOffset.Parse(item.properties.last_story_date) : DateTimeOffset.MinValue
                             };
 
-                            thisFeed.UnreadCount = DataModelManager.RealmInstance.All<Story>().Where(st => st.ReadStatus == 0 && st.FeedId == thisFeed.Id).Count();
+                            thisFeed.UnreadCount = (await _dataCacheService.GetStories(x => x.FeedId == thisFeed.FeedId && x.ReadStatus > 0)).Count;
                             //thisFeed.UnreadCount = 0;
 
-                            DataModelManager.RealmInstance.Add(thisFeed, true);
+                            _dataCacheService.AddFeed(thisFeed, true);
                         }
                         catch (Exception ex)
                         {
@@ -84,7 +92,7 @@ namespace Spectro.Core.Services
                     }
                 }
 
-                trans.Commit();
+                _dataCacheService.Commit();
 
                 ////var query = DataModelManager.RealmInstance.All<NewsFeed>().Where(ld => ld.LastStoryDateDownloaded != ld.LastStoryDateFromService);
                 //var query = DataModelManager.RealmInstance.All<NewsFeed>().Where(ld => ld.Active);

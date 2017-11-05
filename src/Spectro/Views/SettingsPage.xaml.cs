@@ -1,6 +1,4 @@
 ﻿using Spectro.ViewModels;
-using Windows.UI.Xaml.Navigation;
-
 namespace Spectro.Views
 {
     public sealed partial class SettingsPage

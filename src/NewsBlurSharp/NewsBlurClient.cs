@@ -216,7 +216,7 @@ namespace NewsBlurSharp
 
         public async Task<NewsBlurSharp.Model.GetStoriesResponse.Rootobject> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var options = new Dictionary<String, String>();
+            var options = new Dictionary<string, string>();
             options.AddIfNotNull("page", pageIndex);
             options.AddIfNotNull("order", (invertOrder) ? "oldest" : null);
             options.AddIfNotNull("read_filter", (filterReadStories) ? "unread" : null);
@@ -227,22 +227,22 @@ namespace NewsBlurSharp
             return response.Response;
         }
 
-        public async Task<object> MarkStoriesReadAsync(List<String> storyHashList)
+        public async Task<object> MarkStoriesReadAsync(List<string> storyHashList)
         {
-            String hashString = "";
-            bool firstHash = false;
+            var hashString = "";
+            var firstHash = true;
 
-            foreach (String hash in storyHashList)
+            foreach (var hash in storyHashList)
             {
                 if (!firstHash)
                     hashString += "&";
                 else
-                    firstHash = true;
+                    firstHash = false;
 
                 hashString += "story_hash=" + hash;
             }
 
-            var data = new Dictionary<String, String>();
+            var data = new Dictionary<string, string>();
             data.Add("story_hash", hashString);
 
             var response = await PostResponse<object>("reader", "mark_story_hashes_as_read", data);
@@ -250,9 +250,9 @@ namespace NewsBlurSharp
             return response.Response;
         }
 
-        public async Task<object> MarkStoryUnreadAsync(String storyHash)
+        public async Task<object> MarkStoryUnreadAsync(string storyHash)
         {
-            var data = new Dictionary<String, String>();
+            var data = new Dictionary<string, string>();
             data.Add("story_hash", storyHash);
 
             var response = await PostResponse<object>("reader", "mark_story_hash_as_unread", data);
@@ -266,7 +266,7 @@ namespace NewsBlurSharp
 
         public async Task<object> GetUserPublicProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var data = new Dictionary<String, String>();
+            var data = new Dictionary<string, string>();
             data.Add("user_id", userID.ToString());
 
             var response = await GetResponse<object>("social", "profile", data, cancellationToken);
