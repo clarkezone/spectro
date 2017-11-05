@@ -21,6 +21,7 @@ namespace Spectro.Views
             if (args.IsSettingsInvoked)
             {
                 navigation.NavigateToSettings();
+                return;
             }
             
             if (!(args.InvokedItem is NavigationViewItem item))

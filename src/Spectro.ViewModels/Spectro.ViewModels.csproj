@@ -12,6 +12,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Commands\**" />
+    <EmbeddedResource Remove="Commands\**" />
+    <None Remove="Commands\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="ViewModels\SettingsViewModel.cs" />
   </ItemGroup>
 
@@ -23,10 +29,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Spectro.Core\Spectro.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Commands\" />
   </ItemGroup>
 
 </Project>

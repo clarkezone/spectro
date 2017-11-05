@@ -62,8 +62,15 @@ namespace Spectro.ViewModels
 
         private async Task Login()
         {
+            if (!CanLogIn)
+            {
+                return;
+            }
+
             try
             {
+                IsLoggingIn = true;
+
                 if (await _authenticationService.Login(Username, Password))
                 {
                     _navigationService.NavigateToRootNavigation();
@@ -72,7 +79,10 @@ namespace Spectro.ViewModels
             }
             catch (Exception)
             {
-                
+            }
+            finally
+            {
+                IsLoggingIn = false;
             }
         }
 
