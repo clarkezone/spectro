@@ -13,10 +13,5 @@ namespace Spectro.Views
         {
             InitializeComponent();
         }
-
-        protected override void OnNavigatedTo(NavigationEventArgs e)
-        {
-            ViewModel.Initialize();
-        }
     }
 }

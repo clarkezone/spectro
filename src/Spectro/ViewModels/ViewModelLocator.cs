@@ -25,6 +25,7 @@ namespace Spectro.ViewModels
             SimpleIoc.Default.Register<IDispatcherService, DispatcherService>();
             SimpleIoc.Default.Register<IProgressService, ProgressService>();
             SimpleIoc.Default.Register<IThemeService, ThemeService>();
+            SimpleIoc.Default.Register<IApplicationInformationService, ApplicationInformationService>();
 
             SimpleIoc.Default.Register<NavigationRootViewModel>();
             SimpleIoc.Default.Register<ProfileViewModel>();

@@ -140,11 +140,11 @@
     <Compile Include="Helpers\SettingsStorageExtensions.cs" />
     <Compile Include="Services\ActivationService.cs" />
     <Compile Include="Activation\DefaultLaunchActivationHandler.cs" />
+    <Compile Include="Services\ApplicationInformationService.cs" />
     <Compile Include="Services\IconCacheLayer.cs" />
     <Compile Include="Services\SpectroNavigationService.cs" />
     <Compile Include="Services\ThemeService.cs" />
     <Compile Include="Services\TranslationService.cs" />
-    <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\ViewModelLocator.cs" />
     <Compile Include="Views\LoginPage.xaml.cs">
       <DependentUpon>LoginPage.xaml</DependentUpon>

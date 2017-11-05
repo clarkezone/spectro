@@ -1,6 +1,4 @@
 ﻿using System.Windows.Input;
-
-using Windows.ApplicationModel;
 using GalaSoft.MvvmLight.Command;
 using Spectro.Core.Interfaces;
 using Spectro.Core.Services;
@@ -10,14 +8,17 @@ namespace Spectro.ViewModels
     public class SettingsViewModel : SpectroViewModelBase
     {
         private readonly IThemeService _themeService;
+        private readonly IApplicationInformationService _applicationInformationService;
 
         // TODO WTS: Add other settings as necessary. For help see https://github.com/Microsoft/WindowsTemplateStudio/blob/master/docs/pages/settings.md
         private SpectroTheme _elementTheme;
-        private string _versionDescription;
 
-        public SettingsViewModel(IThemeService themeService)
+        public SettingsViewModel(
+            IThemeService themeService,
+            IApplicationInformationService applicationInformationService)
         {
             _themeService = themeService;
+            _applicationInformationService = applicationInformationService;
             _elementTheme = _themeService.CurrentTheme;
         }
 
@@ -27,12 +28,7 @@ namespace Spectro.ViewModels
             set => Set(ref _elementTheme, value);
         }
 
-
-        public string VersionDescription
-        {
-            get => _versionDescription;
-            set => Set(ref _versionDescription, value);
-        }
+        public string VersionDescription => $"{_applicationInformationService.AppName} - {_applicationInformationService.AppVersion}";
 
         private ICommand _switchThemeCommand;
 
@@ -51,20 +47,6 @@ namespace Spectro.ViewModels
 
                 return _switchThemeCommand;
             }
-        }
-
-        public void Initialize()
-        {
-            VersionDescription = GetVersionDescription();
-        }
-
-        private string GetVersionDescription()
-        {
-            var package = Package.Current;
-            var packageId = package.Id;
-            var version = packageId.Version;
-
-            return $"{package.DisplayName} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
         }
     }
 }
