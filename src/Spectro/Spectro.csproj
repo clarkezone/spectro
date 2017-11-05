@@ -132,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Activation\ActivationHandler.cs" />
+    <Compile Include="Extensions\SpectroThemeExtensions.cs" />
     <Compile Include="Helpers\EnumToBooleanConverter.cs" />
     <Compile Include="Helpers\FluentHelpers.cs" />
     <Compile Include="Helpers\Json.cs" />
@@ -141,7 +142,7 @@
     <Compile Include="Activation\DefaultLaunchActivationHandler.cs" />
     <Compile Include="Services\IconCacheLayer.cs" />
     <Compile Include="Services\SpectroNavigationService.cs" />
-    <Compile Include="Services\ThemeSelectorService.cs" />
+    <Compile Include="Services\ThemeService.cs" />
     <Compile Include="Services\TranslationService.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\ViewModelLocator.cs" />

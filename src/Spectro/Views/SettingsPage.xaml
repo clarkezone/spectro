@@ -4,13 +4,13 @@
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:helper="using:Spectro.Helpers"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:services="using:Spectro.Core.Services"
                        xmlns:views="using:Spectro.Views"
-                       xmlns:xaml="using:Windows.UI.Xaml"
                        DataContext="{Binding SettingsViewModel, Source={StaticResource Locator}}"
                        mc:Ignorable="d">
     <Page.Resources>
         <helper:EnumToBooleanConverter x:Key="EnumToBooleanConverter"
-                                       EnumType="ElementTheme" />
+                                       EnumType="services:SpectroTheme" />
         <Thickness x:Key="SettingsSubheaderMargin">0, 20, 0, 48</Thickness>
         <Thickness x:Key="EightTopMargin">0, 8, 0, 0</Thickness>
     </Page.Resources>
@@ -41,7 +41,7 @@
                                      GroupName="AppTheme"
                                      IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
-                                <xaml:ElementTheme>Light</xaml:ElementTheme>
+                                <services:SpectroTheme>Light</services:SpectroTheme>
                             </RadioButton.CommandParameter>
                         </RadioButton>
                         <RadioButton x:Uid="Settings_Theme_Dark"
@@ -49,7 +49,7 @@
                                      GroupName="AppTheme"
                                      IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
-                                <xaml:ElementTheme>Dark</xaml:ElementTheme>
+                                <services:SpectroTheme>Dark</services:SpectroTheme>
                             </RadioButton.CommandParameter>
                         </RadioButton>
                         <RadioButton x:Uid="Settings_Theme_Default"
@@ -57,7 +57,7 @@
                                      GroupName="AppTheme"
                                      IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
-                                <xaml:ElementTheme>Default</xaml:ElementTheme>
+                                <services:SpectroTheme>Default</services:SpectroTheme>
                             </RadioButton.CommandParameter>
                         </RadioButton>
                     </StackPanel>

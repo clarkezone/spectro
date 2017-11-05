@@ -25,28 +25,26 @@ namespace Spectro.Services
         private readonly ISpectroNavigationService _navigationService;
         private readonly IDataCacheService _dataCacheService;
         private readonly IAuthenticationService _authenticationService;
+        private readonly IThemeService _themeService;
 
         public ActivationService(
             ISpectroNavigationService navigationService,
             IDataCacheService dataCacheService,
-            IAuthenticationService authenticationService)
+            IAuthenticationService authenticationService,
+            IThemeService themeService)
         {
             _navigationService = navigationService;
             _dataCacheService = dataCacheService;
             _authenticationService = authenticationService;
+            _themeService = themeService;
             _authenticationService.LoggedInStatusChanged += AuthenticationServiceOnLoggedInStatusChanged;
         }
 
-        private void AuthenticationServiceOnLoggedInStatusChanged(object sender, LoggedInStatusChangedEventArgs e)
+        private async void AuthenticationServiceOnLoggedInStatusChanged(object sender, LoggedInStatusChangedEventArgs e)
         {
             if (!e.IsLoggedIn)
             {
-                var frame = new Frame();
-                frame.Navigate(typeof(LoginPage));
-                _navigationService.RegisterFrame(frame);
-
-                Window.Current.Content = frame;
-                Window.Current.Activate();
+                await CreateAndActivateFrame(typeof(LoginPage));
             }
         }
 
@@ -56,19 +54,13 @@ namespace Spectro.Services
             {
                 // Initialize things like registering background task before the app is loaded
                 await InitializeAsync();
-                
+
                 // Do not repeat app initialization when the Window already has content,
                 // just ensure that the window is active
                 if (Window.Current.Content == null)
                 {
-                    var frame = new Frame();
                     var initialPage = _authenticationService.IsLoggedIn ? typeof(NavigationRoot) : typeof(LoginPage);
-                    frame.Navigate(initialPage);
-                    // Create a Frame to act as the navigation context and navigate to the first page
-                    Window.Current.Content = frame;
-
-                    // Ensure the current window is active
-                    Window.Current.Activate();
+                    await CreateAndActivateFrame(initialPage);
                 }
             }
 
@@ -93,9 +85,24 @@ namespace Spectro.Services
             }
         }
 
+        private async Task CreateAndActivateFrame(Type firstNavigation)
+        {
+            var frame = new Frame();
+            _navigationService.RegisterFrame(frame);
+            frame.Navigate(firstNavigation);
+
+            // Create a Frame to act as the navigation context and navigate to the first page
+            Window.Current.Content = frame;
+
+            await _themeService.Initialize();
+
+            // Ensure the current window is active
+            Window.Current.Activate();
+        }
+
         private async Task InitializeAsync()
         {
-            await _dataCacheService.Startup();            
+            await _dataCacheService.Startup();
         }
 
         private Task StartupAsync() => Task.CompletedTask;
