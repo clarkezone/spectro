@@ -8,6 +8,5 @@ namespace Spectro.Core.Interfaces
         bool NavigateToProfile(object parameter = null);
         bool NavigateToNewsFeed(object parameter = null);
         bool NavigateToRootNavigation(object parameter = null);
-        bool NavigateToLogin(object parameter = null);
     }
 }

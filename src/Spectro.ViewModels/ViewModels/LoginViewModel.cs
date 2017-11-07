@@ -8,7 +8,6 @@ namespace Spectro.ViewModels
     public class LoginViewModel : SpectroViewModelBase
     {
         private readonly IAuthenticationService _authenticationService;
-        private readonly ISpectroNavigationService _navigationService;
 
         private string _username;
         private string _password;
@@ -16,11 +15,9 @@ namespace Spectro.ViewModels
         private bool _isLoggingIn;
 
         public LoginViewModel(
-            IAuthenticationService authenticationService,
-            ISpectroNavigationService navigationService)
+            IAuthenticationService authenticationService)
         {
             _authenticationService = authenticationService;
-            _navigationService = navigationService;
         }
 
         public string Username
@@ -73,7 +70,6 @@ namespace Spectro.ViewModels
 
                 if (await _authenticationService.Login(Username, Password))
                 {
-                    _navigationService.NavigateToRootNavigation();
                     ClearDown();
                 }
             }

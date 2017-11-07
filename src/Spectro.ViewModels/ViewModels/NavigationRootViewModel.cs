@@ -38,6 +38,8 @@ namespace Spectro.ViewModels
 
         public bool IsProgressVisible => _progressService.ProgressIsVisible;
 
+        public bool IsLoggedIn => _authenticationService.IsLoggedIn;
+
         public AsyncRelayCommand LoginLogoutCommand => _loginCommand
                                                        ?? (_loginCommand = new AsyncRelayCommand(LoginLogout));
 
@@ -59,6 +61,7 @@ namespace Spectro.ViewModels
 
         internal void NotifyLoginStateChanged()
         {
+            RaisePropertyChanged(nameof(IsLoggedIn));
             RaisePropertyChanged(nameof(LoginButtonText));
             RaisePropertyChanged(nameof(ProfileImageUri));
         }

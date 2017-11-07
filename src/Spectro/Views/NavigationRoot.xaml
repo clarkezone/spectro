@@ -1,6 +1,7 @@
 ﻿<local:SpectroViewBase x:Class="Spectro.Views.NavigationRoot"
                        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:controls="using:Spectro.Controls"
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                        xmlns:local="using:Spectro.Views"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -89,6 +90,9 @@
             </NavigationView.PaneFooter>
             <Frame x:Name="AppNavFrame" />
         </NavigationView>
+
+        <controls:LoginControl Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+
         <!--  how to handle position with / without back button  -->
         <TextBlock Margin="12,8,0,0"
                    VerticalAlignment="Top"

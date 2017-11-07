@@ -8,6 +8,7 @@ using Spectro.Activation;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Spectro.Controls;
 using Spectro.Core.Interfaces;
 using Spectro.Core.Services;
 using Spectro.Views;
@@ -44,7 +45,7 @@ namespace Spectro.Services
         {
             if (!e.IsLoggedIn)
             {
-                await CreateAndActivateFrame(typeof(LoginPage));
+                await CreateAndActivateFrame(typeof(NavigationRoot));
             }
         }
 
@@ -59,8 +60,7 @@ namespace Spectro.Services
                 // just ensure that the window is active
                 if (Window.Current.Content == null)
                 {
-                    var initialPage = _authenticationService.IsLoggedIn ? typeof(NavigationRoot) : typeof(LoginPage);
-                    await CreateAndActivateFrame(initialPage);
+                    await CreateAndActivateFrame(typeof(NavigationRoot));
                 }
             }
 

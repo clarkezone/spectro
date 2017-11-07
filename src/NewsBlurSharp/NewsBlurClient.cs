@@ -100,7 +100,7 @@ namespace NewsBlurSharp
 
         public async Task LogoutAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            await PostResponse<object>("api", "logout", cancellationToken: cancellationToken).ConfigureAwait(false);
+            await PostResponse<object>("api", "logout", new Dictionary<string, string>(), cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<SignupResponse> SignupAsync(string username, string emailAddress, string password = "", CancellationToken cancellationToken = default(CancellationToken))

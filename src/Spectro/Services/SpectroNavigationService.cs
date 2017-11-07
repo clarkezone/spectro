@@ -10,6 +10,5 @@ namespace Spectro.Services
         public bool NavigateToProfile(object parameter = null) => Navigate<ProfilePage>(parameter);
         public bool NavigateToNewsFeed(object parameter = null) => Navigate<NewsFeedList>(parameter);
         public bool NavigateToRootNavigation(object parameter = null) => Navigate<NavigationRoot>(parameter);
-        public bool NavigateToLogin(object parameter = null) => Navigate<LoginPage>(parameter);
     }
 }

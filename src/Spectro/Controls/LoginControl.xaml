@@ -1,15 +1,21 @@
-﻿<local:SpectroViewBase x:Class="Spectro.Views.LoginPage"
-                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                       xmlns:behaviors="using:Cimbalino.Toolkit.Behaviors"
-                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                       xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
-                       xmlns:local="using:Spectro.Views"
-                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                       DataContext="{Binding Login, Source={StaticResource Locator}}"
-                       mc:Ignorable="d">
+﻿<UserControl x:Class="Spectro.Controls.LoginControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:behaviors="using:Cimbalino.Toolkit.Behaviors"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             DataContext="{Binding Login, Source={StaticResource Locator}}"
+             mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource SystemControlAcrylicWindowBrush}">
+    <Grid HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+        <Grid.Background>
+            <AcrylicBrush BackgroundSource="Backdrop"
+                          FallbackColor="White"
+                          TintColor="Gray"
+                          TintOpacity="0.1" />
+        </Grid.Background>
         <Grid Padding="10"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
@@ -66,11 +72,11 @@
                 <Grid HorizontalAlignment="Center"
                       VerticalAlignment="Center">
                     <TextBlock Text="Login"
-                               Visibility="{x:Bind InverseBooleanToVisibility(ViewModel.IsLoggingIn), Mode=OneWay}"/>
+                               Visibility="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
                     <ProgressRing IsActive="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}"
-                                  Visibility="{x:Bind BooleanToVisibility(ViewModel.IsLoggingIn), Mode=OneWay}"/>
+                                  Visibility="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}" />
                 </Grid>
             </Button>
         </Grid>
     </Grid>
-</local:SpectroViewBase>
+</UserControl>
