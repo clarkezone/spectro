@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Cimbalino.Toolkit.Services;
 using Realms;
 using Spectro.DataModel;
 
@@ -11,6 +12,7 @@ namespace Spectro.Core.Interfaces
 {
     public interface IDataCacheService
     {
+        event EventHandler DataChanged;
         Task Startup();
         void BeginWrite();
         void Commit();
@@ -25,6 +27,7 @@ namespace Spectro.Core.Interfaces
 
     public class RealmDataCacheService : IDataCacheService
     {
+        private readonly IDispatcherService _dispatcherService;
         private const string RealmName = "NewsBlurStore";
 
         private ThreadLocal<Realm> _instance;
@@ -32,12 +35,28 @@ namespace Spectro.Core.Interfaces
 
         private Realm Instance => _instance.Value;
 
+        public event EventHandler DataChanged;
+
+        public RealmDataCacheService(IDispatcherService dispatcherService)
+        {
+            _dispatcherService = dispatcherService;
+        }
+
         public Task Startup()
         {
-            _instance = new ThreadLocal<Realm>(() => Realm.GetInstance(RealmName));
+            _instance = new ThreadLocal<Realm>(() =>
+            {
+                var instance = Realm.GetInstance(RealmName);
+                instance.RealmChanged -= InstanceOnRealmChanged;
+                instance.RealmChanged += InstanceOnRealmChanged;
+                return instance;
+            });
 
             return Task.CompletedTask;
         }
+
+        private void InstanceOnRealmChanged(object sender, EventArgs eventArgs) 
+            => _dispatcherService.InvokeOnUiThreadAsync(() => DataChanged?.Invoke(this, EventArgs.Empty));
 
         public void BeginWrite() => _transaction = Instance.BeginWrite();
 

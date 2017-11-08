@@ -32,6 +32,7 @@ namespace Spectro.ViewModels
             _synchronizer = synchronizer;
             _progressService = progressService;
             _applicationInformationService = applicationInformationService;
+
             _authenticationService.LoggedInStatusChanged += AuthenticationServiceOnLoggedInStatusChanged;
             progressService.ProgressStatusChanged += ProgressServiceOnProgressStatusChanged;
         }
