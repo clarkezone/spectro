@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Linq;
 using Spectro.DataModel;
 using System.Threading.Tasks;
 using Cimbalino.Toolkit.Extensions;
 using Cimbalino.Toolkit.Services;
-using Realms;
 using Spectro.Core.Interfaces;
 
 namespace Spectro.ViewModels
@@ -23,7 +21,9 @@ namespace Spectro.ViewModels
 
         private async void DataCacheServiceOnDataChanged(object sender, EventArgs eventArgs)
         {
-            var feeds = (await _dataCacheService.GetNewsFeeds(it => it.UnreadCount > 0)).OrderBy(ob => ob.Title);
+            var feeds = (await _dataCacheService.GetNewsFeeds(it => it.UnreadCount > 0)).OrderBy(ob => ob.Title).ToList();
+
+            // Add items
             foreach (var feed in feeds)
             {
                 var item = FeedItemSource.FirstOrDefault(x => x.Id == feed.Id);
@@ -32,11 +32,21 @@ namespace Spectro.ViewModels
                     FeedItemSource.Add(feed);
                 }
             }
+
+            // Remove items
+            foreach (var feed in FeedItemSource.ToList())
+            {
+                var item = feeds.FirstOrDefault(x => x.Id == feed.Id);
+                if (item == null)
+                {
+                    FeedItemSource.Remove(feed);
+                }
+            }
         }
 
         public ObservableCollection<NewsFeed> FeedItemSource { get; private set; } = new ObservableCollection<NewsFeed>();
 
-        public ObservableCollection<Story> StoryItemSource { get; private set; } = new ObservableCollection<Story>();
+        public ObservableCollection<Story> StoryItemSource { get; } = new ObservableCollection<Story>();
 
         public async Task SelectFeed(NewsFeed newsFeed)
         {
