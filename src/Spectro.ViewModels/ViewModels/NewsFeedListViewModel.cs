@@ -23,7 +23,7 @@ namespace Spectro.ViewModels
 
         public async Task SelectFeed(NewsFeed newsFeed)
         {
-            StoryItemSource = (await _dataCacheService.GetStories(x => x.FeedId == newsFeed.FeedId && x.ReadStatus == 0)).ToObservableCollection();
+            StoryItemSource = (await _dataCacheService.GetStories(x => x.FeedId == newsFeed.Id && x.ReadStatus == 0)).ToObservableCollection();
             RaisePropertyChanged(nameof(StoryItemSource));
         }
 
