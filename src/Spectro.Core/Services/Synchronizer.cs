@@ -19,6 +19,8 @@ namespace Spectro.Core.Services
 
     public class Synchronizer : ISynchronizer
     {
+        //TODO: refactor this into a more object oriented approach to managing sync process / state
+
         private readonly INewsBlurClient _newsBlurClient;
         private bool _isSynchronizing;
         private readonly object _syncLock = new object();
@@ -68,6 +70,8 @@ namespace Spectro.Core.Services
             // due to realm threading requirements, we should build all the sync stages out get to functional
             // correctness before doing this optimization as we should optimze for number of network calls
             // as well as time to sync all feeds considering the whole problem
+            // We need unit tests in place before attempting any optimizations so we can preserve functional correctness
+            // and measure number of calls / total sync time
 
             // Stage 0 send pending updates to service
             // TODO
