@@ -44,5 +44,7 @@ namespace Spectro.Views
             SimpleIoc.Default.GetInstance<ISpectroNavigationService>().RegisterFrame(AppNavFrame);
             base.OnNavigatedTo(e);
         }
+
+        private double BlurAmount(bool isLoggedIn) => isLoggedIn ? 0 : 2;
     }
 }

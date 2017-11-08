@@ -9,13 +9,8 @@
              mc:Ignorable="d">
 
     <Grid HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch">
-        <Grid.Background>
-            <AcrylicBrush BackgroundSource="Backdrop"
-                          FallbackColor="White"
-                          TintColor="Gray"
-                          TintOpacity="0.1" />
-        </Grid.Background>
+          VerticalAlignment="Stretch"
+          Background="Transparent">
         <Grid Padding="10"
               HorizontalAlignment="Center"
               VerticalAlignment="Center"
