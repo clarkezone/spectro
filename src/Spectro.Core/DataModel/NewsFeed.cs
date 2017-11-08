@@ -21,7 +21,8 @@ namespace Spectro.DataModel
 
         public DateTimeOffset LastStoryDateFromService { get; set; }
 
-        public DateTimeOffset LastStoryDateDownloaded { get; set; }
+        public DateTimeOffset DownloadedLastStoryDate { get; set; }
+
         public bool Active { get; internal set; }
     }
 }
