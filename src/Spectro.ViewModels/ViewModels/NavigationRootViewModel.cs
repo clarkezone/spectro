@@ -61,6 +61,11 @@ namespace Spectro.ViewModels
 
         internal void NotifyLoginStateChanged()
         {
+            if (IsLoggedIn)
+            {
+                _synchronizer.StartSync().DontAwait("Just let this go off and run in the background");
+            }
+
             RaisePropertyChanged(nameof(IsLoggedIn));
             RaisePropertyChanged(nameof(LoginButtonText));
             RaisePropertyChanged(nameof(ProfileImageUri));
@@ -70,6 +75,7 @@ namespace Spectro.ViewModels
         {
             _synchronizer.StartSync().DontAwait("Just let this go off and run in the background");
             _navigationService.NavigateToNewsFeed();
+            _navigationService.ClearBackstack();
             return base.OnNavigatedToAsync(eventArgs);
         }
 

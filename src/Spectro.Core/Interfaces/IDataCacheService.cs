@@ -14,9 +14,13 @@ namespace Spectro.Core.Interfaces
         Task Startup();
         void BeginWrite();
         void Commit();
-        void AddFeed(NewsFeed item, bool isUpdate = false);
+        void AddFeed(NewsFeed item);
+        void UpdateFeed(NewsFeed item);
+        void AddStory(Story item);
+        void UpdateStory(Story item);
         Task<List<Story>> GetStories(Expression<Func<Story, bool>> query);
         Task<List<NewsFeed>> GetNewsFeeds(Expression<Func<NewsFeed, bool>> query);
+        Task<List<NewsFeed>> GetAllNewsFeeds();
     }
 
     public class RealmDataCacheService : IDataCacheService
@@ -37,11 +41,20 @@ namespace Spectro.Core.Interfaces
 
         public void BeginWrite() => _transaction = Instance.BeginWrite();
 
-        public void Commit() => _transaction?.Commit();
-        public void AddFeed(NewsFeed item, bool isUpdate = false)
+        public void Commit()
         {
-            Instance.Add(item, isUpdate);
+            _transaction?.Commit();
+            _transaction?.Dispose();
+            _transaction = null;
         }
+
+        public void AddFeed(NewsFeed item) => Instance.Add(item, false);
+
+        public void UpdateFeed(NewsFeed item) => Instance.Add(item, true);
+
+        public void AddStory(Story item) => Instance.Add(item, false);
+
+        public void UpdateStory(Story item) => Instance.Add(item, true);
 
         public Task<List<Story>> GetStories(Expression<Func<Story, bool>> query)
         {
@@ -54,5 +67,7 @@ namespace Spectro.Core.Interfaces
             var feeds = Instance.All<NewsFeed>().Where(query);
             return Task.FromResult(feeds.ToList());
         }
+
+        public Task<List<NewsFeed>> GetAllNewsFeeds() => GetNewsFeeds(feed => true);
     }
 }
