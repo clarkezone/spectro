@@ -52,16 +52,14 @@ namespace NewsBlurSharp
         #region Authentication methods
         public void SetCookieSessionId(string cookieSessionId)
         {
-            var canAddCookie = false;
+            var canAddCookie = !string.IsNullOrEmpty(cookieSessionId);
             if (_cookieJar == null)
             {
                 _cookieJar = new CookieContainer();
-                canAddCookie = !string.IsNullOrEmpty(cookieSessionId);
             }
             else
             {
                 var cookies = _cookieJar.GetCookies(new Uri(BaseUrl));
-                canAddCookie = true;
                 foreach (Cookie cookie in cookies)
                 {
                     if (cookie.Name == NewsBlurSessionId)
