@@ -10,8 +10,6 @@ using NewsBlurSharp.Http;
 using NewsBlurSharp.Logging;
 using NewsBlurSharp.Model.Response;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System.Diagnostics;
 
 namespace NewsBlurSharp
 {
@@ -127,83 +125,14 @@ namespace NewsBlurSharp
         }
         #endregion
 
-
-        public class FeedResolver : DefaultContractResolver
-        {
-            public new static readonly FeedResolver Instance = new FeedResolver();
-
-            //protected override JsonContract CreateContract(Type objectType)
-            protected override JsonObjectContract CreateObjectContract(Type objectType)
-            {
-                if (objectType == typeof(NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Feeds))
-                {
-                    var cont = base.CreateObjectContract(objectType);
-                    cont.Converter = new FeedConverter();
-                    return cont;
-                }
-
-                return base.CreateObjectContract(objectType);
-            }
-        }
-
-        public class FeedConverter : JsonConverter
-        {
-            public override bool CanConvert(Type objectType)
-            {
-                if (objectType == typeof(NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Feeds))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-            {
-                List<NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Feed> items = new List<Model.Response.GetFeedResponseLoggedIn.Feed>();
-                bool read = false;
-                while (read = reader.Read()) {
-                    Debug.WriteLine(reader.TokenType);
-                    if (reader.TokenType!=JsonToken.PropertyName)
-                    {
-                        break;
-                    }
-                    
-                    string id = reader.Value as string;
-
-                    read = reader.Read();
-
-                    //try
-                    //{
-                        var outobj = serializer.Deserialize(reader, typeof(NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.FeedProperties)) as NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.FeedProperties;
-
-                        items.Add(new NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Feed() { id = int.Parse(id), properties = outobj });
-                    //} catch (Exception ex)
-                    //{
-                    //    Debug.WriteLine(ex.Message);
-                    //    reader.Read();
-                    //}
-                }
-
-                return new NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Feeds() { FeedItems = items.ToArray() };
-            }
-
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-            {
-                
-            }
-        }
-
-        public async Task<NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Rootobject> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<NewsFeedResponse> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             var options = new Dictionary<string, string>();
             options.AddIfNotNull("include_favicons", includeFavIcons);
             options.AddIfNotNull("flat", isFlatStructure);
             options.AddIfNotNull("update_counts", updateCounts);
 
-            JsonSerializerSettings settings = new JsonSerializerSettings { ContractResolver = new FeedResolver() };
-
-            var response = await GetResponse<NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Rootobject>("reader", "feeds", options, cancellationToken, settings);
+            var response = await GetResponse<NewsFeedResponse>("reader", "feeds", options, cancellationToken);
 
             return response.Response;
         }

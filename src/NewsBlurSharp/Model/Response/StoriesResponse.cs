@@ -21,8 +21,8 @@ namespace NewsBlurSharp.Model.Response
         [JsonProperty("authors")]
         public Authors Authors { get; set; }
 
-        [JsonProperty("feeds")]
-        public Feeds Feeds { get; set; }
+        //[JsonProperty("feeds")]
+        //public Feeds Feeds { get; set; }
 
         [JsonProperty("titles")]
         public Titles Titles { get; set; }
