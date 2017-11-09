@@ -7,6 +7,8 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Text.RegularExpressions;
+using NewsBlurSharp.Model.Response;
+using Story = Spectro.Core.DataModel.Story;
 
 namespace Spectro.Core.Services
 {
@@ -114,7 +116,7 @@ namespace Spectro.Core.Services
                 else
                 {
                     Debug.WriteLine($"DateFromService:{localFeed.LastStoryDateFromService} DateFromDownloaded:{localFeed.DownloadedLastStoryDate} ");
-                    NewsBlurSharp.Model.GetStoriesResponse.Rootobject result = null;
+                    StoriesResponse result = null;
 
                     ar.Reset();
 
@@ -150,38 +152,38 @@ namespace Spectro.Core.Services
             await ProcessFeedUpdates(results);
         }
 
-        private async Task ProcessNewStories(NewsFeed localFeed, NewsBlurSharp.Model.GetStoriesResponse.Rootobject result)
+        private async Task ProcessNewStories(NewsFeed localFeed, StoriesResponse result)
         {
             var addedNewStory = false;
             _dataCacheService.BeginWrite();
 
-            foreach (var story in result.stories)
+            foreach (var story in result.Stories)
             {
-                var storyId = story.id;
+                var storyId = story.Id;
                 var storyExists = (await _dataCacheService.GetStories(fe => fe.Id == storyId)).FirstOrDefault();
                 if (storyExists == null)
                 {
                     string summary = "";
-                    if (!string.IsNullOrEmpty(story.story_content))
+                    if (!string.IsNullOrEmpty(story.Content))
                     {
-                        summary = Regex.Replace(story.story_content, "<.*?>", string.Empty);
+                        summary = Regex.Replace(story.Content, "<.*?>", string.Empty);
                         if (summary.Length > 150)
                         {
                             summary = summary.Substring(0, 150);
                         }
                     }
 
-                    Story s = new Story()
+                    Story s = new Story
                     {
                         Id = storyId,
-                        Title = story.story_title,
-                        FeedId = story.story_feed_id,
-                        ReadStatus = story.read_status,
+                        Title = story.Title,
+                        FeedId = story.FeedId,
+                        ReadStatus = story.ReadStatus,
                         //story.story_timestamp
-                        Author = story.story_authors,
-                        TimeStamp = story.story_timestamp,
-                        ListImage = (story.image_urls.Any() ? story.image_urls[0] : ""),
-                        Content = story.story_content,
+                        Author = story.Authors,
+                        TimeStamp = story.Timestamp,
+                        ListImage = story.ImageUrls.Any() ? story.ImageUrls[0] : "",
+                        Content = story.Content,
                         Summary = summary,
                         Feed = localFeed
                     };

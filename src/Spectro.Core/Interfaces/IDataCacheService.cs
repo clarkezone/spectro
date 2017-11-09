@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cimbalino.Toolkit.Services;
 using Realms;
+using Spectro.Core.DataModel;
 using Spectro.DataModel;
 
 namespace Spectro.Core.Interfaces

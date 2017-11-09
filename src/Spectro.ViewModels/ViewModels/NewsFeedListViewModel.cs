@@ -5,6 +5,7 @@ using Spectro.DataModel;
 using System.Threading.Tasks;
 using Cimbalino.Toolkit.Extensions;
 using Cimbalino.Toolkit.Services;
+using Spectro.Core.DataModel;
 using Spectro.Core.Interfaces;
 
 namespace Spectro.ViewModels
