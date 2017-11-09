@@ -202,28 +202,28 @@ namespace Spectro.Core.Services
             _dataCacheService.Commit();
         }
 
-        private async Task ProcessFeedUpdates(NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Rootobject results)
+        private async Task ProcessFeedUpdates(NewsFeedResponse results)
         {
             _dataCacheService.BeginWrite();
 
-            foreach (var item in results.feeds.FeedItems)
+            foreach (var item in results.Feeds)
                 //foreach (var item in results.feeds.FeedItems.Where(t => t.properties.feed_title == "AnandTech"))
             {
                 //TODO: dependency inject the realmness
-                var thisFeed = (await _dataCacheService.GetNewsFeeds(fe => fe.Id == item.id)).FirstOrDefault();
+                var thisFeed = (await _dataCacheService.GetNewsFeeds(fe => fe.Id == item.Id)).FirstOrDefault();
                 if (thisFeed == null)
                 {
                     try
                     {
-                        Debug.WriteLine(item.properties.last_story_date);
+                        Debug.WriteLine(item.LastStoryDate);
                         thisFeed = new NewsFeed()
                         {
-                            Id = item.id,
-                            FeedUri = item.properties.feed_address,
-                            Title = item.properties.feed_title,
-                            IconUri = item.properties.favicon_url,
-                            Active = item.properties.active,
-                            LastStoryDateFromService = !string.IsNullOrEmpty(item.properties.last_story_date) ? DateTimeOffset.Parse(item.properties.last_story_date) : DateTimeOffset.MinValue
+                            Id = item.Id,
+                            FeedUri = item.FeedAddress,
+                            Title = item.FeedTitle,
+                            IconUri = item.FaviconUrl,
+                            Active = item.Active,
+                            LastStoryDateFromService = !string.IsNullOrEmpty(item.LastStoryDate) ? DateTimeOffset.Parse(item.LastStoryDate) : DateTimeOffset.MinValue
                         };
 
                         _dataCacheService.AddFeed(thisFeed);
@@ -235,9 +235,9 @@ namespace Spectro.Core.Services
                 }
                 else
                 {
-                    if (item.properties?.last_story_date != null)
+                    if (item.LastStoryDate != null)
                     {
-                        thisFeed.LastStoryDateFromService = DateTimeOffset.Parse(item.properties.last_story_date);
+                        thisFeed.LastStoryDateFromService = DateTimeOffset.Parse(item.LastStoryDate);
                     }
                 }
 
