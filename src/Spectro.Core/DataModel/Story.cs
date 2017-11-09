@@ -1,9 +1,7 @@
 ﻿using Realms;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Spectro.DataModel;
 
-namespace Spectro.DataModel
+namespace Spectro.Core.DataModel
 {
     public class Story: RealmObject
     {

@@ -212,15 +212,15 @@ namespace NewsBlurSharp
 
         #region Stories
 
-        public async Task<NewsBlurSharp.Model.GetStoriesResponse.Rootobject> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<StoriesResponse> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             var options = new Dictionary<string, string>();
             options.AddIfNotNull("page", pageIndex);
-            options.AddIfNotNull("order", (invertOrder) ? "oldest" : null);
-            options.AddIfNotNull("read_filter", (filterReadStories) ? "unread" : null);
+            options.AddIfNotNull("order", invertOrder ? "oldest" : null);
+            options.AddIfNotNull("read_filter", filterReadStories ? "unread" : null);
             options.AddIfNotNull("include_hidden", includeHiddenStories);
 
-            var response = await GetResponse<NewsBlurSharp.Model.GetStoriesResponse.Rootobject>("reader/feed", feedId.ToString(), options, cancellationToken);
+            var response = await GetResponse<StoriesResponse>("reader/feed", feedId.ToString(), options, cancellationToken);
 
             return response.Response;
         }
