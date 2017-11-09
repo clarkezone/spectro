@@ -1,18 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.4</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <PackageTargetFallback>$(PackageTargetFallback);portable-net45+win8+wpa81+wp8</PackageTargetFallback>
     <RootNamespace>Spectro</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
   <ItemGroup>
-    <Compile Remove="ViewModels\SettingsViewModel.cs" />
+    <Compile Remove="Commands\**" />
+    <EmbeddedResource Remove="Commands\**" />
+    <None Remove="Commands\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MvvmLightLibs" Version="5.3.0" />
-    <PackageReference Include="Realm.Database" Version="1.6.0" />
+    <PackageReference Include="Cimbalino.Toolkit.Core" Version="2.5.2" />
+    <PackageReference Include="MvvmLightLibsStd10" Version="5.4.0.1-alpha" />
+    <PackageReference Include="Realm.Database" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>

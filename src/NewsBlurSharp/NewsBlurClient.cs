@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,10 +9,11 @@ using NewsBlurSharp.Extensions;
 using NewsBlurSharp.Http;
 using NewsBlurSharp.Logging;
 using NewsBlurSharp.Model.Response;
+using Newtonsoft.Json;
 
 namespace NewsBlurSharp
 {
-    public class NewsBlurClient
+    public class NewsBlurClient : INewsBlurClient
     {
         private const string NewsBlurSessionId = "newsblur_sessionid";
         private readonly IClientHandlerFactory _handlerFactory;
@@ -50,16 +50,14 @@ namespace NewsBlurSharp
         #region Authentication methods
         public void SetCookieSessionId(string cookieSessionId)
         {
-            var canAddCookie = false;
+            var canAddCookie = !string.IsNullOrEmpty(cookieSessionId);
             if (_cookieJar == null)
             {
                 _cookieJar = new CookieContainer();
-                canAddCookie = !string.IsNullOrEmpty(cookieSessionId);
             }
             else
             {
                 var cookies = _cookieJar.GetCookies(new Uri(BaseUrl));
-                canAddCookie = true;
                 foreach (Cookie cookie in cookies)
                 {
                     if (cookie.Name == NewsBlurSessionId)
@@ -127,49 +125,51 @@ namespace NewsBlurSharp
         }
         #endregion
 
-        public async Task<object> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<NewsFeedResponse> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             var options = new Dictionary<string, string>();
             options.AddIfNotNull("include_favicons", includeFavIcons);
             options.AddIfNotNull("flat", isFlatStructure);
             options.AddIfNotNull("update_counts", updateCounts);
 
-            var response = await GetResponse<object>("reader", "feeds", options, cancellationToken);
+            var response = await GetResponse<NewsFeedResponse>("reader", "feeds", options, cancellationToken);
 
             return response.Response;
         }
+
+
 
         #region Stories
 
-        public async Task<object> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<StoriesResponse> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var options = new Dictionary<String, String>();
+            var options = new Dictionary<string, string>();
             options.AddIfNotNull("page", pageIndex);
-            options.AddIfNotNull("order", (invertOrder) ? "oldest" : null);
-            options.AddIfNotNull("read_filter", (filterReadStories) ? "unread" : null);
+            options.AddIfNotNull("order", invertOrder ? "oldest" : null);
+            options.AddIfNotNull("read_filter", filterReadStories ? "unread" : null);
             options.AddIfNotNull("include_hidden", includeHiddenStories);
 
-            var response = await GetResponse<object>("reader/feed", feedId.ToString(), options, cancellationToken);
+            var response = await GetResponse<StoriesResponse>("reader/feed", feedId.ToString(), options, cancellationToken);
 
             return response.Response;
         }
 
-        public async Task<object> MarkStoriesReadAsync(List<String> storyHashList)
+        public async Task<object> MarkStoriesReadAsync(List<string> storyHashList)
         {
-            String hashString = "";
-            bool firstHash = false;
+            var hashString = "";
+            var firstHash = true;
 
-            foreach (String hash in storyHashList)
+            foreach (var hash in storyHashList)
             {
                 if (!firstHash)
                     hashString += "&";
                 else
-                    firstHash = true;
+                    firstHash = false;
 
                 hashString += "story_hash=" + hash;
             }
 
-            var data = new Dictionary<String, String>();
+            var data = new Dictionary<string, string>();
             data.Add("story_hash", hashString);
 
             var response = await PostResponse<object>("reader", "mark_story_hashes_as_read", data);
@@ -177,9 +177,9 @@ namespace NewsBlurSharp
             return response.Response;
         }
 
-        public async Task<object> MarkStoryUnreadAsync(String storyHash)
+        public async Task<object> MarkStoryUnreadAsync(string storyHash)
         {
-            var data = new Dictionary<String, String>();
+            var data = new Dictionary<string, string>();
             data.Add("story_hash", storyHash);
 
             var response = await PostResponse<object>("reader", "mark_story_hash_as_unread", data);
@@ -193,7 +193,7 @@ namespace NewsBlurSharp
 
         public async Task<object> GetUserPublicProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var data = new Dictionary<String, String>();
+            var data = new Dictionary<string, string>();
             data.Add("user_id", userID.ToString());
 
             var response = await GetResponse<object>("social", "profile", data, cancellationToken);
@@ -201,9 +201,9 @@ namespace NewsBlurSharp
             return response.Response;
         }
 
-        public async Task<object> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<ProfileResponse> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            var response = await GetResponse<object>("social", "load_user_profile");
+            var response = await GetResponse<ProfileResponse>("social", "load_user_profile", cancellationToken: cancellationToken);
 
             return response.Response;
         }
@@ -253,17 +253,7 @@ namespace NewsBlurSharp
 
             HandlerNeedsRecreating();
 
-            HttpResponseMessage response;
-
-            if (postData != null)
-            {
-                response = await _httpClient.PostAsync(url, new FormUrlEncodedContent(postData), cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                response = await _httpClient.PostAsync(url, null, cancellationToken).ConfigureAwait(false);
-            }
-
+            var response = await _httpClient.PostAsync(url, new FormUrlEncodedContent(postData ?? new Dictionary<string, string>()), cancellationToken).ConfigureAwait(false);
 
             var duration = DateTime.Now - requestTime;
 
@@ -274,7 +264,13 @@ namespace NewsBlurSharp
             return await HandleBaseResponse<TResponseType>(response).ConfigureAwait(false);
         }
 
-        private async Task<BaseResponse<TResponseType>> GetResponse<TResponseType>(string endPoint, string method, Dictionary<string, string> options = null, CancellationToken cancellationToken = default(CancellationToken), [CallerMemberName] string callingMethod = "")
+        private async Task<BaseResponse<TResponseType>> GetResponse<TResponseType>(string endPoint, 
+            string method, 
+            Dictionary<string, string> options = null, 
+            CancellationToken cancellationToken = default(CancellationToken),
+            JsonSerializerSettings settings = null,
+            [CallerMemberName] string callingMethod = ""
+            )
 
         {
             _logger.Debug(callingMethod);
@@ -301,10 +297,10 @@ namespace NewsBlurSharp
 
             _logger.Debug("Received {0} status code after {1} ms from {2}: {3}", response.StatusCode, duration.TotalMilliseconds, "GET", url);
 
-            return await HandleBaseResponse<TResponseType>(response).ConfigureAwait(false);
+            return await HandleBaseResponse<TResponseType>(response, settings).ConfigureAwait(false);
         }
 
-        private async Task<BaseResponse<TResponseType>> HandleBaseResponse<TResponseType>(HttpResponseMessage response)
+        private async Task<BaseResponse<TResponseType>> HandleBaseResponse<TResponseType>(HttpResponseMessage response, JsonSerializerSettings settings = null)
         {
             var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
@@ -324,7 +320,7 @@ namespace NewsBlurSharp
                 //}
             }
 
-            var item = await responseString.DeserialiseAsync<TResponseType>().ConfigureAwait(false);
+            var item = await responseString.DeserialiseAsync<TResponseType>(settings).ConfigureAwait(false);
             var cookies = _cookieJar.GetCookies(response.RequestMessage.RequestUri);
 
             foreach (Cookie cookie in cookies)

@@ -1,7 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.4</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG;NETSTANDARD2_0;</DefineConstants>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,11 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Interfaces\" />
+    <PackageReference Include="Cimbalino.Toolkit.Core" Version="2.5.2" />
+    <PackageReference Include="MvvmLightLibsStd10" Version="5.4.0.1-alpha" />
+    <PackageReference Include="Realm.Database" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Realm.Database" Version="1.6.0" />
+    <ProjectReference Include="..\NewsBlurSharp\NewsBlurSharp.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,24 +4,21 @@ using System.Threading.Tasks;
 using Spectro.Services;
 
 using Windows.ApplicationModel.Activation;
+using Spectro.Core.Interfaces;
+using Spectro.Core.Services;
+using Spectro.Helpers;
 
 namespace Spectro.Activation
 {
     internal class DefaultLaunchActivationHandler : ActivationHandler<LaunchActivatedEventArgs>
     {
-        private readonly string _navElement;
+        private readonly ISpectroNavigationService _navigationService;
+        private readonly Type _navElement;
     
-        private NavigationServiceEx NavigationService
+        public DefaultLaunchActivationHandler(Type navElement, ISpectroNavigationService navigationService)
         {
-            get
-            {
-                return Microsoft.Practices.ServiceLocation.ServiceLocator.Current.GetInstance<NavigationServiceEx>();
-            }
-        }
-    
-        public DefaultLaunchActivationHandler(Type navElement)
-        {
-            _navElement = navElement.FullName;
+            _navigationService = navigationService;
+            _navElement = navElement;
         }
     
         protected override async Task HandleInternalAsync(LaunchActivatedEventArgs args)
@@ -29,7 +26,7 @@ namespace Spectro.Activation
             // When the navigation stack isn't restored navigate to the first page,
             // configuring the new page by passing required information as a navigation
             // parameter
-            NavigationService.Navigate(_navElement, args.Arguments);
+            _navigationService.Navigate(_navElement, args.Arguments);
 
             await Task.CompletedTask;
         }
@@ -37,7 +34,7 @@ namespace Spectro.Activation
         protected override bool CanHandleInternal(LaunchActivatedEventArgs args)
         {
             // None of the ActivationHandlers has handled the app activation
-            return NavigationService.Frame.Content == null;
+            return true; // NavigationService.Frame.Content == null;
         }
     }
 }

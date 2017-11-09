@@ -150,8 +150,20 @@
   <data name="Settings_Personalization.Text" xml:space="preserve">
     <value>Personalization</value>
   </data>
-  <data name="NavigationRoot_Feeds.Content" xml:space="preserve">
-    <value>Feeds</value>
+  <data name="NavigationRoot_AllStories.Content" xml:space="preserve">
+    <value>All Stories</value>
+  </data>
+  <data name="NavigationRoot_ReadStories.Content" xml:space="preserve">
+    <value>Read Stories</value>
+  </data>
+  <data name="NavigationRoot_SavedStories.Content" xml:space="preserve">
+    <value>Saved Stories</value>
+  </data>
+  <data name="NavigationRoot_GlobalSharedStories.Content" xml:space="preserve">
+    <value>Global Shared Stories</value>
+  </data>
+  <data name="NavigationRoot_AllSharedStories.Content" xml:space="preserve">
+    <value>All Shared Stories</value>
   </data>
   <data name="NavigationRoot_Profile.Content" xml:space="preserve">
     <value>Profile</value>
@@ -169,6 +181,30 @@
     <value>Unread</value>
   </data>
   <data name="NewsFeedList_Title.Text" xml:space="preserve">
-    <value>Filter</value>
+    <value>News Feeds</value>
+  </data>
+  <data name="Login_DialogTitle.PrimaryButtonText" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Login_DialogTitle.SecondaryButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Login_DialogTitle.Title" xml:space="preserve">
+    <value>Login to NewsBlur service</value>
+  </data>
+  <data name="Login_Password.Text" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Login_UserName.Text" xml:space="preserve">
+    <value>Username</value>
+  </data>
+  <data name="Login_EmptyUNPW" xml:space="preserve">
+    <value>Empty username or password</value>
+  </data>
+  <data name="Login_Failed" xml:space="preserve">
+    <value>Login to NewsBlur failed.  Please check your username and password</value>
+  </data>
+  <data name="NavigationRoot_Login" xml:space="preserve">
+    <value>Login</value>
   </data>
 </root>
