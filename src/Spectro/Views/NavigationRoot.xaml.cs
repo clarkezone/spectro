@@ -1,65 +1,50 @@
-﻿using GalaSoft.MvvmLight.Ioc;
-using GalaSoft.MvvmLight.Views;
-using Microsoft.Practices.ServiceLocation;
-using Spectro.Services;
+﻿using Spectro.Core.Interfaces;
 using Spectro.ViewModels;
-using System;
-using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
+using Windows.UI.Xaml.Navigation;
+using GalaSoft.MvvmLight.Ioc;
 
 namespace Spectro.Views
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
-    public sealed partial class NavigationRoot : Page
+    public sealed partial class NavigationRoot
     {
-        public NavigationRootViewModel Vm => (NavigationRootViewModel)DataContext;
+        public NavigationRootViewModel ViewModel => DataContext as NavigationRootViewModel;
 
         public NavigationRoot()
         {
-            this.InitializeComponent();
-            ServiceLocator.Current.GetInstance<NavigationServiceEx>().Frame = appNavFrame;
-        }
-
-        private void Page_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
-        {
-            //TODO: replace with viewmodellocator
-
-            appNavFrame.Navigate(typeof(NewsFeedList));
-        }
-
-        public void NavigateToFeedsTapped(object sender, RoutedEventArgs args)
-        {
-            Vm.NavigateCommand.Execute("");
-        }
-
-        public void NavigateToProfileTapped(object sender, RoutedEventArgs args)
-        {
-            Vm.NavigateCommand.Execute("");
+            InitializeComponent();
         }
 
         public void ItemInvoked(object sender, NavigationViewItemInvokedEventArgs args)
         {
-            //Expeectiving navigationex
-
-            //TODO: localize this
-            //TODO: switch statement
-            if (args.InvokedItem.ToString() == "Profile")
-            {
-                ServiceLocator.Current.GetInstance<NavigationServiceEx>().Navigate(typeof(ProfileViewModel).FullName);
-            } else
-            {
-                ServiceLocator.Current.GetInstance<NavigationServiceEx>().Navigate(typeof(NewsFeedListViewModel).FullName);
-            }
-
+            var navigation = SimpleIoc.Default.GetInstance<ISpectroNavigationService>();
             if (args.IsSettingsInvoked)
             {
-                ServiceLocator.Current.GetInstance<NavigationServiceEx>().Navigate(typeof(SettingsViewModel).FullName);
+                navigation.NavigateToSettings();
+                return;
+            }
+            
+            if (!(args.InvokedItem is NavigationViewItem item))
+            {
+                return;
+            }
+
+            if (item.Tag.ToString() == "Profile")
+            {
+                navigation.NavigateToProfile();
+            }
+            else
+            {
+                navigation.NavigateToNewsFeed();
             }
         }
 
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            SimpleIoc.Default.GetInstance<ISpectroNavigationService>().RegisterFrame(AppNavFrame);
+            base.OnNavigatedTo(e);
+        }
+
+        private double BlurAmount(bool isLoggedIn) => isLoggedIn ? 0 : 2;
     }
 }

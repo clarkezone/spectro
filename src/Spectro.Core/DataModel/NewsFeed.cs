@@ -6,12 +6,23 @@ namespace Spectro.DataModel
 {
     public class NewsFeed : RealmObject
     {
+        public string FeedUri { get; set; }
+
         [PrimaryKey]
-        public string UriKey { get; set; }
+        public int Id { get; set; }
+
+        public int FeedId { get; set; }
 
         public string Title { get; set; }
 
-        public string Descrtiption { get; set; }
+        public string IconUri { get; set; }
 
+        public int UnreadCount { get; set; }
+
+        public DateTimeOffset LastStoryDateFromService { get; set; }
+
+        public DateTimeOffset DownloadedLastStoryDate { get; set; }
+
+        public bool Active { get; internal set; }
     }
 }

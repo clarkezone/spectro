@@ -1,50 +1,49 @@
-using GalaSoft.MvvmLight.Ioc;
-
-using Microsoft.Practices.ServiceLocation;
-using Spectro.DataModel;
-using Spectro.Models.UWP;
+using Cimbalino.Toolkit.Services;
+using Spectro.Core.Services;
 using Spectro.Services;
-using Spectro.Views;
-using System.Collections;
+using GalaSoft.MvvmLight.Ioc;
+using NewsBlurSharp;
+using Spectro.Core.Interfaces;
 
 namespace Spectro.ViewModels
 {
     public class ViewModelLocator
     {
-        NavigationServiceEx _navigationService = new NavigationServiceEx();
-
         public ViewModelLocator()
         {
-            ServiceLocator.SetLocatorProvider(() => SimpleIoc.Default);
+            // Cimbalino Services
+            SimpleIoc.Default.Register<IApplicationSettingsService, ApplicationSettingsService>();
 
-            SimpleIoc.Default.Register(() => _navigationService);
-            Register<MainViewModel, MainPage>();
+            // Local services
+            SimpleIoc.Default.Register<INewsBlurClient>(() => new NewsBlurClient());
+            SimpleIoc.Default.Register<ISynchronizer, Synchronizer>();
+            SimpleIoc.Default.Register<ITranslationService, TranslationService>();
+            SimpleIoc.Default.Register<ISpectroNavigationService, SpectroNavigationService>();
+            SimpleIoc.Default.Register<IActivationService, ActivationService>();
+            SimpleIoc.Default.Register<IAuthenticationService, AuthenticationService>();
+            SimpleIoc.Default.Register<IDataCacheService, RealmDataCacheService>();
+            SimpleIoc.Default.Register<IDispatcherService, DispatcherService>();
+            SimpleIoc.Default.Register<IProgressService, ProgressService>();
+            SimpleIoc.Default.Register<IThemeService, ThemeService>();
+            SimpleIoc.Default.Register<IApplicationInformationService, ApplicationInformationService>();
 
-            //TODO: is there a better place to put this as it is a data not a navigation thing?  Eg where the default template initializes it's datasource?
-            SimpleIoc.Default.Register<RealmAllNewsFeedsSource>();
-
-            //Creating a new NewsFeedListViewModel blows up here.. that needs figuring out before we can use DI successfully
-            SimpleIoc.Default.Register(() => new NewsFeedListViewModel(SimpleIoc.Default.GetInstance<RealmAllNewsFeedsSource>() as IList));
-            //SimpleIoc.Default.Register<NewsFeedListViewModel>();
-            _navigationService.Configure(typeof(NewsFeedListViewModel).FullName, typeof(NewsFeedList));
-
-            Register<NavigationRootViewModel, NavigationRoot>();
-            Register<ProfileViewModel, ProfilePage>();
-            Register<SettingsViewModel, SettingsPage>();
+            SimpleIoc.Default.Register<NavigationRootViewModel>();
+            SimpleIoc.Default.Register<ProfileViewModel>();
+            SimpleIoc.Default.Register<SettingsViewModel>();
+            SimpleIoc.Default.Register<NewsFeedListViewModel>();
+            SimpleIoc.Default.Register<LoginViewModel>();
         }
 
-        public SettingsViewModel SettingsViewModel => ServiceLocator.Current.GetInstance<SettingsViewModel>();
+        public SettingsViewModel SettingsViewModel => Get<SettingsViewModel>();
 
-        public NavigationRootViewModel NavViewModel => ServiceLocator.Current.GetInstance<NavigationRootViewModel>();
+        public NavigationRootViewModel NavViewModel => Get<NavigationRootViewModel>();
 
-        public NewsFeedListViewModel NewsList => ServiceLocator.Current.GetInstance<NewsFeedListViewModel>();
+        public NewsFeedListViewModel NewsList => Get<NewsFeedListViewModel>();
 
-        public ProfileViewModel ProfileVM => ServiceLocator.Current.GetInstance<ProfileViewModel>();
+        public ProfileViewModel Profile => Get<ProfileViewModel>();
 
-        public void Register<VM, V>() where VM : class
-        {
-            SimpleIoc.Default.Register<VM>();
-            _navigationService.Configure(typeof(VM).FullName, typeof(V));
-        }
+        public LoginViewModel Login => Get<LoginViewModel>();
+
+        private static T Get<T>() => SimpleIoc.Default.GetInstance<T>();
     }
 }

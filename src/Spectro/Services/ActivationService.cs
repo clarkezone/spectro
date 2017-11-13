@@ -6,34 +6,47 @@ using System.Threading.Tasks;
 using Spectro.Activation;
 
 using Windows.ApplicationModel.Activation;
-using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Navigation;
+using Spectro.Controls;
+using Spectro.Core.Interfaces;
+using Spectro.Core.Services;
+using Spectro.Views;
 
 namespace Spectro.Services
 {
     //For more information on application activation see https://github.com/Microsoft/WindowsTemplateStudio/blob/master/docs/activation.md
-    internal class ActivationService
+    internal interface IActivationService
     {
-        private readonly App _app;
-        private readonly UIElement _shell;
-        private readonly Type _defaultNavItem;
-    
-        private NavigationServiceEx NavigationService
-        {
-            get
-            {
-                return Microsoft.Practices.ServiceLocation.ServiceLocator.Current.GetInstance<NavigationServiceEx>();
-            }
-        }
-        
+        Task ActivateAsync(object activationArgs);
+    }
 
-        public ActivationService(App app, Type defaultNavItem, UIElement shell = null)
+    internal class ActivationService : IActivationService
+    {
+        private readonly ISpectroNavigationService _navigationService;
+        private readonly IDataCacheService _dataCacheService;
+        private readonly IAuthenticationService _authenticationService;
+        private readonly IThemeService _themeService;
+
+        public ActivationService(
+            ISpectroNavigationService navigationService,
+            IDataCacheService dataCacheService,
+            IAuthenticationService authenticationService,
+            IThemeService themeService)
         {
-            _app = app;
-            _shell = shell ?? new Frame();
-            _defaultNavItem = defaultNavItem;
+            _navigationService = navigationService;
+            _dataCacheService = dataCacheService;
+            _authenticationService = authenticationService;
+            _themeService = themeService;
+            _authenticationService.LoggedInStatusChanged += AuthenticationServiceOnLoggedInStatusChanged;
+        }
+
+        private async void AuthenticationServiceOnLoggedInStatusChanged(object sender, LoggedInStatusChangedEventArgs e)
+        {
+            if (!e.IsLoggedIn)
+            {
+                await CreateAndActivateFrame(typeof(NavigationRoot));
+            }
         }
 
         public async Task ActivateAsync(object activationArgs)
@@ -42,58 +55,57 @@ namespace Spectro.Services
             {
                 // Initialize things like registering background task before the app is loaded
                 await InitializeAsync();
-                
+
                 // Do not repeat app initialization when the Window already has content,
                 // just ensure that the window is active
                 if (Window.Current.Content == null)
                 {
-                    // Create a Frame to act as the navigation context and navigate to the first page
-                    Window.Current.Content = _shell;
-                    NavigationService.Frame.NavigationFailed += (sender, e) =>
-                    {
-                        throw new Exception("Failed to load Page " + e.SourcePageType.FullName);
-                    };
-                    NavigationService.Frame.Navigated += OnFrameNavigated;
-                    if (SystemNavigationManager.GetForCurrentView() != null)
-                    {
-                        SystemNavigationManager.GetForCurrentView().BackRequested += OnAppViewBackButtonRequested;
-                    }
+                    await CreateAndActivateFrame(typeof(NavigationRoot));
                 }
             }
 
             var activationHandler = GetActivationHandlers()
-                                                .FirstOrDefault(h => h.CanHandle(activationArgs));
+                .FirstOrDefault(h => h.CanHandle(activationArgs));
 
             if (activationHandler != null)
             {
                 await activationHandler.HandleAsync(activationArgs);
             }
 
-            if (IsInteractive(activationArgs))
+            if (IsInteractive(activationArgs) && _authenticationService.IsLoggedIn)
             {
-                var defaultHandler = new DefaultLaunchActivationHandler(_defaultNavItem);
+                var defaultHandler = new DefaultLaunchActivationHandler(typeof(NewsFeedList), _navigationService);
                 if (defaultHandler.CanHandle(activationArgs))
                 {
                     await defaultHandler.HandleAsync(activationArgs);
                 }
-
-                // Ensure the current window is active
-                Window.Current.Activate();
 
                 // Tasks after activation
                 await StartupAsync();
             }
         }
 
-        private async Task InitializeAsync()
+        private async Task CreateAndActivateFrame(Type firstNavigation)
         {
-            await Task.CompletedTask;
+            var frame = new Frame();
+            _navigationService.RegisterFrame(frame);
+            frame.Navigate(firstNavigation);
+
+            // Create a Frame to act as the navigation context and navigate to the first page
+            Window.Current.Content = frame;
+
+            await _themeService.Initialize();
+
+            // Ensure the current window is active
+            Window.Current.Activate();
         }
 
-        private async Task StartupAsync()
+        private async Task InitializeAsync()
         {
-            await Task.CompletedTask;
+            await _dataCacheService.Startup();
         }
+
+        private Task StartupAsync() => Task.CompletedTask;
 
         private IEnumerable<ActivationHandler> GetActivationHandlers()
         {
@@ -104,21 +116,6 @@ namespace Spectro.Services
         private bool IsInteractive(object args)
         {
             return args is IActivatedEventArgs;
-        }
-
-        private void OnFrameNavigated(object sender, NavigationEventArgs e)
-        {
-            SystemNavigationManager.GetForCurrentView().AppViewBackButtonVisibility = (NavigationService.CanGoBack) ? 
-                AppViewBackButtonVisibility.Visible : AppViewBackButtonVisibility.Collapsed;
-        }
-
-        private void OnAppViewBackButtonRequested(object sender, BackRequestedEventArgs e)
-        {
-            if (NavigationService.CanGoBack)
-            {
-                NavigationService.GoBack();
-                e.Handled = true;
-            }
         }
     }
 }

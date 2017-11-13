@@ -1,36 +1,34 @@
-﻿using System;
-using System.Windows.Input;
-
-using GalaSoft.MvvmLight;
+﻿using System.Windows.Input;
 using GalaSoft.MvvmLight.Command;
-
-using templatestudio2.Services;
-
-using Windows.ApplicationModel;
-using Windows.UI.Xaml;
+using Spectro.Core.Interfaces;
+using Spectro.Core.Services;
 
 namespace Spectro.ViewModels
 {
-    public class SettingsViewModel : ViewModelBase
+    public class SettingsViewModel : SpectroViewModelBase
     {
+        private readonly IThemeService _themeService;
+        private readonly IApplicationInformationService _applicationInformationService;
+
         // TODO WTS: Add other settings as necessary. For help see https://github.com/Microsoft/WindowsTemplateStudio/blob/master/docs/pages/settings.md
-        private ElementTheme _elementTheme = ThemeSelectorService.Theme;
+        private SpectroTheme _elementTheme;
 
-        public ElementTheme ElementTheme
+        public SettingsViewModel(
+            IThemeService themeService,
+            IApplicationInformationService applicationInformationService)
         {
-            get { return _elementTheme; }
-
-            set { Set(ref _elementTheme, value); }
+            _themeService = themeService;
+            _applicationInformationService = applicationInformationService;
+            _elementTheme = _themeService.CurrentTheme;
         }
 
-        private string _versionDescription;
-
-        public string VersionDescription
+        public SpectroTheme ElementTheme
         {
-            get { return _versionDescription; }
-
-            set { Set(ref _versionDescription, value); }
+            get => _elementTheme;
+            set => Set(ref _elementTheme, value);
         }
+
+        public string VersionDescription => $"{_applicationInformationService.AppName} - {_applicationInformationService.AppVersion}";
 
         private ICommand _switchThemeCommand;
 
@@ -40,33 +38,15 @@ namespace Spectro.ViewModels
             {
                 if (_switchThemeCommand == null)
                 {
-                    _switchThemeCommand = new RelayCommand<ElementTheme>(
-                        async (param) =>
+                    _switchThemeCommand = new RelayCommand<SpectroTheme>(
+                        async param =>
                         {
-                            await ThemeSelectorService.SetThemeAsync(param);
+                            await _themeService.SetTheme(param);
                         });
                 }
 
                 return _switchThemeCommand;
             }
-        }
-
-        public SettingsViewModel()
-        {
-        }
-
-        public void Initialize()
-        {
-            VersionDescription = GetVersionDescription();
-        }
-
-        private string GetVersionDescription()
-        {
-            var package = Package.Current;
-            var packageId = package.Id;
-            var version = packageId.Version;
-
-            return $"{package.DisplayName} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
         }
     }
 }

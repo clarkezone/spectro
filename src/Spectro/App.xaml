@@ -1,17 +1,17 @@
-<Application
-    x:Class="Spectro.App"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vms="using:Spectro.ViewModels"
-    RequestedTheme="Light">
+<Application x:Class="Spectro.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vms="using:Spectro.ViewModels"
+             RequestedTheme="Light">
 
     <Application.Resources>
         <ResourceDictionary>
             <vms:ViewModelLocator x:Key="Locator" />
-           
+
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Styles/TextBlock.xaml"/>
-                <ResourceDictionary Source="/Styles/FluentGlobal.xaml"/>
+                <ResourceDictionary Source="/Styles/TextBlock.xaml" />
+                <ResourceDictionary Source="/Styles/FluentGlobal.xaml" />
+                <ResourceDictionary Source="/Styles/Converters.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

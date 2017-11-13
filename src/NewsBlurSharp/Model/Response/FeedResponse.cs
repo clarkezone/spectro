@@ -85,34 +85,6 @@ namespace NewsBlurSharp.Model.Response
         public string IntroPage { get; set; }
     }
 
-    public class UserProfile
-    {
-
-        [JsonProperty("hide_getting_started")]
-        public bool HideGettingStarted { get; set; }
-
-        [JsonProperty("preferences")]
-        public Preferences Preferences { get; set; }
-
-        [JsonProperty("tutorial_finished")]
-        public bool TutorialFinished { get; set; }
-
-        [JsonProperty("has_setup_feeds")]
-        public bool HasSetupFeeds { get; set; }
-
-        [JsonProperty("is_premium")]
-        public bool IsPremium { get; set; }
-
-        [JsonProperty("dashboard_date")]
-        public string DashboardDate { get; set; }
-
-        [JsonProperty("has_trained_intelligence")]
-        public bool HasTrainedIntelligence { get; set; }
-
-        [JsonProperty("has_found_friends")]
-        public bool HasFoundFriends { get; set; }
-    }
-
     public class StarredCount
     {
 

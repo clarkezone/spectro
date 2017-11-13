@@ -10,6 +10,17 @@
         <ResourceDictionary Source="/Styles/_Thickness.xaml"/>-->
     </ResourceDictionary.MergedDictionaries>
 
+    <Style x:Key="NewsListSmallText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"></Setter>
+    </Style>
+
+    <Style x:Key="NewsListSmallLightText" TargetType="TextBlock" BasedOn="{StaticResource NewsListSmallText}">
+        <Setter Property="Foreground" Value="Gray"></Setter>
+    </Style>
+
+
+
+    
     <SolidColorBrush x:Key="ThemeControlForegroundBaseHighBrush" Color="{ThemeResource SystemBaseHighColor}" />
 
     <x:Double x:Key="LargeFontSize">28</x:Double>
