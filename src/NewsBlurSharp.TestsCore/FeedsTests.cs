@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using NewsBlurSharp.Model.Response;
 using Xunit;
 
 namespace NewsBlurSharp.Tests
@@ -16,7 +17,7 @@ namespace NewsBlurSharp.Tests
         [Fact]
         public async Task GetFeedsPopulatesFeeds()
         {
-            var feeds = await _subject.GetFeedsAsync();
+            NewsFeedResponse feeds = await _subject.GetFeedsAsync();
 
             Assert.NotNull(feeds);
         }
