@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using NewsBlurSharp.Model.Response;
 using Xunit;
 
 namespace NewsBlurSharp.Tests
@@ -18,8 +19,7 @@ namespace NewsBlurSharp.Tests
         [Fact]
         public async Task GetStories()
         {
-            var stories = await _subject.GetStoriesAsync(19354);
-
+            StoriesResponse stories = await _subject.GetStoriesAsync(19354);
             Assert.NotNull(stories);
         }
 

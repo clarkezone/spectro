@@ -7,6 +7,8 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Text.RegularExpressions;
+using NewsBlurSharp.Model.Response;
+using Story = Spectro.Core.DataModel.Story;
 
 namespace Spectro.Core.Services
 {
@@ -114,7 +116,7 @@ namespace Spectro.Core.Services
                 else
                 {
                     Debug.WriteLine($"DateFromService:{localFeed.LastStoryDateFromService} DateFromDownloaded:{localFeed.DownloadedLastStoryDate} ");
-                    NewsBlurSharp.Model.GetStoriesResponse.Rootobject result = null;
+                    StoriesResponse result = null;
 
                     ar.Reset();
 
@@ -150,38 +152,38 @@ namespace Spectro.Core.Services
             await ProcessFeedUpdates(results);
         }
 
-        private async Task ProcessNewStories(NewsFeed localFeed, NewsBlurSharp.Model.GetStoriesResponse.Rootobject result)
+        private async Task ProcessNewStories(NewsFeed localFeed, StoriesResponse result)
         {
             var addedNewStory = false;
             _dataCacheService.BeginWrite();
 
-            foreach (var story in result.stories)
+            foreach (var story in result.Stories)
             {
-                var storyId = story.id;
+                var storyId = story.Id;
                 var storyExists = (await _dataCacheService.GetStories(fe => fe.Id == storyId)).FirstOrDefault();
                 if (storyExists == null)
                 {
                     string summary = "";
-                    if (!string.IsNullOrEmpty(story.story_content))
+                    if (!string.IsNullOrEmpty(story.Content))
                     {
-                        summary = Regex.Replace(story.story_content, "<.*?>", string.Empty);
+                        summary = Regex.Replace(story.Content, "<.*?>", string.Empty);
                         if (summary.Length > 150)
                         {
                             summary = summary.Substring(0, 150);
                         }
                     }
 
-                    Story s = new Story()
+                    Story s = new Story
                     {
                         Id = storyId,
-                        Title = story.story_title,
-                        FeedId = story.story_feed_id,
-                        ReadStatus = story.read_status,
+                        Title = story.Title,
+                        FeedId = story.FeedId,
+                        ReadStatus = story.ReadStatus,
                         //story.story_timestamp
-                        Author = story.story_authors,
-                        TimeStamp = story.story_timestamp,
-                        ListImage = (story.image_urls.Any() ? story.image_urls[0] : ""),
-                        Content = story.story_content,
+                        Author = story.Authors,
+                        TimeStamp = story.Timestamp,
+                        ListImage = story.ImageUrls.Any() ? story.ImageUrls[0] : "",
+                        Content = story.Content,
                         Summary = summary,
                         Feed = localFeed
                     };
@@ -200,28 +202,28 @@ namespace Spectro.Core.Services
             _dataCacheService.Commit();
         }
 
-        private async Task ProcessFeedUpdates(NewsBlurSharp.Model.Response.GetFeedResponseLoggedIn.Rootobject results)
+        private async Task ProcessFeedUpdates(NewsFeedResponse results)
         {
             _dataCacheService.BeginWrite();
 
-            foreach (var item in results.feeds.FeedItems)
+            foreach (var item in results.Feeds)
                 //foreach (var item in results.feeds.FeedItems.Where(t => t.properties.feed_title == "AnandTech"))
             {
                 //TODO: dependency inject the realmness
-                var thisFeed = (await _dataCacheService.GetNewsFeeds(fe => fe.Id == item.id)).FirstOrDefault();
+                var thisFeed = (await _dataCacheService.GetNewsFeeds(fe => fe.Id == item.Id)).FirstOrDefault();
                 if (thisFeed == null)
                 {
                     try
                     {
-                        Debug.WriteLine(item.properties.last_story_date);
+                        Debug.WriteLine(item.LastStoryDate);
                         thisFeed = new NewsFeed()
                         {
-                            Id = item.id,
-                            FeedUri = item.properties.feed_address,
-                            Title = item.properties.feed_title,
-                            IconUri = item.properties.favicon_url,
-                            Active = item.properties.active,
-                            LastStoryDateFromService = !string.IsNullOrEmpty(item.properties.last_story_date) ? DateTimeOffset.Parse(item.properties.last_story_date) : DateTimeOffset.MinValue
+                            Id = item.Id,
+                            FeedUri = item.FeedAddress,
+                            Title = item.FeedTitle,
+                            IconUri = item.FaviconUrl,
+                            Active = item.Active,
+                            LastStoryDateFromService = !string.IsNullOrEmpty(item.LastStoryDate) ? DateTimeOffset.Parse(item.LastStoryDate) : DateTimeOffset.MinValue
                         };
 
                         _dataCacheService.AddFeed(thisFeed);
@@ -233,9 +235,9 @@ namespace Spectro.Core.Services
                 }
                 else
                 {
-                    if (item.properties?.last_story_date != null)
+                    if (item.LastStoryDate != null)
                     {
-                        thisFeed.LastStoryDateFromService = DateTimeOffset.Parse(item.properties.last_story_date);
+                        thisFeed.LastStoryDateFromService = DateTimeOffset.Parse(item.LastStoryDate);
                     }
                 }
 
