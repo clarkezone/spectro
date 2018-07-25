@@ -1,0 +1,120 @@
+﻿<local:SpectroViewBase x:Class="Spectro.Views.NavigationRoot"
+                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:behaviors="using:Microsoft.Toolkit.Uwp.UI.Animations.Behaviors"
+                       xmlns:controls="using:Spectro.Controls"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
+                       xmlns:local="using:Spectro.Views"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       DataContext="{Binding NavViewModel, Source={StaticResource Locator}}"
+                       mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid x:Name="GridToBeBlurred">
+            <interactivity:Interaction.Behaviors>
+                <behaviors:Blur x:Name="BlurBehaviour"
+                                AutomaticallyStart="True"
+                                Value="{x:Bind BlurAmount(ViewModel.IsLoggedIn), Mode=OneWay}"
+                                Duration="0.5" />
+            </interactivity:Interaction.Behaviors>
+            <NavigationView x:Name="NavView"
+                            AlwaysShowHeader="False"
+                            IsSettingsVisible="True"
+                            ItemInvoked="ItemInvoked">
+                <NavigationView.AutoSuggestBox>
+                    <AutoSuggestBox x:Name="Find"
+                                    PlaceholderText="Search for newsfeed"
+                                    QueryIcon="Find" />
+                </NavigationView.AutoSuggestBox>
+                <!--  Not using databinding for items as they never change  -->
+                <NavigationView.MenuItems>
+                    <NavigationViewItem x:Uid="NavigationRoot_AllStories"
+                                        IsSelected="True"
+                                        Tag="AllStories">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE12A;" />
+                        </NavigationViewItem.Icon>
+                        UFeeds
+                    </NavigationViewItem>
+                    <NavigationViewItem x:Uid="NavigationRoot_ReadStories"
+                                        IsSelected="True"
+                                        Tag="ReadStories">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE930;" />
+                        </NavigationViewItem.Icon>
+                        UFeeds
+                    </NavigationViewItem>
+                    <NavigationViewItem x:Uid="NavigationRoot_SavedStories"
+                                        IsSelected="True"
+                                        Tag="SavedStories">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xECC5;" />
+                        </NavigationViewItem.Icon>
+                        UFeeds
+                    </NavigationViewItem>
+
+                    <NavigationViewItemSeparator />
+
+                    <NavigationViewItem x:Uid="NavigationRoot_GlobalSharedStories"
+                                        IsSelected="True"
+                                        Tag="GlobalSharedStories">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE909;" />
+                        </NavigationViewItem.Icon>
+                        UGlobalSharedStories
+                    </NavigationViewItem>
+                    <NavigationViewItem x:Uid="NavigationRoot_AllSharedStories"
+                                        IsSelected="True"
+                                        Tag="AllSharedStories">
+                        <NavigationViewItem.Icon>
+                            <FontIcon Glyph="&#xE716;" />
+                        </NavigationViewItem.Icon>
+                        UAllSharedStories
+                    </NavigationViewItem>
+
+                    <NavigationViewItemSeparator />
+
+                    <NavigationViewItem x:Uid="NavigationRoot_Profile"
+                                        Tag="Profile">
+                        <NavigationViewItem.Icon>
+                            <SymbolIcon Symbol="OtherUser" />
+                        </NavigationViewItem.Icon>
+                        UProfile
+                    </NavigationViewItem>
+                </NavigationView.MenuItems>
+                <NavigationView.PaneFooter>
+                    <StackPanel Orientation="Horizontal">
+                        <PersonPicture Width="25"
+                                       Height="25"
+                                       Margin="12,0,12,0">
+                            <PersonPicture.ProfilePicture>
+                                <BitmapImage UriSource="{x:Bind ViewModel.ProfileImageUri, Mode=OneWay}" />
+                            </PersonPicture.ProfilePicture>
+                        </PersonPicture>
+                        <HyperlinkButton x:Name="MoreInfoBtn"
+                                         Command="{x:Bind ViewModel.LoginLogoutCommand}"
+                                         Content="{x:Bind ViewModel.LoginButtonText, Mode=OneWay}" />
+                    </StackPanel>
+                </NavigationView.PaneFooter>
+                <Frame x:Name="AppNavFrame" />
+            </NavigationView>
+        </Grid>
+
+        <controls:LoginControl Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+
+        <!--  how to handle position with / without back button  -->
+        <TextBlock Margin="12,8,0,0"
+                   VerticalAlignment="Top"
+                   Style="{ThemeResource CaptionTextBlockStyle}"
+                   Text="{x:Bind ViewModel.ApplicationName}" />
+
+        <ProgressBar x:Name="ServiceProgress"
+                     Height="10"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Top"
+                     IsEnabled="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                     IsIndeterminate="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                     Visibility="{x:Bind BooleanToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
+    </Grid>
+</local:SpectroViewBase>
