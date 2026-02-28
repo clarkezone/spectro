@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '2.x'
+
+      - name: Restore dependencies
+        run: |
+          dotnet restore src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj
+          dotnet restore src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj
+
+      - name: Build
+        run: |
+          dotnet build src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj --no-restore --configuration Release
+          dotnet build src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-restore --configuration Release
+
+      - name: Test
+        run: |
+          dotnet test src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj --no-build --configuration Release --verbosity normal
+          dotnet test src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-build --configuration Release --verbosity normal
