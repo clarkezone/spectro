@@ -32,5 +32,5 @@ jobs:
 
       - name: Test
         run: |
-          dotnet test src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj --no-build --configuration Release --verbosity normal
-          dotnet test src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-build --configuration Release --verbosity normal
+          dotnet test src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj --no-build --no-restore --configuration Release --verbosity normal
+          dotnet test src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-build --no-restore --configuration Release --verbosity normal
