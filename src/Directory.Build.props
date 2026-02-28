@@ -1,0 +1,10 @@
+<Project>
+  <!-- When building individual projects (not via the .sln), $(SolutionDir) is
+       set to the special MSBuild value '*Undefined*'. Realm.Database 2.0.0
+       targets need a valid SolutionDir to copy RealmWeaver.Fody.dll into the
+       $(SolutionDir)Tools folder so Fody can discover the weaver.
+       See: https://github.com/realm/realm-dotnet/issues/656 -->
+  <PropertyGroup>
+    <SolutionDir Condition="'$(SolutionDir)' == '' Or '$(SolutionDir)' == '*Undefined*'">$(MSBuildThisFileDirectory)</SolutionDir>
+  </PropertyGroup>
+</Project>
