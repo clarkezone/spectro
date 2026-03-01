@@ -2,7 +2,7 @@
 
 namespace Spectro.Core.DataModel
 {
-    public class Session : RealmObject
+    public partial class Session : RealmObject
     {
         public int CurrentUserId
         {

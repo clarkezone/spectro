@@ -3,7 +3,7 @@ using Spectro.DataModel;
 
 namespace Spectro.Core.DataModel
 {
-    public class Story: RealmObject
+    public partial class Story: RealmObject
     {
         [PrimaryKey]
         public string Id { get; set; }
