@@ -1,8 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <PackageTargetFallback>$(PackageTargetFallback);portable-net45+win8+wpa81+wp8</PackageTargetFallback>
+    <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>Spectro</RootNamespace>
   </PropertyGroup>
 
@@ -19,8 +18,8 @@
 
   <ItemGroup>
     <PackageReference Include="Cimbalino.Toolkit.Core" Version="2.5.2" />
-    <PackageReference Include="MvvmLightLibsStd10" Version="5.4.0.1-alpha" />
-    <PackageReference Include="Realm.Database" Version="2.0.0" />
+    <PackageReference Include="MvvmLightLibsStd10" Version="5.4.1.1" />
+    <PackageReference Include="Realm" Version="20.1.0" />
   </ItemGroup>
 
   <ItemGroup>
