@@ -20,6 +20,9 @@ jobs:
         with:
           dotnet-version: '9.x'
 
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
       - name: Restore dependencies
         run: |
           dotnet restore src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj
@@ -29,6 +32,9 @@ jobs:
         run: |
           dotnet build src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj --no-restore --configuration Release
           dotnet build src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-restore --configuration Release
+
+      - name: Build UWP app (MSBuild)
+        run: msbuild src/Spectro/Spectro.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:EnableWindowsTargeting=true /m
 
       - name: Test
         run: |
