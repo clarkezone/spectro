@@ -2,6 +2,8 @@
 ## Fody
 #################
 !Tools/Fody/*
+FodyWeavers.xsd
+.nuget/
 
 AppPackages/
 

@@ -4,7 +4,7 @@ using System;
 
 namespace Spectro.DataModel
 {
-    public class NewsFeed : RealmObject
+    public partial class NewsFeed : RealmObject
     {
         public string FeedUri { get; set; }
 
