@@ -20,8 +20,12 @@ jobs:
         with:
           dotnet-version: '9.x'
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - name: Locate MSBuild
+        shell: pwsh
+        run: |
+          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+          if (-not $msbuild) { throw "MSBuild not found on runner." }
+          "MSBUILD_EXE=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Restore dependencies
         run: |
@@ -34,7 +38,8 @@ jobs:
           dotnet build src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-restore --configuration Release
 
       - name: Build UWP app (MSBuild)
-        run: msbuild src/Spectro/Spectro.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:EnableWindowsTargeting=true /m
+        shell: pwsh
+        run: '& "$env:MSBUILD_EXE" src/Spectro/Spectro.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:EnableWindowsTargeting=true /m'
 
       - name: Test
         run: |
