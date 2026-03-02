@@ -8,6 +8,7 @@
     <DefaultLanguage>en-US</DefaultLanguage>
     <ApplicationManifest>Package.appxmanifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
+    <UseUwp>true</UseUwp>
     <UseUwpTools>true</UseUwpTools>
     <WindowsSdkPackageVersion>10.0.26100.1</WindowsSdkPackageVersion>
     <AssetTargetFallback>uap10.0</AssetTargetFallback>
