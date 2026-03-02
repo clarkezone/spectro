@@ -39,7 +39,8 @@ jobs:
 
       - name: Build UWP app (MSBuild)
         shell: pwsh
-        run: '& "$env:MSBUILD_EXE" src/Spectro/Spectro.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:EnableWindowsTargeting=true /m'
+        run: |
+          & "$env:MSBUILD_EXE" src/Spectro/Spectro.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:EnableWindowsTargeting=true /m
 
       - name: Test
         run: |
