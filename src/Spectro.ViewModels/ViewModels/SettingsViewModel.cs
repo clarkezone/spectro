@@ -42,6 +42,7 @@ namespace Spectro.ViewModels
                         async param =>
                         {
                             await _themeService.SetTheme(param);
+                            ElementTheme = param;
                         });
                 }
 
