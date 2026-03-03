@@ -1,9 +1,7 @@
 ﻿<UserControl x:Class="Spectro.Controls.LoginControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:behaviors="using:Cimbalino.Toolkit.Behaviors"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              DataContext="{Binding Login, Source={StaticResource Locator}}"
              mc:Ignorable="d">
@@ -46,30 +44,28 @@
                 uPassword
             </TextBlock>
 
-            <PasswordBox x:Name="Password"
-                         Grid.Row="1"
-                         Grid.Column="1"
-                         Width="200"
-                         VerticalAlignment="Center"
-                         Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                <interactivity:Interaction.Behaviors>
-                    <behaviors:EnterKeyBehavior Command="{x:Bind ViewModel.LoginCommand}" />
-                </interactivity:Interaction.Behaviors>
-            </PasswordBox>
+             <PasswordBox x:Name="Password"
+                          Grid.Row="1"
+                          Grid.Column="1"
+                          Width="200"
+                          VerticalAlignment="Center"
+                          PasswordChanged="Password_PasswordChanged"
+                          KeyDown="Password_KeyDown"
+                          />
 
             <Button Grid.Row="2"
                     Grid.Column="0"
                     Grid.ColumnSpan="2"
                     Margin="0,12"
                     HorizontalAlignment="Stretch"
-                    Command="{x:Bind ViewModel.LoginCommand}"
-                    IsEnabled="{x:Bind ViewModel.CanLogIn, Mode=OneWay}">
+                    Command="{Binding LoginCommand}"
+                    IsEnabled="{Binding CanLogIn, Mode=OneWay}">
                 <Grid HorizontalAlignment="Center"
                       VerticalAlignment="Center">
                     <TextBlock Text="Login"
-                               Visibility="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
-                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}"
-                                  Visibility="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}" />
+                               Visibility="{Binding IsLoggingIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                     <ProgressRing IsActive="{Binding IsLoggingIn, Mode=OneWay}"
+                                   Visibility="{Binding IsLoggingIn, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </Grid>
             </Button>
         </Grid>
