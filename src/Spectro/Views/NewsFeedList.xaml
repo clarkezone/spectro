@@ -30,7 +30,7 @@
             <ListView Margin="0,40,0,50"
                       IsItemClickEnabled="True"
                       ItemClick="ListView_ItemClick"
-                      ItemsSource="{x:Bind Vm.FeedItemSource}">
+                      ItemsSource="{Binding FeedItemSource}">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -49,12 +49,12 @@
                                    Width="20"
                                    Height="20"
                                    HorizontalAlignment="Left"
-                                   Source="{x:Bind IconUri}" />
+                                   Source="{Binding IconUri}" />
                             <TextBlock Grid.Column="1"
-                                       Text="{x:Bind Title}" />
+                                       Text="{Binding Title}" />
                             <TextBlock Grid.Column="2"
                                        HorizontalAlignment="Right"
-                                       Text="{x:Bind UnreadCount}" />
+                                       Text="{Binding UnreadCount}" />
                         </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -116,7 +116,7 @@
 
             <ListView x:Name="stories"
                       Margin="0,40,0,0"
-                      ItemsSource="{x:Bind Vm.StoryItemSource, Mode=OneWay}">
+                      ItemsSource="{Binding StoryItemSource, Mode=OneWay}">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -138,25 +138,25 @@
                             <TextBlock Grid.Row="0"
                                        Grid.Column="0"
                                        FontWeight="Bold"
-                                       Text="{x:Bind Title}"
+                                       Text="{Binding Title}"
                                        TextWrapping="WrapWholeWords" />
                             <TextBlock Grid.Row="1"
                                        Style="{StaticResource NewsListSmallText}"
-                                       Text="{x:Bind Summary}"
+                                       Text="{Binding Summary}"
                                        TextWrapping="WrapWholeWords" />
                             <TextBlock Grid.Row="2"
                                        HorizontalAlignment="Left"
                                        Style="{StaticResource NewsListSmallLightText}"
-                                       Text="{x:Bind Author}" />
+                                       Text="{Binding Author}" />
                             <TextBlock Grid.Row="2"
                                        HorizontalAlignment="Right"
                                        Style="{StaticResource NewsListSmallLightText}"
-                                       Text="{x:Bind TimeStamp}" />
+                                       Text="{Binding TimeStamp}" />
                             <Image Grid.RowSpan="3"
                                    Grid.Column="1"
                                    Width="140"
                                    Height="100"
-                                   Source="{x:Bind ListImage}" />
+                                   Source="{Binding ListImage}" />
                         </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
