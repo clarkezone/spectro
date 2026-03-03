@@ -3,6 +3,7 @@
                     xmlns:converters="using:Spectro.Shims.Converters">
 
     <converters:NegativeBooleanConverter x:Key="NegativeBooleanConverter" />
+    <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     <converters:BooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"
                                              InvertValue="True" />
 </ResourceDictionary>

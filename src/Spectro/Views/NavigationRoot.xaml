@@ -101,12 +101,12 @@
                    Style="{ThemeResource CaptionTextBlockStyle}"
                    Text="{x:Bind ViewModel.ApplicationName}" />
 
-        <ProgressBar x:Name="ServiceProgress"
-                     Height="10"
-                     HorizontalAlignment="Stretch"
-                     VerticalAlignment="Top"
-                     IsEnabled="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
-                     IsIndeterminate="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
-                     Visibility="{x:Bind BooleanToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
-    </Grid>
-</local:SpectroViewBase>
+         <ProgressBar x:Name="ServiceProgress"
+                      Height="10"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Top"
+                      IsEnabled="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                      IsIndeterminate="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                      Visibility="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+     </Grid>
+ </local:SpectroViewBase>
