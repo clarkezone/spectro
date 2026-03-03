@@ -39,7 +39,7 @@
                         <RadioButton x:Uid="Settings_Theme_Light"
                                      Command="{x:Bind ViewModel.SwitchThemeCommand}"
                                      GroupName="AppTheme"
-                                     IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=TwoWay}">
+                                     IsChecked="{Binding ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
                                 <services:SpectroTheme>Light</services:SpectroTheme>
                             </RadioButton.CommandParameter>
@@ -47,7 +47,7 @@
                         <RadioButton x:Uid="Settings_Theme_Dark"
                                      Command="{x:Bind ViewModel.SwitchThemeCommand}"
                                      GroupName="AppTheme"
-                                     IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=TwoWay}">
+                                     IsChecked="{Binding ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
                                 <services:SpectroTheme>Dark</services:SpectroTheme>
                             </RadioButton.CommandParameter>
@@ -55,7 +55,7 @@
                         <RadioButton x:Uid="Settings_Theme_Default"
                                      Command="{x:Bind ViewModel.SwitchThemeCommand}"
                                      GroupName="AppTheme"
-                                     IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default, Mode=TwoWay}">
+                                     IsChecked="{Binding ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
                                 <services:SpectroTheme>Default</services:SpectroTheme>
                             </RadioButton.CommandParameter>
@@ -96,4 +96,3 @@
         </VisualStateManager.VisualStateGroups>
     </Grid>
 </views:SpectroViewBase>
-
