@@ -37,7 +37,7 @@
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="datamodel:NewsFeed">
+                    <DataTemplate>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="32" />
@@ -123,7 +123,7 @@
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="dataModel:Story">
+                    <DataTemplate>
                         <Grid Height="100">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
