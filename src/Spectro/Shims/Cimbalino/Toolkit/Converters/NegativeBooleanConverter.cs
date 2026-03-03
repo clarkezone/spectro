@@ -1,7 +1,7 @@
 using System;
 using Windows.UI.Xaml.Data;
 
-namespace Cimbalino.Toolkit.Converters
+namespace Spectro.Shims.Converters
 {
     public class NegativeBooleanConverter : IValueConverter
     {
