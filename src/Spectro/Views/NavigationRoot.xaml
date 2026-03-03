@@ -93,7 +93,7 @@
             </NavigationView>
         </Grid>
 
-        <controls:LoginControl Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+        <controls:LoginControl Visibility="{Binding IsLoggedIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
 
         <!--  how to handle position with / without back button  -->
         <TextBlock Margin="12,8,0,0"
@@ -107,6 +107,6 @@
                       VerticalAlignment="Top"
                       IsEnabled="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
                       IsIndeterminate="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
-                      Visibility="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                      Visibility="{Binding IsProgressVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
      </Grid>
  </local:SpectroViewBase>

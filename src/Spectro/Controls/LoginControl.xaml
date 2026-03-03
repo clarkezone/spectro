@@ -63,9 +63,9 @@
                 <Grid HorizontalAlignment="Center"
                       VerticalAlignment="Center">
                     <TextBlock Text="Login"
-                               Visibility="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
-                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}"
-                                  Visibility="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}" />
+                               Visibility="{Binding IsLoggingIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                     <ProgressRing IsActive="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}"
+                                   Visibility="{Binding IsLoggingIn, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </Grid>
             </Button>
         </Grid>
