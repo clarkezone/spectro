@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace Cimbalino.Toolkit.Services
 {
@@ -18,8 +19,26 @@ namespace Cimbalino.Toolkit.Services
         public bool CanGoBack => _frame?.CanGoBack == true;
         public bool CanGoForward => _frame?.CanGoForward == true;
 
-        public bool Navigate(string source) => false;
-        public bool Navigate(Uri source) => false;
+        public bool Navigate(string source)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return false;
+            }
+
+            return Navigate(new Uri(source, UriKind.RelativeOrAbsolute));
+        }
+
+        public bool Navigate(Uri source)
+        {
+            if (source == null)
+            {
+                return false;
+            }
+
+            var type = Type.GetType(source.OriginalString);
+            return type != null && Navigate(type);
+        }
         public bool Navigate() => false;
         public bool Navigate(object parameter) => false;
         public bool Navigate<T>() => Navigate(typeof(T));
@@ -35,7 +54,12 @@ namespace Cimbalino.Toolkit.Services
         {
             if (CanGoBack)
             {
-                _frame.GoBack();
+                var args = new NavigationServiceBackKeyPressedEventArgs();
+                BackKeyPressed?.Invoke(this, args);
+                if (args.Behavior == NavigationServiceBackKeyPressedBehavior.GoBack)
+                {
+                    _frame.GoBack();
+                }
             }
         }
 
@@ -60,6 +84,36 @@ namespace Cimbalino.Toolkit.Services
 
         public void ClearBackstack() => _frame?.BackStack.Clear();
 
-        public void RegisterFrame(object frame) => _frame = frame as Frame;
+        public void RegisterFrame(object frame)
+        {
+            if (_frame != null)
+            {
+                _frame.Navigated -= OnFrameNavigated;
+            }
+
+            _frame = frame as Frame;
+            if (_frame != null)
+            {
+                _frame.Navigated += OnFrameNavigated;
+            }
+        }
+
+        private void OnFrameNavigated(object sender, NavigationEventArgs e)
+        {
+            _currentParameter = e.Parameter;
+            Navigated?.Invoke(this, new NavigationServiceNavigationEventArgs(MapNavigationMode(e.NavigationMode), e.SourcePageType, e.Parameter, null));
+        }
+
+        private static NavigationServiceNavigationMode MapNavigationMode(NavigationMode mode)
+        {
+            return mode switch
+            {
+                NavigationMode.Back => NavigationServiceNavigationMode.Back,
+                NavigationMode.Forward => NavigationServiceNavigationMode.Forward,
+                NavigationMode.Refresh => NavigationServiceNavigationMode.Refresh,
+                NavigationMode.New => NavigationServiceNavigationMode.New,
+                _ => NavigationServiceNavigationMode.Reset
+            };
+        }
     }
 }

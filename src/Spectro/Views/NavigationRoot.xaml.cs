@@ -1,6 +1,7 @@
-﻿using Spectro.Core.Interfaces;
+using Spectro.Core.Interfaces;
 using Spectro.ViewModels;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 using GalaSoft.MvvmLight.Ioc;
 
 namespace Spectro.Views
@@ -12,7 +13,6 @@ namespace Spectro.Views
         public NavigationRoot()
         {
             InitializeComponent();
-            SimpleIoc.Default.GetInstance<ISpectroNavigationService>().RegisterFrame(AppNavFrame);
         }
 
         public void ItemInvoked(object sender, NavigationViewItemInvokedEventArgs args)
@@ -37,6 +37,12 @@ namespace Spectro.Views
             {
                 navigation.NavigateToNewsFeed();
             }
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            SimpleIoc.Default.GetInstance<ISpectroNavigationService>().RegisterFrame(AppNavFrame);
+            base.OnNavigatedTo(e);
         }
 
         private double BlurAmount(bool isLoggedIn) => isLoggedIn ? 0 : 2;
