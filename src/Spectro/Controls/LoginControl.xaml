@@ -48,7 +48,8 @@
                          Grid.Row="1"
                          Grid.Column="1"
                          Width="200"
-                          VerticalAlignment="Center"
+                         VerticalAlignment="Center"
+                         KeyDown="Password_KeyDown"
                          Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <Button Grid.Row="2"

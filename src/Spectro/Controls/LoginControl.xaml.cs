@@ -1,4 +1,6 @@
-﻿using Spectro.ViewModels;
+using Spectro.ViewModels;
+using Windows.System;
+using Windows.UI.Xaml.Input;
 
 namespace Spectro.Controls
 {
@@ -12,6 +14,14 @@ namespace Spectro.Controls
         public LoginControl()
         {
             InitializeComponent();
+        }
+
+        private void Password_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (e.Key == VirtualKey.Enter && ViewModel?.LoginCommand?.CanExecute(null) == true)
+            {
+                ViewModel.LoginCommand.Execute(null);
+            }
         }
     }
 }

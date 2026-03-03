@@ -45,7 +45,7 @@
                                 <ColumnDefinition Width="50" />
                             </Grid.ColumnDefinitions>
 
-                            <Image Name="ImageExControl"
+                            <Image Name="ImageControl"
                                    Width="20"
                                    Height="20"
                                    HorizontalAlignment="Left"
