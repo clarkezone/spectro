@@ -44,13 +44,14 @@
                 uPassword
             </TextBlock>
 
-            <PasswordBox x:Name="Password"
-                         Grid.Row="1"
-                         Grid.Column="1"
-                         Width="200"
-                         VerticalAlignment="Center"
-                         KeyDown="Password_KeyDown"
-                         Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+             <PasswordBox x:Name="Password"
+                          Grid.Row="1"
+                          Grid.Column="1"
+                          Width="200"
+                          VerticalAlignment="Center"
+                          PasswordChanged="Password_PasswordChanged"
+                          KeyDown="Password_KeyDown"
+                          />
 
             <Button Grid.Row="2"
                     Grid.Column="0"
