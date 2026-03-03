@@ -37,7 +37,7 @@
 
                     <StackPanel Margin="{StaticResource EightTopMargin}">
                         <RadioButton x:Uid="Settings_Theme_Light"
-                                     Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                     Command="{Binding SwitchThemeCommand}"
                                      GroupName="AppTheme"
                                      IsChecked="{Binding ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
@@ -45,7 +45,7 @@
                             </RadioButton.CommandParameter>
                         </RadioButton>
                         <RadioButton x:Uid="Settings_Theme_Dark"
-                                     Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                     Command="{Binding SwitchThemeCommand}"
                                      GroupName="AppTheme"
                                      IsChecked="{Binding ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
@@ -53,7 +53,7 @@
                             </RadioButton.CommandParameter>
                         </RadioButton>
                         <RadioButton x:Uid="Settings_Theme_Default"
-                                     Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                     Command="{Binding SwitchThemeCommand}"
                                      GroupName="AppTheme"
                                      IsChecked="{Binding ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
@@ -67,7 +67,7 @@
                            Style="{StaticResource SubtitleTextBlockStyle}" />
 
                 <StackPanel Margin="{StaticResource EightTopMargin}">
-                    <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}" />
+                    <TextBlock Text="{Binding VersionDescription, Mode=OneWay}" />
                     <TextBlock x:Uid="Settings_AboutDescription"
                                Margin="{StaticResource EightTopMargin}" />
 

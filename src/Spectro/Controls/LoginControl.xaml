@@ -58,13 +58,13 @@
                     Grid.ColumnSpan="2"
                     Margin="0,12"
                     HorizontalAlignment="Stretch"
-                    Command="{x:Bind ViewModel.LoginCommand}"
-                    IsEnabled="{x:Bind ViewModel.CanLogIn, Mode=OneWay}">
+                    Command="{Binding LoginCommand}"
+                    IsEnabled="{Binding CanLogIn, Mode=OneWay}">
                 <Grid HorizontalAlignment="Center"
                       VerticalAlignment="Center">
                     <TextBlock Text="Login"
                                Visibility="{Binding IsLoggingIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
-                     <ProgressRing IsActive="{x:Bind ViewModel.IsLoggingIn, Mode=OneWay}"
+                     <ProgressRing IsActive="{Binding IsLoggingIn, Mode=OneWay}"
                                    Visibility="{Binding IsLoggingIn, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </Grid>
             </Button>
