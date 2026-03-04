@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Windows.UI.Xaml;
-using Cimbalino.Toolkit.Services;
 using Spectro.Core.Interfaces;
 using Spectro.Core.Services;
 using Spectro.Extensions;

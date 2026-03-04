@@ -1,8 +1,9 @@
 using Spectro.Services;
 using Spectro.Helpers;
+using Spectro.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
-using GalaSoft.MvvmLight.Ioc;
 
 namespace Spectro
 {
@@ -11,7 +12,7 @@ namespace Spectro
     /// </summary>
     sealed partial class App : Application
     {
-        private IActivationService ActivationService => SimpleIoc.Default.GetInstance<IActivationService>();
+        private IActivationService ActivationService => ViewModelLocator.ServiceProvider.GetRequiredService<IActivationService>();
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code

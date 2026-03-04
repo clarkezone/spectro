@@ -1,12 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Spectro.DataModel;
 using System.Threading.Tasks;
-using Cimbalino.Toolkit.Extensions;
-using Cimbalino.Toolkit.Services;
-using Spectro.Core.DataModel;
+using Spectro.Core.Extensions;
 using Spectro.Core.Interfaces;
+using Spectro.Core.DataModel;
 
 namespace Spectro.ViewModels
 {

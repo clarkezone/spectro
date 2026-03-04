@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Spectro.Core.Interfaces;
 using Windows.Storage;
 
-namespace Cimbalino.Toolkit.Services
+namespace Spectro.Services
 {
     public class ApplicationSettingsService : IApplicationSettingsService
     {

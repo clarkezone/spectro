@@ -1,5 +1,5 @@
-﻿using System.Windows.Input;
-using GalaSoft.MvvmLight.Command;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.Input;
 using Spectro.Core.Interfaces;
 using Spectro.Core.Services;
 
@@ -25,7 +25,7 @@ namespace Spectro.ViewModels
         public SpectroTheme ElementTheme
         {
             get => _elementTheme;
-            set => Set(ref _elementTheme, value);
+            set => SetProperty(ref _elementTheme, value);
         }
 
         public string VersionDescription => $"{_applicationInformationService.AppName} - {_applicationInformationService.AppVersion}";

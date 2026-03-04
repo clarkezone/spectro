@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Spectro.Core.Interfaces;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 
-namespace Cimbalino.Toolkit.Services
+namespace Spectro.Services
 {
     public class NavigationService : INavigationService
     {

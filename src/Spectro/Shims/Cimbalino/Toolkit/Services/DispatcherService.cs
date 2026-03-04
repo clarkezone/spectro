@@ -1,9 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using Spectro.Core.Interfaces;
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
 
-namespace Cimbalino.Toolkit.Services
+namespace Spectro.Services
 {
     public class DispatcherService : IDispatcherService
     {
