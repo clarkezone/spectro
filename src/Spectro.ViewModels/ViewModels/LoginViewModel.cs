@@ -58,7 +58,8 @@ namespace Spectro.ViewModels
         public bool CanLogIn => !string.IsNullOrWhiteSpace(Username)
                                 && !IsLoggingIn;
 
-        public AsyncRelayCommand LoginCommand => new AsyncRelayCommand(Login);
+        private AsyncRelayCommand _loginCommand;
+        public AsyncRelayCommand LoginCommand => _loginCommand ??= new AsyncRelayCommand(Login);
 
         private async Task Login()
         {

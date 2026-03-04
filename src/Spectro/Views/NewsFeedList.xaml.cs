@@ -14,8 +14,8 @@ namespace Spectro.Views
 
         public NewsFeedList()
         {
-            this.InitializeComponent();
             DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<NewsFeedListViewModel>();
+            this.InitializeComponent();
         }
 
         private void ListView_ItemClick(object sender, ItemClickEventArgs e)

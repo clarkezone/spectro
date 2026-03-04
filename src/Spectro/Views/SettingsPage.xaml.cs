@@ -11,8 +11,8 @@ namespace Spectro.Views
 
         public SettingsPage()
         {
-            InitializeComponent();
             DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<SettingsViewModel>();
+            InitializeComponent();
         }
     }
 }

@@ -12,8 +12,8 @@ namespace Spectro.Controls
 
         public LoginControl()
         {
-            InitializeComponent();
             DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<LoginViewModel>();
+            InitializeComponent();
         }
     }
 }
