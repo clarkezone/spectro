@@ -1,4 +1,4 @@
-using Spectro.Core.Interfaces;
+﻿using Spectro.Core.Interfaces;
 using Spectro.ViewModels;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;

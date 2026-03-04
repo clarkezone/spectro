@@ -2,14 +2,15 @@
                        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:helper="using:Spectro.Helpers"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:services="using:Spectro.Core.Services"
                        xmlns:views="using:Spectro.Views"
                        DataContext="{Binding SettingsViewModel, Source={StaticResource Locator}}"
-                       Loaded="Page_Loaded"
-                       Unloaded="Page_Unloaded"
                        mc:Ignorable="d">
     <Page.Resources>
+        <helper:EnumToBooleanConverter x:Key="EnumToBooleanConverter"
+                                       EnumType="services:SpectroTheme" />
         <Thickness x:Key="SettingsSubheaderMargin">0, 20, 0, 48</Thickness>
         <Thickness x:Key="EightTopMargin">0, 8, 0, 0</Thickness>
     </Page.Resources>
@@ -35,26 +36,26 @@
                                Style="{StaticResource BodyTextStyle}" />
 
                     <StackPanel Margin="{StaticResource EightTopMargin}">
-                        <RadioButton x:Name="LightThemeRadioButton"
-                                     x:Uid="Settings_Theme_Light"
-                                     Command="{Binding SwitchThemeCommand}"
-                                     GroupName="AppTheme">
+                        <RadioButton x:Uid="Settings_Theme_Light"
+                                     Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                     GroupName="AppTheme"
+                                     IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
                                 <services:SpectroTheme>Light</services:SpectroTheme>
                             </RadioButton.CommandParameter>
                         </RadioButton>
-                        <RadioButton x:Name="DarkThemeRadioButton"
-                                     x:Uid="Settings_Theme_Dark"
-                                     Command="{Binding SwitchThemeCommand}"
-                                     GroupName="AppTheme">
+                        <RadioButton x:Uid="Settings_Theme_Dark"
+                                     Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                     GroupName="AppTheme"
+                                     IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
                                 <services:SpectroTheme>Dark</services:SpectroTheme>
                             </RadioButton.CommandParameter>
                         </RadioButton>
-                        <RadioButton x:Name="DefaultThemeRadioButton"
-                                     x:Uid="Settings_Theme_Default"
-                                     Command="{Binding SwitchThemeCommand}"
-                                     GroupName="AppTheme">
+                        <RadioButton x:Uid="Settings_Theme_Default"
+                                     Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                     GroupName="AppTheme"
+                                     IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default, Mode=TwoWay}">
                             <RadioButton.CommandParameter>
                                 <services:SpectroTheme>Default</services:SpectroTheme>
                             </RadioButton.CommandParameter>
@@ -66,7 +67,7 @@
                            Style="{StaticResource SubtitleTextBlockStyle}" />
 
                 <StackPanel Margin="{StaticResource EightTopMargin}">
-                    <TextBlock Text="{Binding VersionDescription, Mode=OneWay}" />
+                    <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}" />
                     <TextBlock x:Uid="Settings_AboutDescription"
                                Margin="{StaticResource EightTopMargin}" />
 
@@ -95,3 +96,4 @@
         </VisualStateManager.VisualStateGroups>
     </Grid>
 </views:SpectroViewBase>
+

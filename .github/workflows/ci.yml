@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: windows-2022
+    runs-on: windows-latest
     permissions:
       contents: read
 
@@ -18,7 +18,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.x'
+          dotnet-version: '10.x'
+          dotnet-quality: 'preview'
 
       - name: Locate MSBuild
         shell: pwsh
