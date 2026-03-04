@@ -1,5 +1,6 @@
 using Spectro.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Windows.UI.Xaml;
 
 namespace Spectro.Controls
 {
@@ -14,6 +15,14 @@ namespace Spectro.Controls
         {
             DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<LoginViewModel>();
             InitializeComponent();
+        }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (ViewModel != null)
+            {
+                ViewModel.Password = PasswordBox.Password;
+            }
         }
     }
 }

@@ -31,12 +31,12 @@
                        VerticalAlignment="Center">
                 uUser Name
             </TextBlock>
-            <TextBox x:Name="Username"
+            <TextBox x:Name="UsernameBox"
                      Grid.Row="0"
                      Grid.Column="1"
                      Width="200"
                      VerticalAlignment="Center"
-                     Text="{Binding Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                     Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <TextBlock x:Uid="Login_Password"
                        Grid.Row="1"
@@ -45,12 +45,12 @@
                 uPassword
             </TextBlock>
 
-            <PasswordBox x:Name="Password"
+            <PasswordBox x:Name="PasswordBox"
                          Grid.Row="1"
                          Grid.Column="1"
                          Width="200"
                          VerticalAlignment="Center"
-                         Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                         PasswordChanged="PasswordBox_PasswordChanged">
                 <interactivity:Interaction.Behaviors>
                     <behaviors:EnterKeyBehavior Command="{x:Bind ViewModel.LoginCommand}" />
                 </interactivity:Interaction.Behaviors>
