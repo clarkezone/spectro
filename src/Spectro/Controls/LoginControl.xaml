@@ -1,11 +1,10 @@
 ﻿<UserControl x:Class="Spectro.Controls.LoginControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:behaviors="using:Cimbalino.Toolkit.Behaviors"
+             xmlns:behaviors="using:Spectro.Behaviors"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             DataContext="{Binding Login, Source={StaticResource Locator}}"
              mc:Ignorable="d">
 
     <Grid HorizontalAlignment="Stretch"
@@ -32,12 +31,12 @@
                        VerticalAlignment="Center">
                 uUser Name
             </TextBlock>
-            <TextBox x:Name="Username"
+            <TextBox x:Name="UsernameBox"
                      Grid.Row="0"
                      Grid.Column="1"
                      Width="200"
                      VerticalAlignment="Center"
-                     Text="{Binding Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                     Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
             <TextBlock x:Uid="Login_Password"
                        Grid.Row="1"
@@ -46,12 +45,12 @@
                 uPassword
             </TextBlock>
 
-            <PasswordBox x:Name="Password"
+            <PasswordBox x:Name="PasswordBox"
                          Grid.Row="1"
                          Grid.Column="1"
                          Width="200"
                          VerticalAlignment="Center"
-                         Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                         PasswordChanged="PasswordBox_PasswordChanged">
                 <interactivity:Interaction.Behaviors>
                     <behaviors:EnterKeyBehavior Command="{x:Bind ViewModel.LoginCommand}" />
                 </interactivity:Interaction.Behaviors>

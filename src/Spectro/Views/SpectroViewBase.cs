@@ -1,5 +1,4 @@
-﻿using Windows.UI.Xaml;
-using Cimbalino.Toolkit.Controls;
+using Windows.UI.Xaml;
 
 namespace Spectro.Views
 {

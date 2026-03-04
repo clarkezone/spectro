@@ -1,5 +1,6 @@
-﻿using Spectro.DataModel;
+using Spectro.DataModel;
 using Spectro.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Windows.UI.Xaml.Controls;
 
 namespace Spectro.Views
@@ -13,6 +14,7 @@ namespace Spectro.Views
 
         public NewsFeedList()
         {
+            DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<NewsFeedListViewModel>();
             this.InitializeComponent();
         }
 

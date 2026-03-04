@@ -2,7 +2,7 @@ using System;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Data;
 
-namespace Cimbalino.Toolkit.Converters
+namespace Spectro.Converters
 {
     public class BooleanToVisibilityConverter : IValueConverter
     {

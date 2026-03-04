@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
-using Cimbalino.Toolkit.Services;
+using Spectro.Core.Interfaces;
 using NewsBlurSharp;
 using NewsBlurSharp.Model.Response;
 using Newtonsoft.Json;
-using Spectro.Core.Interfaces;
 
 namespace Spectro.Core.Services
 {

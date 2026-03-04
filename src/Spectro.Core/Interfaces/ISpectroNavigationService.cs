@@ -1,5 +1,3 @@
-﻿using Cimbalino.Toolkit.Services;
-
 namespace Spectro.Core.Interfaces
 {
     public interface ISpectroNavigationService : INavigationService

@@ -28,9 +28,9 @@ namespace Spectro.ViewModels
             get => _username;
             set
             {
-                if (Set(ref _username, value))
+                if (SetProperty(ref _username, value))
                 {
-                    RaisePropertyChanged(nameof(CanLogIn));
+                    OnPropertyChanged(nameof(CanLogIn));
                     LoginCommand.RaiseCanExecuteChanged();
                 }
             }
@@ -39,7 +39,7 @@ namespace Spectro.ViewModels
         public string Password
         {
             get => _password;
-            set => Set(ref _password, value);
+            set => SetProperty(ref _password, value);
         }
 
         public bool IsLoggingIn
@@ -47,9 +47,9 @@ namespace Spectro.ViewModels
             get => _isLoggingIn;
             set
             {
-                if (Set(ref _isLoggingIn, value))
+                if (SetProperty(ref _isLoggingIn, value))
                 {
-                    RaisePropertyChanged(nameof(CanLogIn));
+                    OnPropertyChanged(nameof(CanLogIn));
                     LoginCommand.RaiseCanExecuteChanged();
                 }
             }
@@ -58,7 +58,8 @@ namespace Spectro.ViewModels
         public bool CanLogIn => !string.IsNullOrWhiteSpace(Username)
                                 && !IsLoggingIn;
 
-        public AsyncRelayCommand LoginCommand => new AsyncRelayCommand(Login);
+        private AsyncRelayCommand _loginCommand;
+        public AsyncRelayCommand LoginCommand => _loginCommand ??= new AsyncRelayCommand(Login);
 
         private async Task Login()
         {

@@ -1,7 +1,6 @@
-﻿using Spectro.Core.Interfaces;
+using Spectro.Core.Interfaces;
 using System;
 using System.Threading.Tasks;
-using Cimbalino.Toolkit.Services;
 using Spectro.Core.Commands;
 using Spectro.Core.Extensions;
 using Spectro.Core.Services;
@@ -54,7 +53,7 @@ namespace Spectro.ViewModels
 
         private void ProgressServiceOnProgressStatusChanged(object sender, EventArgs e)
         {
-            RaisePropertyChanged(nameof(IsProgressVisible));
+            OnPropertyChanged(nameof(IsProgressVisible));
         }
 
         private void AuthenticationServiceOnLoggedInStatusChanged(object sender, LoggedInStatusChangedEventArgs e) 
@@ -67,9 +66,9 @@ namespace Spectro.ViewModels
                 _synchronizer.StartSync().DontAwait("Just let this go off and run in the background");
             }
 
-            RaisePropertyChanged(nameof(IsLoggedIn));
-            RaisePropertyChanged(nameof(LoginButtonText));
-            RaisePropertyChanged(nameof(ProfileImageUri));
+            OnPropertyChanged(nameof(IsLoggedIn));
+            OnPropertyChanged(nameof(LoginButtonText));
+            OnPropertyChanged(nameof(ProfileImageUri));
         }
 
         public override Task OnNavigatedToAsync(NavigationServiceNavigationEventArgs eventArgs)

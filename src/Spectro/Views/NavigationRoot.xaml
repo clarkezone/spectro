@@ -7,7 +7,6 @@
                        xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
                        xmlns:local="using:Spectro.Views"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                       DataContext="{Binding NavViewModel, Source={StaticResource Locator}}"
                        mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">

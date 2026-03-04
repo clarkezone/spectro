@@ -1,14 +1,12 @@
-﻿using System;
-using System.Reflection;
+using System;
 using System.Threading.Tasks;
-using GalaSoft.MvvmLight.Helpers;
 
 namespace Spectro.Core.Commands
 {
     public class AsyncRelayCommand<T> : IAsyncCommand
     {
-        private readonly WeakFunc<T, Task> _asyncExecute;
-        private readonly WeakFunc<T, bool> _canExecute;
+        private readonly Func<T, Task> _asyncExecute;
+        private readonly Func<T, bool> _canExecute;
 
         public event EventHandler CanExecuteChanged;
 
@@ -19,10 +17,8 @@ namespace Spectro.Core.Commands
 
         public AsyncRelayCommand(Func<T, Task> asyncExecute, Func<T, bool> canExecute)
         {
-            _asyncExecute = new WeakFunc<T, Task>(asyncExecute);
-
-            if (canExecute != null)
-                _canExecute = new WeakFunc<T, bool>(canExecute);
+            _asyncExecute = asyncExecute ?? throw new ArgumentNullException(nameof(asyncExecute));
+            _canExecute = canExecute;
         }
 
         public bool CanExecute(object parameter)
@@ -30,14 +26,11 @@ namespace Spectro.Core.Commands
             if (_canExecute == null)
                 return true;
 
-            if (_canExecute.IsStatic || _canExecute.IsAlive)
-            {
-                if (parameter == null && typeof(T).GetTypeInfo().IsValueType)
-                    return _canExecute.Execute(default(T));
+            if (parameter == null && typeof(T).IsValueType)
+                return _canExecute(default(T));
 
-                if (parameter == null || parameter is T)
-                    return _canExecute.Execute((T)parameter);
-            }
+            if (parameter == null || parameter is T)
+                return _canExecute((T)parameter);
 
             return false;
         }
@@ -46,25 +39,20 @@ namespace Spectro.Core.Commands
 
         public async Task ExecuteAsync(object parameter)
         {
-            var val = parameter;
-
-            if (!CanExecute(val) || _asyncExecute == null || (!_asyncExecute.IsStatic && !_asyncExecute.IsAlive)) return;
+            if (!CanExecute(parameter) || _asyncExecute == null) return;
 
             try
             {
+                var val = parameter;
                 if (val == null)
                 {
-                    if (typeof(T).GetTypeInfo().IsValueType)
-                        await _asyncExecute.Execute(default(T));
+                    if (typeof(T).IsValueType)
+                        await _asyncExecute(default(T));
                     else
-                    {
-                        // ReSharper disable ExpressionIsAlwaysNull
-                        await _asyncExecute.Execute((T) val);
-                        // ReSharper restore ExpressionIsAlwaysNull
-                    }
+                        await _asyncExecute((T)val);
                 }
                 else
-                    await _asyncExecute.Execute((T) val);
+                    await _asyncExecute((T)val);
             }
             catch (OperationCanceledException)
             {

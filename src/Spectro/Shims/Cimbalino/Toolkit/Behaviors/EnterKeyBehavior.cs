@@ -4,7 +4,7 @@ using Windows.System;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Input;
 
-namespace Cimbalino.Toolkit.Behaviors
+namespace Spectro.Behaviors
 {
     public class EnterKeyBehavior : DependencyObject, IBehavior
     {

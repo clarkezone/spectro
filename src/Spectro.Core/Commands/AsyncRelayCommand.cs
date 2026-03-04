@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
-using GalaSoft.MvvmLight.Helpers;
 
 namespace Spectro.Core.Commands
 {
     public class AsyncRelayCommand : IAsyncCommand
     {
-        private readonly WeakFunc<Task> _asyncExecute;
-        private readonly WeakFunc<bool> _canExecute;
+        private readonly Func<Task> _asyncExecute;
+        private readonly Func<bool> _canExecute;
 
         public event EventHandler CanExecuteChanged;
 
@@ -18,23 +17,21 @@ namespace Spectro.Core.Commands
 
         public AsyncRelayCommand(Func<Task> asyncExecute, Func<bool> canExecute)
         {
-            _asyncExecute = new WeakFunc<Task>(asyncExecute);
-
-            if (canExecute != null)
-                _canExecute = new WeakFunc<bool>(canExecute);
+            _asyncExecute = asyncExecute ?? throw new ArgumentNullException(nameof(asyncExecute));
+            _canExecute = canExecute;
         }
 
-        public bool CanExecute(object parameter) => _canExecute == null || (_canExecute.IsStatic || _canExecute.IsAlive) && _canExecute.Execute();
+        public bool CanExecute(object parameter) => _canExecute == null || _canExecute();
 
         public async void Execute(object parameter) => await ExecuteAsync(parameter);
 
         public async Task ExecuteAsync(object parameter)
         {
-            if (!CanExecute(parameter) || _asyncExecute == null || (!_asyncExecute.IsStatic && !_asyncExecute.IsAlive)) return;
+            if (!CanExecute(parameter) || _asyncExecute == null) return;
 
             try
             {
-                await _asyncExecute.Execute();
+                await _asyncExecute();
             }
             catch (OperationCanceledException)
             {

@@ -1,5 +1,4 @@
-﻿using System;
-using Cimbalino.Toolkit.Services;
+using System;
 using Spectro.Core.Interfaces;
 
 namespace Spectro.Core.Services

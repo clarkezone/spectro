@@ -1,4 +1,6 @@
-﻿using Spectro.ViewModels;
+using Spectro.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Spectro.Views
 {
     public sealed partial class SettingsPage
@@ -9,6 +11,7 @@ namespace Spectro.Views
 
         public SettingsPage()
         {
+            DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<SettingsViewModel>();
             InitializeComponent();
         }
     }
