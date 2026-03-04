@@ -21,7 +21,7 @@ namespace Cimbalino.Toolkit.Services
 
             public bool Contains(string key) => _container.Values.ContainsKey(key);
 
-            public T Get<T>(string key) => Get(key, default);
+            public T Get<T>(string key) => Get<T>(key, default(T));
 
             public T Get<T>(string key, T defaultValue)
                 => _container.Values.TryGetValue(key, out var value) && value is T castValue ? castValue : defaultValue;

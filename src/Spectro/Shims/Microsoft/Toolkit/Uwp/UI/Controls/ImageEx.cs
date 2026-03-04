@@ -4,8 +4,17 @@ using Windows.UI.Xaml.Media;
 
 namespace Microsoft.Toolkit.Uwp.UI.Controls
 {
-    public class ImageEx : Image
+    public class ImageEx : Control
     {
+        public ImageSource Source
+        {
+            get => (ImageSource)GetValue(SourceProperty);
+            set => SetValue(SourceProperty, value);
+        }
+
+        public static readonly DependencyProperty SourceProperty =
+            DependencyProperty.Register(nameof(Source), typeof(ImageSource), typeof(ImageEx), new PropertyMetadata(null));
+
         public bool IsCacheEnabled
         {
             get => (bool)GetValue(IsCacheEnabledProperty);

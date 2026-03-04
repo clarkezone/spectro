@@ -1,8 +1,10 @@
 ﻿<local:SpectroViewBase x:Class="Spectro.Views.NavigationRoot"
                        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:behaviors="using:Microsoft.Toolkit.Uwp.UI.Animations.Behaviors"
                        xmlns:controls="using:Spectro.Controls"
                        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
                        xmlns:local="using:Spectro.Views"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        DataContext="{Binding NavViewModel, Source={StaticResource Locator}}"
@@ -10,6 +12,12 @@
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid x:Name="GridToBeBlurred">
+            <interactivity:Interaction.Behaviors>
+                <behaviors:Blur x:Name="BlurBehaviour"
+                                AutomaticallyStart="True"
+                                Value="{x:Bind BlurAmount(ViewModel.IsLoggedIn), Mode=OneWay}"
+                                Duration="0.5" />
+            </interactivity:Interaction.Behaviors>
             <NavigationView x:Name="NavView"
                             AlwaysShowHeader="False"
                             IsSettingsVisible="True"
@@ -81,32 +89,32 @@
                                        Height="25"
                                        Margin="12,0,12,0">
                             <PersonPicture.ProfilePicture>
-                                <BitmapImage UriSource="{Binding ProfileImageUri, Mode=OneWay}" />
+                                <BitmapImage UriSource="{x:Bind ViewModel.ProfileImageUri, Mode=OneWay}" />
                             </PersonPicture.ProfilePicture>
                         </PersonPicture>
                         <HyperlinkButton x:Name="MoreInfoBtn"
-                                         Command="{Binding LoginLogoutCommand}"
-                                         Content="{Binding LoginButtonText, Mode=OneWay}" />
+                                         Command="{x:Bind ViewModel.LoginLogoutCommand}"
+                                         Content="{x:Bind ViewModel.LoginButtonText, Mode=OneWay}" />
                     </StackPanel>
                 </NavigationView.PaneFooter>
                 <Frame x:Name="AppNavFrame" />
             </NavigationView>
         </Grid>
 
-        <controls:LoginControl Visibility="{Binding IsLoggedIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+        <controls:LoginControl Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
 
         <!--  how to handle position with / without back button  -->
         <TextBlock Margin="12,8,0,0"
                    VerticalAlignment="Top"
                    Style="{ThemeResource CaptionTextBlockStyle}"
-                   Text="{Binding ApplicationName}" />
+                   Text="{x:Bind ViewModel.ApplicationName}" />
 
-         <ProgressBar x:Name="ServiceProgress"
-                      Height="10"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Top"
-                      IsEnabled="{Binding IsProgressVisible, Mode=OneWay}"
-                      IsIndeterminate="{Binding IsProgressVisible, Mode=OneWay}"
-                      Visibility="{Binding IsProgressVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
-     </Grid>
- </local:SpectroViewBase>
+        <ProgressBar x:Name="ServiceProgress"
+                     Height="10"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Top"
+                     IsEnabled="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                     IsIndeterminate="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay}"
+                     Visibility="{x:Bind BooleanToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
+    </Grid>
+</local:SpectroViewBase>
