@@ -1,4 +1,5 @@
-﻿using Spectro.ViewModels;
+using Spectro.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Spectro.Controls
 {
@@ -12,6 +13,7 @@ namespace Spectro.Controls
         public LoginControl()
         {
             InitializeComponent();
+            DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<LoginViewModel>();
         }
     }
 }

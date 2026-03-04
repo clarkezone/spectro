@@ -7,7 +7,6 @@
                        xmlns:datamodel="using:Spectro.DataModel"
                        xmlns:local="using:Spectro.Views"
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                       DataContext="{Binding NewsList, Source={StaticResource Locator}}"
                        mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">

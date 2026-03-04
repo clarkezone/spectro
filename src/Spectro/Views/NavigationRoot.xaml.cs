@@ -12,6 +12,7 @@ namespace Spectro.Views
         public NavigationRoot()
         {
             InitializeComponent();
+            DataContext = ViewModelLocator.ServiceProvider.GetRequiredService<NavigationRootViewModel>();
             Loaded += (s, e) =>
             {
                 ViewModelLocator.ServiceProvider.GetRequiredService<ISpectroNavigationService>().RegisterFrame(AppNavFrame);

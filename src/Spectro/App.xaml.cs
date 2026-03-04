@@ -20,6 +20,7 @@ namespace Spectro
         /// </summary>
         public App()
         {
+            new ViewModelLocator();
             InitializeComponent();
         }
 

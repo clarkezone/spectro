@@ -14,28 +14,61 @@ namespace Spectro.ViewModels
         {
             var services = new ServiceCollection();
 
-            // Platform services
-            services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
-            services.AddSingleton<IDispatcherService, DispatcherService>();
+            // Platform services — explicit factory lambdas (AOT-safe, no reflection)
+            services.AddSingleton<IApplicationSettingsService>(sp => new ApplicationSettingsService());
+            services.AddSingleton<IDispatcherService>(sp => new DispatcherService());
 
-            // Local services
+            // Infrastructure services
             services.AddSingleton<INewsBlurClient>(sp => new NewsBlurClient());
-            services.AddSingleton<ISynchronizer, Synchronizer>();
-            services.AddSingleton<ITranslationService, TranslationService>();
-            services.AddSingleton<ISpectroNavigationService, SpectroNavigationService>();
-            services.AddSingleton<IActivationService, ActivationService>();
-            services.AddSingleton<IAuthenticationService, AuthenticationService>();
-            services.AddSingleton<IDataCacheService, RealmDataCacheService>();
-            services.AddSingleton<IProgressService, ProgressService>();
-            services.AddSingleton<IThemeService, ThemeService>();
-            services.AddSingleton<IApplicationInformationService, ApplicationInformationService>();
+            services.AddSingleton<ITranslationService>(sp => new TranslationService());
+            services.AddSingleton<ISpectroNavigationService>(sp => new SpectroNavigationService());
+            services.AddSingleton<IApplicationInformationService>(sp => new ApplicationInformationService());
+
+            // Services with dependencies
+            services.AddSingleton<IProgressService>(sp =>
+                new ProgressService(sp.GetRequiredService<IDispatcherService>()));
+            services.AddSingleton<IDataCacheService>(sp =>
+                new RealmDataCacheService(sp.GetRequiredService<IDispatcherService>()));
+            services.AddSingleton<IAuthenticationService>(sp =>
+                new AuthenticationService(
+                    sp.GetRequiredService<INewsBlurClient>(),
+                    sp.GetRequiredService<IApplicationSettingsService>()));
+            services.AddSingleton<IThemeService>(sp =>
+                new ThemeService(sp.GetRequiredService<IApplicationSettingsService>()));
+            services.AddSingleton<ISynchronizer>(sp =>
+                new Synchronizer(
+                    sp.GetRequiredService<INewsBlurClient>(),
+                    sp.GetRequiredService<IProgressService>(),
+                    sp.GetRequiredService<IAuthenticationService>(),
+                    sp.GetRequiredService<IDataCacheService>()));
+            services.AddSingleton<IActivationService>(sp =>
+                new ActivationService(
+                    sp.GetRequiredService<ISpectroNavigationService>(),
+                    sp.GetRequiredService<IDataCacheService>(),
+                    sp.GetRequiredService<IAuthenticationService>(),
+                    sp.GetRequiredService<IThemeService>()));
 
             // ViewModels
-            services.AddSingleton<NavigationRootViewModel>();
-            services.AddSingleton<ProfileViewModel>();
-            services.AddSingleton<SettingsViewModel>();
-            services.AddSingleton<NewsFeedListViewModel>();
-            services.AddSingleton<LoginViewModel>();
+            services.AddSingleton(sp =>
+                new NavigationRootViewModel(
+                    sp.GetRequiredService<ITranslationService>(),
+                    sp.GetRequiredService<ISpectroNavigationService>(),
+                    sp.GetRequiredService<IAuthenticationService>(),
+                    sp.GetRequiredService<ISynchronizer>(),
+                    sp.GetRequiredService<IProgressService>(),
+                    sp.GetRequiredService<IApplicationInformationService>()));
+            services.AddSingleton(sp => new ProfileViewModel());
+            services.AddSingleton(sp =>
+                new SettingsViewModel(
+                    sp.GetRequiredService<IThemeService>(),
+                    sp.GetRequiredService<IApplicationInformationService>()));
+            services.AddSingleton(sp =>
+                new NewsFeedListViewModel(
+                    sp.GetRequiredService<IDataCacheService>()));
+            services.AddSingleton(sp =>
+                new LoginViewModel(
+                    sp.GetRequiredService<IAuthenticationService>(),
+                    sp.GetRequiredService<ISpectroNavigationService>()));
 
             ServiceProvider = services.BuildServiceProvider();
         }

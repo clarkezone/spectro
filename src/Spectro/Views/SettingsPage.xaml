@@ -6,7 +6,6 @@
                        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                        xmlns:services="using:Spectro.Core.Services"
                        xmlns:views="using:Spectro.Views"
-                       DataContext="{Binding SettingsViewModel, Source={StaticResource Locator}}"
                        mc:Ignorable="d">
     <Page.Resources>
         <helper:EnumToBooleanConverter x:Key="EnumToBooleanConverter"
