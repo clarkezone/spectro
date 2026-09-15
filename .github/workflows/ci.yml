@@ -2,48 +2,90 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-test:
-    runs-on: windows-latest
-    permissions:
-      contents: read
-
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
-          dotnet-quality: 'preview'
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Locate MSBuild
+  test:
+    name: Deterministic tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Test NewsBlur contracts
+        run: dotnet test src\NewsBlurSharp.TestsCore\NewsBlurSharp.TestsCore.csproj -c Release
+      - name: Test view models
+        run: dotnet test src\Spectro.ViewModels.Tests\Spectro.ViewModels.Tests.csproj -c Release
+      - name: Test SQLite repositories
+        run: dotnet test src\Spectro.Infrastructure.Tests\Spectro.Infrastructure.Tests.csproj -c Release
+      - name: Test offline synchronization
+        run: dotnet test src\Spectro.Sync.Tests\Spectro.Sync.Tests.csproj -c Release
+
+  winui-build:
+    name: WinUI x64 Debug
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Build packaged WinUI app
+        run: dotnet build src\Spectro.App\Spectro.App.csproj -c Debug -p:Platform=x64
+
+  native-aot:
+    name: Native AOT ${{ matrix.platform }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x64
+            runtime: win-x64
+          - platform: ARM64
+            runtime: win-arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - name: Locate Visual C++ environment
+        id: vcvars
         shell: pwsh
         run: |
-          $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-          if (-not $msbuild) { throw "MSBuild not found on runner." }
-          "MSBUILD_EXE=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Restore dependencies
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installation = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $installation) {
+            throw "Visual Studio C++ build tools were not found."
+          }
+          "installation=$installation" >> $env:GITHUB_OUTPUT
+      - name: Publish Native AOT
+        shell: cmd
         run: |
-          dotnet restore src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj
-          dotnet restore src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj
-
-      - name: Build
-        run: |
-          dotnet build src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj --no-restore --configuration Release
-          dotnet build src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-restore --configuration Release
-
-      - name: Build UWP app (MSBuild)
-        shell: pwsh
-        run: |
-          & "$env:MSBUILD_EXE" src/Spectro/Spectro.csproj /restore /t:Build /p:Configuration=Release /p:Platform=x64 /p:EnableWindowsTargeting=true /m
-
-      - name: Test
-        run: |
-          dotnet test src/NewsBlurSharp.TestsCore/NewsBlurSharp.TestsCore.csproj --no-build --no-restore --configuration Release --verbosity normal
-          dotnet test src/Spectro.ViewModels.Tests/Spectro.ViewModels.Tests.csproj --no-build --no-restore --configuration Release --verbosity normal
+          call "${{ steps.vcvars.outputs.installation }}\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.platform == 'ARM64' && 'amd64_arm64' || 'amd64' }}
+          set "PATH=%PATH%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
+          dotnet publish src\Spectro.App\Spectro.App.csproj -c Release -p:Platform=${{ matrix.platform }} -r ${{ matrix.runtime }} --self-contained true
+      - name: Upload publish output
+        uses: actions/upload-artifact@v4
+        with:
+          name: spectro-${{ matrix.runtime }}-native-aot
+          path: src\Spectro.App\bin\Release\**\${{ matrix.runtime }}\publish\**
+          if-no-files-found: error
+          retention-days: 14

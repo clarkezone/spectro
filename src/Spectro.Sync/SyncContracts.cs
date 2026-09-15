@@ -1,0 +1,89 @@
+using Spectro.Domain;
+
+namespace Spectro.Sync;
+
+public enum SyncStage
+{
+    None,
+    Initialize,
+    UploadPendingMutations,
+    RefreshFeedsAndFolders,
+    FetchStories,
+    Reconcile,
+    Checkpoint,
+    Completed
+}
+
+public enum SyncOutcome
+{
+    Succeeded,
+    Offline,
+    TransientFailure,
+    AuthenticationRequired,
+    MalformedRemoteData,
+    PermanentFailure,
+    Canceled
+}
+
+public sealed record SyncState(
+    string AccountId,
+    SyncStage Stage,
+    int UploadedMutationCount,
+    int FeedCount,
+    int StoryCount,
+    int NetworkAttemptCount);
+
+public sealed record SyncResult(
+    SyncOutcome Outcome,
+    SyncState State,
+    DateTimeOffset StartedAt,
+    DateTimeOffset FinishedAt,
+    string? ErrorMessage = null)
+{
+    public bool IsSuccess => Outcome == SyncOutcome.Succeeded;
+}
+
+public sealed record SyncRequest(string AccountId);
+
+public sealed record SyncOptions
+{
+    public int MaximumStoryPages { get; init; } = 10;
+
+    public int MaximumNetworkAttempts { get; init; } = 3;
+
+    public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(1);
+
+    public TimeSpan MaximumRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
+
+    public double RetryJitterRatio { get; init; } = 0.2;
+
+    public TimeSpan RetentionAge { get; init; } = TimeSpan.FromDays(90);
+}
+
+public interface ISyncRandom
+{
+    double NextDouble();
+}
+
+public interface ISyncDelay
+{
+    Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken);
+}
+
+public interface ISyncStageObserver
+{
+    Task StageCompletedAsync(SyncState state, CancellationToken cancellationToken);
+}
+
+public sealed class SystemSyncRandom : ISyncRandom
+{
+    public double NextDouble() => Random.Shared.NextDouble();
+}
+
+public sealed class SystemSyncDelay(TimeProvider? timeProvider = null) : ISyncDelay
+{
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+
+    public Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken) =>
+        Task.Delay(delay, _timeProvider, cancellationToken);
+}

@@ -11,6 +11,7 @@ AppPackages/
 ## Project specific
 #################
 SkyDriveAccess.txt
+/.hyperloop/
 
 #################
 ## Eclipse
