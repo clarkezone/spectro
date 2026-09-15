@@ -32,7 +32,8 @@ public interface ISessionService
 
 public interface ISynchronizationService
 {
-    Task<SyncResult> SynchronizeAsync(string accountId, CancellationToken cancellationToken);
+    Task<SyncResult> SynchronizeAsync(
+        string accountId, IProgress<SyncState>? progress, CancellationToken cancellationToken);
 }
 
 public interface IExternalLauncher

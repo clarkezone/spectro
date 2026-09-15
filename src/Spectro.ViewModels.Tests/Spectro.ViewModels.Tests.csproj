@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Spectro.Domain\Spectro.Domain.csproj" />
+    <ProjectReference Include="..\Spectro.Infrastructure\Spectro.Infrastructure.csproj" />
     <ProjectReference Include="..\Spectro.Sync\Spectro.Sync.csproj" />
     <ProjectReference Include="..\Spectro.ViewModels\Spectro.ViewModels.csproj" />
   </ItemGroup>

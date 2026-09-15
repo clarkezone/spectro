@@ -13,6 +13,7 @@ public sealed partial class MainPage : Page
     private bool _readerInitialized;
     private bool _updatingSettings;
     private bool _bindingCollections;
+    private bool _libraryBindingQueued;
     private bool _compactReaderOpen;
     private readonly string _readerDirectory = Path.Combine(
         Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, "ArticleReader");
@@ -56,7 +57,7 @@ public sealed partial class MainPage : Page
     private async void MainPage_Loaded(object sender, RoutedEventArgs e)
     {
         UpdateScreen();
-        await ViewModel.InitializeAsync();
+        await RunUiActionAsync("Open library", () => ViewModel.InitializeAsync());
         BindLocalCollections();
         UpdateScreen();
         SelectCurrentNavigation();
@@ -67,7 +68,7 @@ public sealed partial class MainPage : Page
     private async void SignIn_Click(object sender, RoutedEventArgs e)
     {
         LoginProgress.Visibility = Visibility.Visible;
-        await ViewModel.LoginAsync();
+        await RunUiActionAsync("Sign in", () => ViewModel.LoginAsync());
         PasswordBox.Password = string.Empty;
         BindLocalCollections();
         LoginProgress.Visibility = Visibility.Collapsed;
@@ -81,6 +82,14 @@ public sealed partial class MainPage : Page
         await ViewModel.SynchronizeAsync();
         BindLocalCollections();
         await RefreshImagesAsync();
+    }
+
+    private void CancelSync_Click(object sender, RoutedEventArgs e) => ViewModel.CancelSync();
+
+    private async Task RunUiActionAsync(string action, Func<Task> operation)
+    {
+        try { await operation(); }
+        catch (Exception exception) { ViewModel.ReportError(action, exception); }
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e) => OpenSettings();
@@ -97,6 +106,8 @@ public sealed partial class MainPage : Page
 
     private async void SignOut_Click(object sender, RoutedEventArgs e)
     {
+        await RunUiActionAsync("Sign out", async () =>
+        {
         if (!await ConfirmDestructiveActionAsync(
                 "Sign out of NewsBlur?",
                 "Downloaded stories and any changes that have not synced will be removed from this device.",
@@ -110,10 +121,13 @@ public sealed partial class MainPage : Page
         ReaderHost.IsEnabled = true;
         BindLocalCollections();
         UpdateScreen();
+        });
     }
 
     private async void ResetLocalData_Click(object sender, RoutedEventArgs e)
     {
+        await RunUiActionAsync("Reset library", async () =>
+        {
         if (!await ConfirmDestructiveActionAsync(
                 "Reset your downloaded library?",
                 "This removes downloaded stories and unsynced changes from this device. Your NewsBlur account is not deleted.",
@@ -124,6 +138,7 @@ public sealed partial class MainPage : Page
         await App.Services.ClearImagesAsync();
         BindLocalCollections();
         SelectCurrentNavigation();
+        });
     }
 
     private async Task<bool> ConfirmDestructiveActionAsync(string title, string content, string action)
@@ -148,7 +163,7 @@ public sealed partial class MainPage : Page
         if (!_bindingCollections && NavigationList.SelectedItem is NavigationItemView item
             && item.Model.Id != ViewModel.SelectedNavigation?.Id)
         {
-            await ViewModel.SelectNavigationAsync(item.Model);
+            await RunUiActionAsync("Open collection", () => ViewModel.SelectNavigationAsync(item.Model));
             _compactReaderOpen = false;
             BindStories();
             SelectCurrentNavigation();
@@ -162,7 +177,7 @@ public sealed partial class MainPage : Page
         if (!_bindingCollections && NavigationPicker.SelectedItem is NavigationItemView item
             && item.Model.Id != ViewModel.SelectedNavigation?.Id)
         {
-            await ViewModel.SelectNavigationAsync(item.Model);
+            await RunUiActionAsync("Open collection", () => ViewModel.SelectNavigationAsync(item.Model));
             _compactReaderOpen = false;
             BindStories();
             SelectCurrentNavigation();
@@ -178,7 +193,7 @@ public sealed partial class MainPage : Page
         {
             _compactReaderOpen = true;
             _focusReaderAfterNavigation = true;
-            await ViewModel.SelectStoryAsync(item.Model);
+            await RunUiActionAsync("Open article", () => ViewModel.SelectStoryAsync(item.Model));
             // Defer collection replacement until WinUI has finished raising selection events.
             DispatcherQueue.TryEnqueue(BindLocalCollections);
             ShowReader();
@@ -206,19 +221,22 @@ public sealed partial class MainPage : Page
 
     private void BindFeeds()
     {
+        var previous = _bindingCollections;
         _bindingCollections = true;
-        FeedList.Items.Clear();
-        foreach (var item in ViewModel.NavigationItems.Where(item => item.Kind == NavigationItemKind.Feed)
-                     .DistinctBy(item => item.FeedId)
-                     .Where(item => item.Title.Contains(FeedSearch.Text.Trim(), StringComparison.CurrentCultureIgnoreCase)))
-            FeedList.Items.Add(new NavigationItemView(item));
-        _bindingCollections = false;
+        try
+        {
+            UpdateNavigationViews(FeedList.Items, ViewModel.GetVisibleFeeds(FeedSearch.Text));
+            AllFilterButton.IsChecked = ViewModel.ActiveFilter == StoryFilter.All;
+            UnreadFilterButton.IsChecked = ViewModel.ActiveFilter == StoryFilter.Unread;
+            SavedFilterButton.IsChecked = ViewModel.ActiveFilter == StoryFilter.Saved;
+        }
+        finally { _bindingCollections = previous; }
     }
 
     private async void FeedList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_bindingCollections || FeedList.SelectedItem is not NavigationItemView item) return;
-        await ViewModel.SelectNavigationAsync(item.Model);
+        await RunUiActionAsync("Open feed", () => ViewModel.SelectNavigationAsync(item.Model));
         _compactReaderOpen = false;
         BindStories();
         SelectCurrentNavigation();
@@ -227,24 +245,24 @@ public sealed partial class MainPage : Page
     private async void Filter_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is not string id) return;
-        var item = ViewModel.NavigationItems.First(item => item.Id == id);
-        await ViewModel.SelectNavigationAsync(item);
+        var filter = id switch { "unread" => StoryFilter.Unread, "saved" => StoryFilter.Saved, _ => StoryFilter.All };
+        await RunUiActionAsync("Filter library", () => ViewModel.SelectFilterAsync(filter));
         _compactReaderOpen = false;
-        BindStories();
+        BindLocalCollections();
         SelectCurrentNavigation();
     }
 
     private async void SelectedRead_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel.SelectedStory is not { } story) return;
-        await ViewModel.ToggleReadAsync(story);
+        await RunUiActionAsync("Update read state", () => ViewModel.ToggleReadAsync(story));
         BindLocalCollections();
     }
 
     private async void SelectedSaved_Click(object sender, RoutedEventArgs e)
     {
         if (ViewModel.SelectedStory is not { } story) return;
-        await ViewModel.ToggleSavedAsync(story);
+        await RunUiActionAsync("Update saved state", () => ViewModel.ToggleSavedAsync(story));
         BindLocalCollections();
     }
 
@@ -261,7 +279,7 @@ public sealed partial class MainPage : Page
     {
         if ((sender as FrameworkElement)?.Tag is StoryItemView item)
         {
-            await ViewModel.ToggleReadAsync(item.Model);
+            await RunUiActionAsync("Update read state", () => ViewModel.ToggleReadAsync(item.Model));
             BindLocalCollections();
         }
     }
@@ -270,15 +288,18 @@ public sealed partial class MainPage : Page
     {
         if ((sender as FrameworkElement)?.Tag is StoryItemView item)
         {
-            await ViewModel.ToggleSavedAsync(item.Model);
+            await RunUiActionAsync("Update saved state", () => ViewModel.ToggleSavedAsync(item.Model));
             BindLocalCollections();
         }
     }
 
     private async void ArticleReader_Loaded(object sender, RoutedEventArgs e)
     {
-        await EnsureArticleReaderInitializedAsync();
-        NavigateReader();
+        await RunUiActionAsync("Open article reader", async () =>
+        {
+            await EnsureArticleReaderInitializedAsync();
+            NavigateReader();
+        });
     }
 
     private async Task EnsureArticleReaderInitializedAsync()
@@ -351,7 +372,19 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        if (e.PropertyName is nameof(AppViewModel.Screen) or nameof(AppViewModel.IsBusy))
+        if (e.PropertyName == nameof(AppViewModel.LibraryRevision))
+        {
+            if (!_libraryBindingQueued)
+            {
+                _libraryBindingQueued = true;
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    _libraryBindingQueued = false;
+                    BindLocalCollections();
+                });
+            }
+        }
+        else if (e.PropertyName is nameof(AppViewModel.Screen) or nameof(AppViewModel.IsBusy))
         {
             UpdateScreen();
         }
@@ -364,7 +397,8 @@ public sealed partial class MainPage : Page
             ApplyTheme();
         }
         else if (e.PropertyName is nameof(AppViewModel.StatusMessage) or nameof(AppViewModel.StatusTitle)
-                 or nameof(AppViewModel.IsStale) or nameof(AppViewModel.IsOffline))
+                 or nameof(AppViewModel.IsStale) or nameof(AppViewModel.IsOffline)
+                 or nameof(AppViewModel.IsSyncing) or nameof(AppViewModel.SyncProgressText))
         {
             UpdateStatus();
         }
@@ -384,6 +418,7 @@ public sealed partial class MainPage : Page
             : Visibility.Collapsed;
         ApplyTheme();
         UpdateStatus();
+        UpdateArticleActions();
     }
 
     private void ApplyTheme()
@@ -400,11 +435,12 @@ public sealed partial class MainPage : Page
     private void UpdateStatus()
     {
         if (SyncStatusText is null) return;
-        SyncStatusText.Text = ViewModel.IsBusy ? "Syncing your library..." :
-            ViewModel.IsStale ? ViewModel.StatusTitle : "Available offline";
+        SyncStatusText.Text = ViewModel.IsSyncing ? ViewModel.SyncProgressText :
+            ViewModel.IsStale ? $"{ViewModel.StatusTitle}. {ViewModel.StatusMessage}" : ViewModel.StatusTitle;
         ToolTipService.SetToolTip(SyncStatusText, ViewModel.StatusMessage);
-        SyncStatusIcon.Glyph = ViewModel.IsBusy ? "\uE72C" : ViewModel.IsStale ? "\uE8CD" : "\uE73E";
-        LibraryStatus.Text = App.Services.IsDemo ? "Sample library" : ViewModel.IsBusy ? "Syncing..." : ViewModel.IsOffline ? "Reading offline" : "Connected to NewsBlur";
+        SyncStatusIcon.Glyph = ViewModel.IsSyncing ? "\uE72C" : ViewModel.IsStale ? "\uE8CD" : "\uE73E";
+        CancelSyncButton.Visibility = ViewModel.IsSyncing ? Visibility.Visible : Visibility.Collapsed;
+        LibraryStatus.Text = App.Services.IsDemo ? "Sample library" : ViewModel.IsSyncing ? "Updating in background" : ViewModel.IsOffline ? "Reading offline" : "Connected to NewsBlur";
         StatusBar.IsOpen = ViewModel.IsStale && ViewModel.IsReaderScreen;
         LoginStatus.IsOpen = ViewModel.IsLoginScreen && ViewModel.StatusTitle is not ("Sign in to NewsBlur" or "Loading");
     }
@@ -413,8 +449,8 @@ public sealed partial class MainPage : Page
     {
         if (ReadButton is null) return;
         var story = ViewModel.SelectedStory;
-        ReadButton.IsEnabled = SaveButton.IsEnabled = OpenButton.IsEnabled = story is not null;
-        OpenButton.IsEnabled = Uri.TryCreate(story?.Permalink, UriKind.Absolute, out var link)
+        ReadButton.IsEnabled = SaveButton.IsEnabled = story is not null && ViewModel.CanInteract;
+        OpenButton.IsEnabled = ViewModel.CanInteract && Uri.TryCreate(story?.Permalink, UriKind.Absolute, out var link)
             && link.Scheme is "http" or "https";
         ArticleSource.Text = story is null ? "THE READING ROOM" : SourceFor(story);
         ReadIcon.Glyph = story?.IsRead == true ? "\uE73E" : "\uE915";
@@ -433,6 +469,7 @@ public sealed partial class MainPage : Page
 
     private void SelectCurrentNavigation()
     {
+        var previous = _bindingCollections;
         _bindingCollections = true;
         try
         {
@@ -450,7 +487,7 @@ public sealed partial class MainPage : Page
                 .FirstOrDefault(item => item.Model.Id == ViewModel.SelectedNavigation.Id);
         }
         }
-        finally { _bindingCollections = false; }
+        finally { _bindingCollections = previous; }
     }
 
     private void ShowReader()
@@ -543,41 +580,74 @@ public sealed partial class MainPage : Page
 
     private void BindLocalCollections()
     {
+        var previous = _bindingCollections;
         _bindingCollections = true;
-        NavigationPicker.Items.Clear();
-        NavigationList.Items.Clear();
-        foreach (var item in ViewModel.NavigationItems)
+        try
         {
-            NavigationPicker.Items.Add(new NavigationItemView(item));
-            if (item.Kind != NavigationItemKind.Feed)
-                NavigationList.Items.Add(new NavigationItemView(item));
+            UpdateNavigationViews(NavigationPicker.Items, ViewModel.NavigationItems);
+            UpdateNavigationViews(NavigationList.Items, ViewModel.NavigationItems.Where(item => item.Kind != NavigationItemKind.Feed));
+            BindFeeds();
+            BindStories();
+            SelectCurrentNavigation();
         }
-        _bindingCollections = false;
-        BindFeeds();
-        BindStories();
-        SelectCurrentNavigation();
+        finally { _bindingCollections = previous; }
+    }
+
+    private static void UpdateNavigationViews(ItemCollection target, IEnumerable<NavigationItem> items)
+    {
+        var existing = target.OfType<NavigationItemView>().ToDictionary(item => item.Model.Id);
+        var next = items.DistinctBy(item => item.Id).Select(item =>
+            existing.TryGetValue(item.Id, out var view) && view.Model == item ? view : new NavigationItemView(item)).ToArray();
+        UpdateItems(target, next);
+    }
+
+    private static void UpdateItems<T>(ItemCollection target, IReadOnlyList<T> next) where T : class
+    {
+        // Native ItemCollection avoids a custom generic collection's AOT WinRT projection.
+        for (var index = 0; index < next.Count; index++)
+        {
+            if (index < target.Count && ReferenceEquals(target[index], next[index])) continue;
+            var existing = target.IndexOf(next[index]);
+            if (existing >= 0) target.RemoveAt(existing);
+            target.Insert(index, next[index]);
+        }
+        while (target.Count > next.Count) target.RemoveAt(target.Count - 1);
     }
 
     private void BindStories()
     {
+        var previous = _bindingCollections;
         _bindingCollections = true;
+        try
+        {
         var selectedHash = ViewModel.SelectedStory?.Hash;
         var search = StorySearch.Text.Trim();
-        StoryList.Items.Clear();
+        var existing = StoryList.Items.OfType<StoryItemView>().ToDictionary(item => item.Model.Hash);
+        var next = new List<StoryItemView>();
+        var dense = ActualWidth is >= 820 and < 1000 && ViewModel.SelectedStory is null;
         foreach (var story in ViewModel.Stories)
         {
             if (search.Length > 0 && !story.Title.Contains(search, StringComparison.CurrentCultureIgnoreCase)
                 && !StoryPresentation.PlainText(story.Summary).Contains(search, StringComparison.CurrentCultureIgnoreCase)
                 && !SourceFor(story).Contains(search, StringComparison.CurrentCultureIgnoreCase)) continue;
-            var item = new StoryItemView(story, SourceFor(story), ActualWidth is >= 820 and < 1000 && ViewModel.SelectedStory is null);
+            var item = existing.TryGetValue(story.Hash, out var cached) && cached.Model == story
+                && cached.Source == SourceFor(story) && cached.IsDense == dense
+                ? cached : new StoryItemView(story, SourceFor(story), dense);
             if (App.Services.Images?.GetCachedPath(story.ImageUri) is { } cachedPath)
-                item.Thumbnail = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(cachedPath));
+            {
+                if (item.Thumbnail is null)
+                {
+                    item = new StoryItemView(story, SourceFor(story), dense);
+                    item.Thumbnail = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(cachedPath));
+                }
+            }
 #if DEBUG
             if (App.Services.IsDemo && story.ImageUri?.StartsWith("ms-appx:///Assets/Demo/", StringComparison.Ordinal) == true)
                 item.Thumbnail = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(story.ImageUri));
 #endif
-            StoryList.Items.Add(item);
+            next.Add(item);
         }
+        UpdateItems(StoryList.Items, next);
 
         if (selectedHash is not null)
         {
@@ -585,13 +655,17 @@ public sealed partial class MainPage : Page
                 .OfType<StoryItemView>()
                 .FirstOrDefault(item => item.Model.Hash == selectedHash);
         }
-        _bindingCollections = false;
-        LibraryHeading.Text = ViewModel.SelectedNavigation?.Title ?? "Your library";
+        var navigation = ViewModel.SelectedNavigation;
+        LibraryHeading.Text = navigation?.Title ?? "Your library";
+        if (navigation?.Kind != NavigationItemKind.Filter && ViewModel.ActiveFilter != StoryFilter.All)
+            LibraryHeading.Text += $" - {ViewModel.ActiveFilter}";
         LibrarySubtitle.Text = $"{StoryList.Items.Count} {(StoryList.Items.Count == 1 ? "story" : "stories")}  /  {DateTime.Today:dddd, MMMM d}";
         ListEmpty.Visibility = StoryList.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ListEmptyTitle.Text = search.Length > 0 ? "No matching stories." : ViewModel.SelectedNavigation?.Filter == StoryFilter.Unread ? "All caught up." : "A fresh page.";
-        ListEmptyMessage.Text = search.Length > 0 ? "Try a different title, publication, or phrase." : "Choose another collection or sync for new stories.";
+        ListEmptyTitle.Text = search.Length > 0 ? "No matching stories." : ViewModel.IsSyncing ? "Downloading your library..." : ViewModel.ActiveFilter == StoryFilter.Unread ? "All caught up." : "A fresh page.";
+        ListEmptyMessage.Text = search.Length > 0 ? "Try a different title, publication, or phrase." : ViewModel.IsSyncing ? "Stories appear as each page arrives. You can browse while syncing." : "Choose another collection or sync for new stories.";
         ShowReader();
+        }
+        finally { _bindingCollections = previous; }
     }
 
     private async Task RefreshImagesAsync()
@@ -599,7 +673,7 @@ public sealed partial class MainPage : Page
         if (!ViewModel.IsReaderScreen) return;
         var selectedHash = ViewModel.SelectedStory?.Hash;
         var hadCover = App.Services.Images?.GetCachedPath(ViewModel.SelectedStory?.ImageUri) is not null;
-        await App.Services.CacheImagesAsync();
+        await RunUiActionAsync("Download images", () => App.Services.CacheImagesAsync());
         BindStories();
         if (!hadCover && _readerInitialized && ViewModel.SelectedStory?.Hash == selectedHash
             && App.Services.Images?.GetCachedPath(ViewModel.SelectedStory?.ImageUri) is not null)
@@ -610,9 +684,10 @@ public sealed partial class MainPage : Page
                     System.Globalization.CultureInfo.InvariantCulture, out var scrollY))
                 NavigateReader(scrollY);
         }
-        if (App.Services.ImageFailures > 0)
+        if (App.Services.ImageFailures > 0 && !ViewModel.IsStale && !ViewModel.IsSyncing
+            && ViewModel.StatusTitle == "Up to date")
         {
-            SyncStatusText.Text = "Some images unavailable";
+            SyncStatusText.Text = "Up to date. Some images unavailable";
             ToolTipService.SetToolTip(SyncStatusText, "Your stories are available. Images that could not be downloaded will be retried on the next sync.");
         }
     }

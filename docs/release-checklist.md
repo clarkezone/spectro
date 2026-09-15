@@ -179,6 +179,69 @@ This does not establish complete credential/WebView2 erasure, real-account reset
 coverage, every account shape, ARM64 packaging, Store certification, or the full
 device/DPI matrix. The broader release gates below remain open.
 
+### Multi-feed library acceptance
+
+Installation and a one-feed sync are not sufficient product acceptance. Validate
+the **signed Release MSIX** against a populated library, including exact story
+subsets, selected filters, folder scope, local unread counts, and reading during
+sync. Counts in the feed pane describe downloaded stories, not the entire remote
+account.
+
+The library now updates after each committed page. Up to four HTTP requests run
+concurrently; read/save actions and navigation remain available during sync.
+Progress reports subscriptions, unread-state reconciliation, feed/page counts,
+retry attempts, and completion. Cancel retains committed pages and local changes.
+Changes made during a sync remain queued when necessary, with an explicit
+"Changes waiting to sync" status. Thumbnail failures must not replace sync errors.
+List queries omit full article bodies; selecting a story loads its full content
+without replacing the open article during background refreshes.
+
+The live multi-feed exercise also found two defects that mocked/build-only checks
+missed: `flat=true` suppresses NewsBlur's folder tree, and binding custom generic
+observable collections failed at Native AOT runtime. The catalog now requests the
+hierarchical response and respects explicit inactive subscriptions. The UI updates
+native WinUI item collections incrementally, retaining unchanged items rather
+than clearing the lists on every page.
+
+`tools\newsblur-library-fixture.cjs` creates reversible subscriptions and two
+folders on the dedicated automation account. It verifies the signed-in identity,
+preserves pre-existing subscriptions, and journals only fixture ownership/state
+under `%LOCALAPPDATA%\Spectro\E2E`. Run `prepare`, then `status`; run `cleanup`
+after acceptance. Never use it against a personal account or upload its browser
+profile. After a failed interaction test, reconcile pending desktop mutations
+before cleanup.
+
+Copy `tools\Test-SpectroLibraryUI.ps1` and `tools\Get-SpectroE2EState.ps1`
+to the same folder inside the isolated VM. Invoke the former in the interactive
+user's session with `-WindowHandle` and `-ExpectedVersion`:
+
+- `-Scenario Matrix` compares all rendered story titles, including scrolling,
+  with read-only SQLite expectations for global/folder/feed filters and searches.
+  It also checks the feed list's unread counts and selected toggle states.
+- `-Scenario Progress` requires an empty cache, then measures first usable stories,
+  progressive feedback, and navigation before sync completes.
+- `-Scenario ProgressActions -FixtureStoryHash <new-fixture-hash>` additionally
+  reads and toggles saved state during initial sync. Sync again afterward to
+  upload queued changes and verify the fixture is restored.
+- `-Scenario Cancel` checks cancellation feedback, retained content, and an
+  unchanged successful checkpoint. `-Scenario Offline` requires the host to
+  physically disconnect the VM adapter and restore its original switch in
+  `finally`; it verifies cached content and failure feedback.
+
+The matrix requires at least four feeds/two populated folders and at most 500
+cached stories. It is an actual running-UI check, not a substitute for the
+SQLite presentation and controlled-concurrency regression tests.
+
+Local signed Release measurements on the isolated VM (2026-09-15): usable
+stories appeared after **1.6-2.4 seconds**, before initial sync finished in
+**8.1-9.1 seconds** with about 300 stories across five active feeds. Read/save
+and navigation worked while downloads continued; sampled UI automation queries
+remained below **430 ms**. Cancellation retained the library/checkpoint. A
+physical offline run enumerated all 299 cached titles; a later real connectivity
+failure retained two mutations, which a subsequent retry uploaded successfully.
+These are observed fixture results, not an iOS comparison or a performance
+guarantee for every account/network.
+
 - [ ] Login, initial sync, cached launch, offline restart, reconnect, refresh,
       read/unread, save/unsave, sign-out, and reset flows pass.
 - [ ] Wide, medium, and narrow layouts preserve selection and reading context.

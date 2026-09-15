@@ -26,7 +26,11 @@ public sealed partial class NavigationItemView
 
     public int UnreadCount { get; set; }
 
-    public string CountText => UnreadCount > 0 ? UnreadCount.ToString() : string.Empty;
+    public string CountText => Model.Kind == NavigationItemKind.Feed || UnreadCount > 0 ? UnreadCount.ToString() : string.Empty;
+
+    public FontWeight TitleWeight => UnreadCount > 0 ? FontWeights.SemiBold : FontWeights.Normal;
+
+    public string AccessibleName => $"{Title}, {UnreadCount} downloaded unread stories";
 
     public string Initial => Title.Length == 0 ? "" : Title[..1].ToUpperInvariant();
 
@@ -64,6 +68,8 @@ public sealed partial class StoryItemView
         Author = model.Author ?? string.Empty;
         Source = source ?? Author;
         _dense = dense;
+        Summary = StoryPresentation.PlainText(
+            string.IsNullOrWhiteSpace(model.Summary) || model.Summary == model.Title ? model.Content : model.Summary);
     }
 
     internal Story Model { get; }
@@ -74,14 +80,14 @@ public sealed partial class StoryItemView
 
     public string Source { get; }
     private readonly bool _dense;
+    internal bool IsDense => _dense;
 
     public double TitleSize => _dense ? 12 : 14;
     public double ImageSize => _dense ? 56 : 80;
     public int SummaryLines => _dense ? 1 : 2;
     public Thickness PreviewPadding => _dense ? new Thickness(8, 6, 8, 6) : new Thickness(12, 9, 12, 9);
 
-    public string Summary => StoryPresentation.PlainText(
-        string.IsNullOrWhiteSpace(Model.Summary) || Model.Summary == Model.Title ? Model.Content : Model.Summary);
+    public string Summary { get; }
 
     public string DateLabel => StoryPresentation.DateLabel(Model.PublishedAt, DateTimeOffset.Now);
 

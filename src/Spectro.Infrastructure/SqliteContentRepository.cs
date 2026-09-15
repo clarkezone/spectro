@@ -286,9 +286,14 @@ public sealed class SqliteContentRepository(
         command.CommandText =
             """
             SELECT story_hash, feed_id, service_id, guid_hash, title, author, permalink,
-                   content, summary, image_uri, published_utc, is_read, is_saved
+                   CASE WHEN $includeContent THEN content ELSE '' END,
+                   CASE WHEN $includeContent THEN summary
+                        WHEN summary = title OR summary = '' THEN substr(content, 1, 4096)
+                        ELSE substr(summary, 1, 4096) END,
+                   image_uri, published_utc, is_read, is_saved
             FROM story
             WHERE ($feedId IS NULL OR feed_id = $feedId)
+              AND ($storyHash IS NULL OR story_hash = $storyHash)
               AND ($folderId IS NULL OR EXISTS (
                     SELECT 1 FROM folder_feed
                     WHERE folder_feed.folder_id = $folderId
@@ -304,6 +309,8 @@ public sealed class SqliteContentRepository(
         command.Parameters.AddWithValue("$folderId", (object?)query.FolderId ?? DBNull.Value);
         command.Parameters.AddWithValue("$filter", (int)query.Filter);
         command.Parameters.AddWithValue("$limit", query.Limit);
+        command.Parameters.AddWithValue("$storyHash", (object?)query.StoryHash ?? DBNull.Value);
+        command.Parameters.AddWithValue("$includeContent", query.IncludeContent ? 1 : 0);
 
         var stories = new List<Story>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken)
@@ -338,6 +345,23 @@ public sealed class SqliteContentRepository(
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             counts.Add(reader.GetInt32(0), reader.GetInt32(1));
+        return counts;
+    }
+
+    public async Task<IReadOnlyDictionary<int, FeedStoryCounts>> GetLocalFeedCountsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT feed_id, COUNT(*), SUM(is_read = 0), SUM(is_saved = 1) FROM story GROUP BY feed_id;";
+        var counts = new Dictionary<int, FeedStoryCounts>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            counts.Add(reader.GetInt32(0), new FeedStoryCounts(
+                reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)));
+        }
         return counts;
     }
 
@@ -515,20 +539,8 @@ public sealed class SqliteContentRepository(
             .BeginTransactionAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        foreach (var story in content.Stories)
-        {
-            await EnsureFeedExistsAsync(
-                connection,
-                (SqliteTransaction)transaction,
-                story.FeedId,
-                cancellationToken).ConfigureAwait(false);
-
-            await using var command = connection.CreateCommand();
-            command.Transaction = (SqliteTransaction)transaction;
-            command.CommandText = StoryUpsertSql;
-            AddStoryParameters(command, story);
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
+        await WriteRemoteStoriesAsync(connection, (SqliteTransaction)transaction, content.Stories,
+            preserveExistingState: false, cancellationToken).ConfigureAwait(false);
 
         if (content.UnreadSetIsComplete)
         {
@@ -574,6 +586,38 @@ public sealed class SqliteContentRepository(
             content,
             cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task CacheRemoteStoriesAsync(
+        IReadOnlyCollection<Story> stories,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stories);
+        if (stories.Count == 0) return;
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await WriteRemoteStoriesAsync(connection, (SqliteTransaction)transaction, stories,
+            preserveExistingState: true, cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task WriteRemoteStoriesAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        IReadOnlyCollection<Story> stories,
+        bool preserveExistingState,
+        CancellationToken cancellationToken)
+    {
+        foreach (var story in stories)
+        {
+            await EnsureFeedExistsAsync(connection, transaction, story.FeedId, cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = StoryUpsertSql;
+            AddStoryParameters(command, story);
+            command.Parameters.AddWithValue("$preserveExistingState", preserveExistingState ? 1 : 0);
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task SetCheckpointAsync(
@@ -973,7 +1017,7 @@ public sealed class SqliteContentRepository(
             image_uri = excluded.image_uri,
             published_utc = excluded.published_utc,
             is_read = CASE
-                WHEN EXISTS (
+                WHEN $preserveExistingState = 1 OR EXISTS (
                     SELECT 1 FROM pending_mutation
                     WHERE story_hash = excluded.story_hash AND kind = 'read')
                   OR EXISTS (
@@ -990,6 +1034,7 @@ public sealed class SqliteContentRepository(
                     SELECT 1 FROM uploaded_mutation
                     WHERE story_hash = excluded.story_hash AND kind = 'saved')
                 THEN story.is_saved
+                WHEN $preserveExistingState = 1 THEN MAX(story.is_saved, excluded.is_saved)
                 ELSE excluded.is_saved
             END;
         """;

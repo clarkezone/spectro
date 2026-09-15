@@ -37,8 +37,14 @@ public sealed class OfflineFirstSynchronizer
         ValidateOptions(_options);
     }
 
+    public Task<SyncResult> SynchronizeAsync(
+        SyncRequest request,
+        CancellationToken cancellationToken = default) =>
+        SynchronizeAsync(request, null, cancellationToken);
+
     public async Task<SyncResult> SynchronizeAsync(
         SyncRequest request,
+        IProgress<SyncState>? progress,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -48,7 +54,7 @@ public sealed class OfflineFirstSynchronizer
             request.AccountId,
             static _ => new SemaphoreSlim(1, 1));
         var startedAt = _timeProvider.GetUtcNow();
-        var state = new SyncState(request.AccountId, SyncStage.None, 0, 0, 0, 0);
+        using var run = new SyncRun(request.AccountId, _options.MaximumConcurrentRequests, progress);
 
         try
         {
@@ -56,58 +62,60 @@ public sealed class OfflineFirstSynchronizer
         }
         catch (OperationCanceledException)
         {
-            return Canceled(state, startedAt);
+            return Canceled(run.State, startedAt);
         }
 
         try
         {
             try
             {
+                run.SetStage(SyncStage.Initialize);
                 await _repository.InitializeAsync(cancellationToken).ConfigureAwait(false);
-                state = await CompleteStageAsync(
-                    state with { Stage = SyncStage.Initialize },
-                    cancellationToken).ConfigureAwait(false);
+                await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
 
-                state = await UploadPendingMutationsAsync(state, cancellationToken)
-                    .ConfigureAwait(false);
-                state = await CompleteStageAsync(
-                    state with { Stage = SyncStage.UploadPendingMutations },
-                    cancellationToken).ConfigureAwait(false);
+                run.SetStage(SyncStage.UploadPendingMutations);
+                await UploadPendingMutationsAsync(run, cancellationToken).ConfigureAwait(false);
+                await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
 
+                run.SetStage(SyncStage.RefreshFeedsAndFolders);
                 var catalog = await ExecuteRemoteAsync(
                     token => _remoteService.GetFeedCatalogAsync(token),
-                    state,
+                    run,
                     cancellationToken).ConfigureAwait(false);
-                state = state with
+                run.Update(state => state with
                 {
-                    NetworkAttemptCount = catalog.AttemptCount,
-                    FeedCount = catalog.Value.Feeds.Count
-                };
+                    FeedCount = catalog.Feeds.Count(static feed => feed.IsActive)
+                });
                 await _repository.ReplaceFeedCatalogAsync(
-                    catalog.Value.Feeds,
-                    catalog.Value.Folders,
-                    catalog.Value.FolderFeeds,
+                    catalog.Feeds,
+                    catalog.Folders,
+                    catalog.FolderFeeds,
                     cancellationToken).ConfigureAwait(false);
-                state = await CompleteStageAsync(
-                    state with { Stage = SyncStage.RefreshFeedsAndFolders },
-                    cancellationToken).ConfigureAwait(false);
+                run.ContentChanged();
+                await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
 
-                var fetched = await FetchRemoteContentAsync(
-                    catalog.Value,
-                    state,
-                    cancellationToken).ConfigureAwait(false);
-                state = fetched.State;
-                state = await CompleteStageAsync(
-                    state with { Stage = SyncStage.FetchStories },
-                    cancellationToken).ConfigureAwait(false);
-
+                run.SetStage(SyncStage.FetchUnreadState);
+                var unread = await ExecuteRemoteAsync(
+                    token => _remoteService.GetUnreadStoryHashesAsync(token),
+                    run, cancellationToken).ConfigureAwait(false);
                 await _repository.ReconcileRemoteContentAsync(
-                    fetched.Content,
+                    new RemoteContentBatch([], unread, true, new HashSet<string>(), false),
                     cancellationToken).ConfigureAwait(false);
-                state = await CompleteStageAsync(
-                    state with { Stage = SyncStage.Reconcile },
-                    cancellationToken).ConfigureAwait(false);
+                run.ContentChanged();
 
+                run.SetStage(SyncStage.FetchStories);
+                var saved = await FetchRemoteContentAsync(catalog, unread, run, cancellationToken)
+                    .ConfigureAwait(false);
+                await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
+
+                run.SetStage(SyncStage.Reconcile);
+                await _repository.ReconcileRemoteContentAsync(
+                    new RemoteContentBatch([], unread, true, saved.Hashes, saved.IsComplete),
+                    cancellationToken).ConfigureAwait(false);
+                run.ContentChanged();
+                await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
+
+                run.SetStage(SyncStage.Checkpoint);
                 await _repository.DeleteStoriesOlderThanAsync(
                     _timeProvider.GetUtcNow() - _options.RetentionAge,
                     cancellationToken).ConfigureAwait(false);
@@ -118,26 +126,24 @@ public sealed class OfflineFirstSynchronizer
                         checkpointTime.ToString("O"),
                         checkpointTime),
                     cancellationToken).ConfigureAwait(false);
-                state = await CompleteStageAsync(
-                    state with { Stage = SyncStage.Checkpoint },
-                    cancellationToken).ConfigureAwait(false);
+                await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
 
-                state = state with { Stage = SyncStage.Completed };
+                run.SetStage(SyncStage.Completed);
                 return new SyncResult(
                     SyncOutcome.Succeeded,
-                    state,
+                    run.State,
                     startedAt,
                     _timeProvider.GetUtcNow());
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return Canceled(state, startedAt);
+                return Canceled(run.State, startedAt);
             }
             catch (SyncRemoteException exception)
             {
                 return new SyncResult(
                     MapOutcome(exception.Kind),
-                    state,
+                    run.State,
                     startedAt,
                     _timeProvider.GetUtcNow(),
                     exception.Message);
@@ -149,8 +155,8 @@ public sealed class OfflineFirstSynchronizer
         }
     }
 
-    private async Task<SyncState> UploadPendingMutationsAsync(
-        SyncState state,
+    private async Task UploadPendingMutationsAsync(
+        SyncRun run,
         CancellationToken cancellationToken)
     {
         var uploadedSnapshots = await _repository.GetUploadedMutationsAsync(cancellationToken)
@@ -169,115 +175,131 @@ public sealed class OfflineFirstSynchronizer
                 continue;
             }
 
-            var upload = await ExecuteRemoteAsync(
+            await ExecuteRemoteAsync(
                 token => _remoteService.UploadMutationAsync(mutation, token),
-                state,
+                run,
                 cancellationToken).ConfigureAwait(false);
-            state = state with
+            run.Update(state => state with
             {
-                UploadedMutationCount = state.UploadedMutationCount + 1,
-                NetworkAttemptCount = upload.AttemptCount
-            };
+                UploadedMutationCount = state.UploadedMutationCount + 1
+            });
             await _repository.RecordUploadedMutationAsync(mutation, cancellationToken)
                 .ConfigureAwait(false);
         }
-
-        return state;
     }
 
-    private async Task<(RemoteContentBatch Content, SyncState State)> FetchRemoteContentAsync(
+    private async Task<(IReadOnlySet<string> Hashes, bool IsComplete)> FetchRemoteContentAsync(
         RemoteFeedCatalog catalog,
-        SyncState state,
+        IReadOnlySet<string> unread,
+        SyncRun run,
         CancellationToken cancellationToken)
     {
-        var stories = new Dictionary<string, Story>(StringComparer.Ordinal);
+        using var downloads = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var savedHashes = new HashSet<string>(StringComparer.Ordinal);
+        var savedComplete = false;
+        var tasks = new List<Task>
+        {
+            DownloadAsync(async () =>
+            {
+                for (var page = 1; page <= _options.MaximumStoryPages; page++)
+                {
+                    var result = await ExecuteRemoteAsync(
+                        token => _remoteService.GetStarredStoriesAsync(page, token),
+                        run, downloads.Token, "Saved stories", page).ConfigureAwait(false);
+                    foreach (var story in result.Stories) savedHashes.Add(story.Hash);
+                    await CachePageAsync(result.Stories, unread, isSaved: true, run, downloads.Token)
+                        .ConfigureAwait(false);
+                    if (result.IsLastPage)
+                    {
+                        savedComplete = true;
+                        break;
+                    }
+                }
+            })
+        };
+
         foreach (var feed in catalog.Feeds.Where(static feed => feed.IsActive))
         {
-            state = await FetchPagesAsync(
-                (page, token) => _remoteService.GetFeedStoriesAsync(feed.Id, page, token),
-                stories,
-                state,
-                cancellationToken).ConfigureAwait(false);
+            tasks.Add(DownloadAsync(async () =>
+            {
+                for (var page = 1; page <= _options.MaximumStoryPages; page++)
+                {
+                    var result = await ExecuteRemoteAsync(
+                        token => _remoteService.GetFeedStoriesAsync(feed.Id, page, token),
+                        run, downloads.Token, feed.Title, page).ConfigureAwait(false);
+                    await CachePageAsync(result.Stories, unread, isSaved: false, run, downloads.Token)
+                        .ConfigureAwait(false);
+                    if (result.IsLastPage) break;
+                }
+                run.Update(state => state with { CompletedFeedCount = state.CompletedFeedCount + 1 });
+            }));
         }
 
-        var unread = await ExecuteRemoteAsync(
-            token => _remoteService.GetUnreadStoryHashesAsync(token),
-            state,
-            cancellationToken).ConfigureAwait(false);
-        state = state with { NetworkAttemptCount = unread.AttemptCount };
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+        return (savedHashes, savedComplete);
 
-        var savedHashes = new HashSet<string>(StringComparer.Ordinal);
-        var starredComplete = false;
-        for (var page = 1; page <= _options.MaximumStoryPages; page++)
+        async Task DownloadAsync(Func<Task> operation)
         {
-            var starred = await ExecuteRemoteAsync(
-                token => _remoteService.GetStarredStoriesAsync(page, token),
-                state,
-                cancellationToken).ConfigureAwait(false);
-            state = state with { NetworkAttemptCount = starred.AttemptCount };
-            foreach (var story in starred.Value.Stories)
+            try { await operation().ConfigureAwait(false); }
+            catch
             {
-                savedHashes.Add(story.Hash);
-                stories[story.Hash] = story with { IsSaved = true };
-            }
-
-            if (starred.Value.IsLastPage)
-            {
-                starredComplete = true;
-                break;
+                await downloads.CancelAsync().ConfigureAwait(false);
+                throw;
             }
         }
-
-        state = state with { StoryCount = stories.Count };
-        return (
-            new RemoteContentBatch(
-                stories.Values.ToArray(),
-                unread.Value,
-                UnreadSetIsComplete: true,
-                savedHashes,
-                SavedSetIsComplete: starredComplete),
-            state);
     }
 
-    private async Task<SyncState> FetchPagesAsync(
-        Func<int, CancellationToken, Task<RemoteStoryPage>> fetchPage,
-        Dictionary<string, Story> stories,
-        SyncState state,
+    private async Task CachePageAsync(
+        IReadOnlyCollection<Story> stories,
+        IReadOnlySet<string> unread,
+        bool isSaved,
+        SyncRun run,
         CancellationToken cancellationToken)
     {
-        for (var page = 1; page <= _options.MaximumStoryPages; page++)
+        await run.PersistenceGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            var result = await ExecuteRemoteAsync(
-                token => fetchPage(page, token),
-                state,
-                cancellationToken).ConfigureAwait(false);
-            state = state with { NetworkAttemptCount = result.AttemptCount };
-            foreach (var story in result.Value.Stories)
+            var page = stories.Select(story => story with
             {
-                stories[story.Hash] = story;
-            }
-
-            if (result.Value.IsLastPage)
+                IsRead = !unread.Contains(story.Hash),
+                IsSaved = isSaved || story.IsSaved
+            }).ToArray();
+            await _repository.CacheRemoteStoriesAsync(page, cancellationToken).ConfigureAwait(false);
+            foreach (var story in page) run.DownloadedHashes.Add(story.Hash);
+            run.Update(state => state with
             {
-                break;
-            }
+                StoryCount = run.DownloadedHashes.Count,
+                DownloadedPageCount = state.DownloadedPageCount + 1,
+                LocalRevision = state.LocalRevision + (page.Length > 0 ? 1 : 0)
+            });
         }
-
-        return state;
+        finally { run.PersistenceGate.Release(); }
     }
 
-    private async Task<RemoteCallResult<T>> ExecuteRemoteAsync<T>(
+    private async Task<T> ExecuteRemoteAsync<T>(
         Func<CancellationToken, Task<T>> operation,
-        SyncState state,
-        CancellationToken cancellationToken)
+        SyncRun run,
+        CancellationToken cancellationToken,
+        string? feedTitle = null,
+        int page = 0)
     {
         for (var attempt = 1; ; attempt++)
         {
+            await run.NetworkSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                return new RemoteCallResult<T>(
-                    await operation(cancellationToken).ConfigureAwait(false),
-                    state.NetworkAttemptCount + attempt);
+                try
+                {
+                    run.Update(state => state with
+                    {
+                        NetworkAttemptCount = state.NetworkAttemptCount + 1,
+                        CurrentFeedTitle = feedTitle,
+                        CurrentPage = page,
+                        RetryAttempt = attempt
+                    });
+                    return await operation(cancellationToken).ConfigureAwait(false);
+                }
+                finally { run.NetworkSlots.Release(); }
             }
             catch (SyncRemoteException exception)
                 when (exception.Kind == SyncRemoteFailureKind.Transient
@@ -290,18 +312,18 @@ public sealed class OfflineFirstSynchronizer
         }
     }
 
-    private async Task<RemoteCallResult<object?>> ExecuteRemoteAsync(
+    private async Task ExecuteRemoteAsync(
         Func<CancellationToken, Task> operation,
-        SyncState state,
+        SyncRun run,
         CancellationToken cancellationToken)
     {
-        return await ExecuteRemoteAsync<object?>(
+        await ExecuteRemoteAsync<object?>(
             async token =>
             {
                 await operation(token).ConfigureAwait(false);
                 return null;
             },
-            state,
+            run,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -353,6 +375,8 @@ public sealed class OfflineFirstSynchronizer
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MaximumStoryPages, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MaximumNetworkAttempts, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaximumConcurrentRequests, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.MaximumConcurrentRequests, 8);
         if (options.InitialRetryDelay < TimeSpan.Zero
             || options.MaximumRetryDelay < options.InitialRetryDelay)
         {
@@ -370,5 +394,44 @@ public sealed class OfflineFirstSynchronizer
         }
     }
 
-    private sealed record RemoteCallResult<T>(T Value, int AttemptCount);
+    private sealed class SyncRun : IDisposable
+    {
+        private readonly object _gate = new();
+        private readonly IProgress<SyncState>? _progress;
+        private SyncState _state;
+
+        public SyncRun(string accountId, int concurrency, IProgress<SyncState>? progress)
+        {
+            _state = new SyncState(accountId, SyncStage.None, 0, 0, 0, 0);
+            _progress = progress;
+            NetworkSlots = new SemaphoreSlim(concurrency, concurrency);
+        }
+
+        public SyncState State { get { lock (_gate) return _state; } }
+        public SemaphoreSlim NetworkSlots { get; }
+        public SemaphoreSlim PersistenceGate { get; } = new(1, 1);
+        public HashSet<string> DownloadedHashes { get; } = new(StringComparer.Ordinal);
+
+        public void Update(Func<SyncState, SyncState> update)
+        {
+            lock (_gate)
+            {
+                _state = update(_state);
+                _progress?.Report(_state);
+            }
+        }
+
+        public void SetStage(SyncStage stage) => Update(state => state with
+        {
+            Stage = stage, CurrentFeedTitle = null, CurrentPage = 0, RetryAttempt = 0
+        });
+
+        public void ContentChanged() => Update(state => state with { LocalRevision = state.LocalRevision + 1 });
+
+        public void Dispose()
+        {
+            NetworkSlots.Dispose();
+            PersistenceGate.Dispose();
+        }
+    }
 }

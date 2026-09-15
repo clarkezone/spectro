@@ -34,7 +34,8 @@ internal sealed class AppComposition
     {
         if (Images is null || _repository is null || !ViewModel.Settings.DownloadImages) return Task.CompletedTask;
         if (!_imageWork.IsCompleted) return _imageWork;
-        _imageWork = CacheImagesCoreAsync(_imageCancellation.Token);
+        var token = _imageCancellation.Token;
+        _imageWork = Task.Run(() => CacheImagesCoreAsync(token));
         return _imageWork;
     }
 
@@ -45,7 +46,7 @@ internal sealed class AppComposition
         try
         {
             await Images.CacheAsync(
-                await _repository.QueryStoriesAsync(new ContentQuery(StoryFilter.All), cancellationToken),
+                await _repository.QueryStoriesAsync(new ContentQuery(StoryFilter.All, IncludeContent: false), cancellationToken),
                 cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

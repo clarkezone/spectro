@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Threading.Channels;
 using Spectro.Domain;
 using Spectro.Sync;
 
@@ -31,6 +32,17 @@ public sealed class AppViewModel : ObservableObject
     private Story? _selectedStory;
     private ReaderSettings _settings;
     private string _readerHtml = string.Empty;
+    private bool _isSyncing;
+    private string _syncProgressText = string.Empty;
+    private CancellationTokenSource? _syncCancellation;
+    private Task? _activeSync;
+    private int _queryVersion;
+    private int _refreshVersion;
+    private int _selectionVersion;
+    private int _libraryRevision;
+    private StoryFilter _activeFilter;
+    private string? _folderScope;
+    private IReadOnlyList<FeedFolder> _folders = [];
 
     public AppViewModel(
         IContentRepository repository,
@@ -99,11 +111,29 @@ public sealed class AppViewModel : ObservableObject
             if (SetProperty(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(CanInteract));
+                OnPropertyChanged(nameof(CanSynchronize));
             }
         }
     }
 
     public bool CanInteract => !IsBusy;
+    public bool CanSynchronize => !IsBusy && !IsSyncing;
+    public bool IsSyncing
+    {
+        get => _isSyncing;
+        private set
+        {
+            if (SetProperty(ref _isSyncing, value))
+                OnPropertyChanged(nameof(CanSynchronize));
+        }
+    }
+    public string SyncProgressText
+    {
+        get => _syncProgressText;
+        private set => SetProperty(ref _syncProgressText, value);
+    }
+    public int LibraryRevision => _libraryRevision;
+    public StoryFilter ActiveFilter => _activeFilter;
 
     public bool IsOffline
     {
@@ -152,7 +182,7 @@ public sealed class AppViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            await _repository.InitializeAsync(cancellationToken);
+            await Task.Run(() => _repository.InitializeAsync(cancellationToken), cancellationToken);
             var session = await _sessionService.RestoreAsync(cancellationToken);
             if (!session.IsAuthenticated)
             {
@@ -164,6 +194,7 @@ public sealed class AppViewModel : ObservableObject
             _accountId = session.AccountId;
             Screen = AppScreen.Reader;
             await RefreshLocalAsync(cancellationToken);
+            IsBusy = false;
             await SynchronizeAsync(isInitial: true, cancellationToken);
         }
         finally
@@ -198,6 +229,7 @@ public sealed class AppViewModel : ObservableObject
             _accountId = result.AccountId;
             Screen = AppScreen.Reader;
             await RefreshLocalAsync(cancellationToken);
+            IsBusy = false;
             await SynchronizeAsync(isInitial: true, cancellationToken);
         }
         finally
@@ -206,53 +238,192 @@ public sealed class AppViewModel : ObservableObject
         }
     }
 
-    public async Task SynchronizeAsync(
+    public Task SynchronizeAsync(
         bool isInitial = false,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_accountId) || IsBusy && !isInitial)
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(_accountId) || !CanSynchronize)
+            return _activeSync ?? Task.CompletedTask;
+        _activeSync = SynchronizeCoreAsync(_accountId, cancellationToken);
+        return _activeSync;
+    }
 
-        IsBusy = true;
+    public void CancelSync() => _syncCancellation?.Cancel();
+
+    private async Task SynchronizeCoreAsync(string accountId, CancellationToken cancellationToken)
+    {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _syncCancellation = cancellation;
+        IsSyncing = true;
         StatusTitle = "Syncing";
-        StatusMessage = "Updating feeds and stories…";
+        SyncProgressText = "Connecting to NewsBlur...";
+        var channel = Channel.CreateBounded<SyncState>(new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true
+        });
+        var progress = new SyncProgress(channel.Writer);
+        var worker = Task.Run(async () =>
+        {
+            try { return await _synchronizationService.SynchronizeAsync(accountId, progress, cancellation.Token); }
+            finally { channel.Writer.TryComplete(); }
+        });
         try
         {
-            var result = await _synchronizationService.SynchronizeAsync(
-                _accountId,
-                cancellationToken);
-            await RefreshLocalAsync(cancellationToken);
+            var revision = 0;
+            while (await channel.Reader.WaitToReadAsync())
+            {
+                SyncState? latest = null;
+                while (channel.Reader.TryRead(out var state)) latest = state;
+                if (latest is null) continue;
+                SyncProgressText = DescribeProgress(latest);
+                if (latest.LocalRevision > revision)
+                {
+                    await RefreshLocalAsync(CancellationToken.None);
+                    revision = latest.LocalRevision;
+                }
+                await Task.Delay(200);
+            }
+            var result = await worker;
+            await RefreshLocalAsync(CancellationToken.None);
             ApplySyncResult(result);
+            if (result.IsSuccess && (await Task.Run(() =>
+                    _repository.GetPendingMutationsAsync(1, CancellationToken.None))).Count > 0)
+            {
+                StatusTitle = "Changes waiting to sync";
+                StatusMessage = "Your latest reading changes are saved locally. Sync again to upload them.";
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            await RefreshLocalAsync(CancellationToken.None);
+            StatusTitle = "Sync canceled";
+            StatusMessage = "Downloaded stories and local changes are safe. Sync again to continue.";
+        }
+        catch (Exception exception)
+        {
+            cancellation.Cancel();
+            try { await worker; }
+            catch (Exception workerException)
+            {
+                System.Diagnostics.Trace.TraceError($"Sync worker failed: {workerException.GetType().Name} (0x{workerException.HResult:X8})");
+            }
+            ReportError("Sync", exception);
         }
         finally
         {
-            IsBusy = false;
+            _syncCancellation = null;
+            IsSyncing = false;
         }
+    }
+
+    private sealed class SyncProgress(ChannelWriter<SyncState> writer) : IProgress<SyncState>
+    {
+        public void Report(SyncState value) => writer.TryWrite(value);
+    }
+
+    private static string DescribeProgress(SyncState state)
+    {
+        var stage = state.Stage switch
+        {
+            SyncStage.Initialize => "Opening local library",
+            SyncStage.UploadPendingMutations => "Uploading reading changes",
+            SyncStage.RefreshFeedsAndFolders => "Downloading subscriptions",
+            SyncStage.FetchUnreadState => "Updating unread counts",
+            SyncStage.FetchStories => $"{state.CompletedFeedCount}/{state.FeedCount} feeds, {state.StoryCount} stories",
+            SyncStage.Reconcile => "Reconciling reading changes",
+            SyncStage.Checkpoint => "Finishing sync",
+            SyncStage.Completed => "Sync complete",
+            _ => "Connecting to NewsBlur"
+        };
+        if (state.Stage == SyncStage.FetchStories && state.CurrentFeedTitle is not null)
+            stage += $" - {state.CurrentFeedTitle}, page {state.CurrentPage}";
+        return state.RetryAttempt > 1 ? $"{stage} - retry {state.RetryAttempt}" : stage;
+    }
+
+    public void ReportError(string action, Exception exception)
+    {
+        System.Diagnostics.Trace.TraceError($"{action} failed: {exception.GetType().Name} (0x{exception.HResult:X8})");
+        IsStale = true;
+        StatusTitle = $"{action} could not finish";
+        StatusMessage = "Your downloaded library is still available. Try again; if this persists, check your connection and available disk space.";
     }
 
     public async Task SelectNavigationAsync(
         NavigationItem item,
         CancellationToken cancellationToken = default)
     {
+        ClearSelection();
+        if (item.Kind == NavigationItemKind.Filter)
+        {
+            _activeFilter = item.Filter;
+            _folderScope = null;
+        }
+        else if (item.Kind == NavigationItemKind.Folder)
+            _folderScope = item.FolderId;
+        SelectedNavigation = item;
+        OnPropertyChanged(nameof(ActiveFilter));
+        await LoadStoriesAsync(item, cancellationToken);
+    }
+
+    public async Task SelectFilterAsync(StoryFilter filter, CancellationToken cancellationToken = default)
+    {
+        ClearSelection();
+        _activeFilter = filter;
+        OnPropertyChanged(nameof(ActiveFilter));
+        var selected = SelectedNavigation;
+        if (selected is null || selected.Kind == NavigationItemKind.Filter)
+            selected = NavigationItems.First(item => item.Kind == NavigationItemKind.Filter && item.Filter == filter);
+        SelectedNavigation = selected;
+        await LoadStoriesAsync(selected, cancellationToken);
+    }
+
+    public IReadOnlyList<NavigationItem> GetVisibleFeeds(string search = "")
+    {
+        var scope = _folderScope is null ? null : _folders
+            .FirstOrDefault(group => group.Folder.Id == _folderScope)?.Feeds.Select(feed => feed.Id).ToHashSet();
+        return NavigationItems.Where(item => item.Kind == NavigationItemKind.Feed)
+            .DistinctBy(item => item.FeedId)
+            .Where(item => scope is null || scope.Contains(item.FeedId!.Value))
+            .Where(item => _activeFilter switch
+            {
+                StoryFilter.Unread => item.UnreadCount > 0,
+                StoryFilter.Saved => item.SavedCount > 0,
+                StoryFilter.Read => item.StoryCount > item.UnreadCount,
+                _ => true
+            })
+            .Where(item => item.Title.Contains(search.Trim(), StringComparison.CurrentCultureIgnoreCase)).ToArray();
+    }
+
+    private void ClearSelection()
+    {
+        ++_selectionVersion;
         SelectedStory = null;
         ReaderHtml = string.Empty;
-        SelectedNavigation = item;
-        await LoadStoriesAsync(item, cancellationToken);
     }
 
     public async Task SelectStoryAsync(
         Story? story,
         CancellationToken cancellationToken = default)
     {
+        var version = ++_selectionVersion;
+        if (story is not null)
+        {
+            var details = await Task.Run(() => _repository.QueryStoriesAsync(
+                new ContentQuery(StoryFilter.All, Limit: 1, StoryHash: story.Hash), cancellationToken), cancellationToken);
+            if (version != _selectionVersion) return;
+            story = details.FirstOrDefault()
+                ?? throw new InvalidOperationException("This story is no longer downloaded. Sync or choose another story.");
+        }
         if (story is { IsRead: false })
         {
-            await _repository.SetStoryReadAsync(story.Hash, true, cancellationToken);
+            await Task.Run(() => _repository.SetStoryReadAsync(story.Hash, true, cancellationToken), cancellationToken);
+            if (version != _selectionVersion) return;
             story = story with { IsRead = true };
             SelectedStory = story;
             await RefreshLocalAsync(cancellationToken);
         }
+        if (version != _selectionVersion) return;
         SelectedStory = story;
         ReaderHtml = story is null ? string.Empty : ReaderHtmlBuilder.Build(story, Settings);
     }
@@ -261,8 +432,8 @@ public sealed class AppViewModel : ObservableObject
         Story story,
         CancellationToken cancellationToken = default)
     {
-        await _repository.SetStoryReadAsync(story.Hash, !story.IsRead, cancellationToken);
-        if (SelectedStory?.Hash == story.Hash) SelectedStory = story with { IsRead = !story.IsRead };
+        await Task.Run(() => _repository.SetStoryReadAsync(story.Hash, !story.IsRead, cancellationToken), cancellationToken);
+        if (SelectedStory?.Hash == story.Hash) SelectedStory = SelectedStory with { IsRead = !story.IsRead };
         await RefreshLocalAsync(cancellationToken);
     }
 
@@ -270,8 +441,8 @@ public sealed class AppViewModel : ObservableObject
         Story story,
         CancellationToken cancellationToken = default)
     {
-        await _repository.SetStorySavedAsync(story.Hash, !story.IsSaved, cancellationToken);
-        if (SelectedStory?.Hash == story.Hash) SelectedStory = story with { IsSaved = !story.IsSaved };
+        await Task.Run(() => _repository.SetStorySavedAsync(story.Hash, !story.IsSaved, cancellationToken), cancellationToken);
+        if (SelectedStory?.Hash == story.Hash) SelectedStory = SelectedStory with { IsSaved = !story.IsSaved };
         await RefreshLocalAsync(cancellationToken);
     }
 
@@ -292,12 +463,20 @@ public sealed class AppViewModel : ObservableObject
 
     public async Task ResetLocalDataAsync(CancellationToken cancellationToken = default)
     {
-        await _repository.ClearAccountDataAsync(cancellationToken);
-        SelectedStory = null;
-        ReaderHtml = string.Empty;
-        await RefreshLocalAsync(cancellationToken);
-        StatusTitle = "Local data reset";
-        StatusMessage = "Your local library is empty. Sync to download it again.";
+        IsBusy = true;
+        try
+        {
+            CancelSync();
+            if (_activeSync is not null) await _activeSync;
+            ++_refreshVersion;
+            ++_queryVersion;
+            ClearSelection();
+            await Task.Run(() => _repository.ClearAccountDataAsync(cancellationToken), cancellationToken);
+            await RefreshLocalAsync(cancellationToken);
+            StatusTitle = "Local data reset";
+            StatusMessage = "Your local library is empty. Sync to download it again.";
+        }
+        finally { IsBusy = false; }
     }
 
     public async Task SignOutAsync(CancellationToken cancellationToken = default)
@@ -305,11 +484,17 @@ public sealed class AppViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            CancelSync();
+            if (_activeSync is not null) await _activeSync;
+            ++_refreshVersion;
+            ++_queryVersion;
+            ClearSelection();
             await _sessionService.SignOutAsync(cancellationToken);
-            await _repository.ClearAccountDataAsync(cancellationToken);
+            await Task.Run(() => _repository.ClearAccountDataAsync(cancellationToken), cancellationToken);
             _accountId = null;
             NavigationItems.Clear();
             Stories.Clear();
+            PublishLibrary();
             SelectedStory = null;
             ReaderHtml = string.Empty;
             Username = string.Empty;
@@ -326,7 +511,17 @@ public sealed class AppViewModel : ObservableObject
 
     private async Task RefreshLocalAsync(CancellationToken cancellationToken)
     {
-        var unreadCounts = await _repository.GetLocalUnreadCountsAsync(cancellationToken);
+        var version = ++_refreshVersion;
+        var snapshot = await Task.Run(async () =>
+        {
+            var counts = await _repository.GetLocalFeedCountsAsync(cancellationToken);
+            var folders = await _repository.GetFeedFoldersAsync(cancellationToken);
+            var feeds = await _repository.GetFeedsAsync(cancellationToken);
+            return (counts, folders, feeds);
+        }, cancellationToken);
+        if (version != _refreshVersion) return;
+        var (counts, folders, feeds) = snapshot;
+        _folders = folders;
         NavigationItems.Clear();
         NavigationItems.Add(new(
             "all",
@@ -338,7 +533,7 @@ public sealed class AppViewModel : ObservableObject
             "Unread",
             NavigationItemKind.Filter,
             StoryFilter.Unread,
-            UnreadCount: unreadCounts.Values.Sum()));
+            UnreadCount: counts.Values.Sum(count => count.Unread)));
         NavigationItems.Add(new(
             "saved",
             "Saved",
@@ -350,7 +545,6 @@ public sealed class AppViewModel : ObservableObject
             NavigationItemKind.Filter,
             StoryFilter.Read));
 
-        var folders = await _repository.GetFeedFoldersAsync(cancellationToken);
         var folderFeedIds = folders.SelectMany(static group => group.Feeds)
             .Select(static feed => feed.Id)
             .ToHashSet();
@@ -361,7 +555,7 @@ public sealed class AppViewModel : ObservableObject
                 group.Folder.Title,
                 NavigationItemKind.Folder,
                 FolderId: group.Folder.Id,
-                UnreadCount: group.Feeds.Sum(feed => unreadCounts.GetValueOrDefault(feed.Id))));
+                UnreadCount: group.Feeds.Sum(feed => counts.GetValueOrDefault(feed.Id)?.Unread ?? 0)));
             foreach (var feed in group.Feeds)
             {
                 NavigationItems.Add(new(
@@ -369,12 +563,14 @@ public sealed class AppViewModel : ObservableObject
                     feed.Title,
                     NavigationItemKind.Feed,
                     FeedId: feed.Id,
-                    UnreadCount: unreadCounts.GetValueOrDefault(feed.Id),
-                    Depth: 1));
+                    UnreadCount: counts.GetValueOrDefault(feed.Id)?.Unread ?? 0,
+                    Depth: 1,
+                    SavedCount: counts.GetValueOrDefault(feed.Id)?.Saved ?? 0,
+                    StoryCount: counts.GetValueOrDefault(feed.Id)?.Total ?? 0));
             }
         }
 
-        foreach (var feed in (await _repository.GetFeedsAsync(cancellationToken))
+        foreach (var feed in feeds
                      .Where(feed => !folderFeedIds.Contains(feed.Id)))
         {
             NavigationItems.Add(new(
@@ -382,11 +578,18 @@ public sealed class AppViewModel : ObservableObject
                 feed.Title,
                 NavigationItemKind.Feed,
                 FeedId: feed.Id,
-                UnreadCount: unreadCounts.GetValueOrDefault(feed.Id)));
+                UnreadCount: counts.GetValueOrDefault(feed.Id)?.Unread ?? 0,
+                SavedCount: counts.GetValueOrDefault(feed.Id)?.Saved ?? 0,
+                StoryCount: counts.GetValueOrDefault(feed.Id)?.Total ?? 0));
         }
 
         var selected = NavigationItems.FirstOrDefault(item =>
             item.Id == SelectedNavigation?.Id) ?? DefaultNavigation();
+        if (SelectedNavigation is null)
+        {
+            _activeFilter = selected.Filter;
+            OnPropertyChanged(nameof(ActiveFilter));
+        }
         await LoadStoriesAsync(selected, cancellationToken);
     }
 
@@ -395,30 +598,42 @@ public sealed class AppViewModel : ObservableObject
         CancellationToken cancellationToken)
     {
         SelectedNavigation = navigation;
-        var stories = await _repository.QueryStoriesAsync(
+        var version = ++_queryVersion;
+        var filter = _activeFilter;
+        var stories = await Task.Run(() => _repository.QueryStoriesAsync(
             new ContentQuery(
-                navigation.Filter,
+                filter,
                 navigation.FeedId,
-                navigation.FolderId),
-            cancellationToken);
+                navigation.FolderId,
+                IncludeContent: false),
+            cancellationToken), cancellationToken);
+        if (version != _queryVersion) return;
         Stories.Clear();
         foreach (var story in stories)
         {
             Stories.Add(story);
         }
 
-        StatusTitle = Stories.Count == 0 ? "Nothing here yet" : navigation.Title;
-        StatusMessage = Stories.Count == 0
-            ? "Sync to download stories, or choose another filter."
-            : $"{Stories.Count} local stor{(Stories.Count == 1 ? "y" : "ies")}";
+        if (!IsSyncing && !IsStale)
+        {
+            StatusTitle = Stories.Count == 0 ? "Nothing here yet" : navigation.Title;
+            StatusMessage = Stories.Count == 0
+                ? "Sync to download stories, or choose another filter."
+                : $"{Stories.Count} local stor{(Stories.Count == 1 ? "y" : "ies")}";
+        }
         if (SelectedStory is not null)
         {
             // Reading a story removes it from Unread, but must not close the article.
-            SelectedStory = Stories.FirstOrDefault(item => item.Hash == SelectedStory.Hash) ?? SelectedStory;
-            ReaderHtml = SelectedStory is null
-                ? string.Empty
-                : ReaderHtmlBuilder.Build(SelectedStory, Settings);
+            if (Stories.FirstOrDefault(item => item.Hash == SelectedStory.Hash) is { } preview)
+                SelectedStory = SelectedStory with { IsRead = preview.IsRead, IsSaved = preview.IsSaved };
         }
+        PublishLibrary();
+    }
+
+    private void PublishLibrary()
+    {
+        ++_libraryRevision;
+        OnPropertyChanged(nameof(LibraryRevision));
     }
 
     private NavigationItem DefaultNavigation() =>
@@ -455,7 +670,7 @@ public sealed class AppViewModel : ObservableObject
             SyncOutcome.TransientFailure => ("Sync delayed", "NewsBlur is temporarily unavailable. Your local library is safe."),
             SyncOutcome.MalformedRemoteData => ("Sync error", "NewsBlur returned data Spectro could not read."),
             SyncOutcome.PermanentFailure => ("Sync error", result.ErrorMessage ?? "The sync could not be completed."),
-            _ => ("Sync canceled", "Your local library was not changed.")
+            _ => ("Sync canceled", "Downloaded stories and local changes are safe. Sync again to continue.")
         };
         OnPropertyChanged(nameof(StatusTitle));
         OnPropertyChanged(nameof(StatusMessage));

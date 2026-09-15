@@ -21,6 +21,8 @@ public sealed class AppViewModelTests
             .ReturnsAsync([]);
         _repository.Setup(repository => repository.GetLocalUnreadCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, int>());
+        _repository.Setup(repository => repository.GetLocalFeedCountsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<int, FeedStoryCounts>());
         _repository.Setup(repository => repository.GetFeedFoldersAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
         _repository.Setup(repository => repository.QueryStoriesAsync(
@@ -83,6 +85,7 @@ public sealed class AppViewModelTests
             .ReturnsAsync([story]);
         _sync.Setup(service => service.SynchronizeAsync(
                 "42",
+                It.IsAny<IProgress<SyncState>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(SuccessfulSync());
 
@@ -93,6 +96,7 @@ public sealed class AppViewModelTests
         Assert.Equal(story.Hash, Assert.Single(subject.Stories).Hash);
         _sync.Verify(service => service.SynchronizeAsync(
             "42",
+            It.IsAny<IProgress<SyncState>>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -153,8 +157,9 @@ public sealed class AppViewModelTests
         var subject = CreateSubject();
         var unread = new NavigationItem("unread", "Unread", NavigationItemKind.Filter, StoryFilter.Unread);
         subject.NavigationItems.Add(unread);
+        SetupStoryDetails(story);
         _repository.SetupSequence(repository => repository.QueryStoriesAsync(
-                It.IsAny<ContentQuery>(), It.IsAny<CancellationToken>()))
+                It.Is<ContentQuery>(query => query.StoryHash == null), It.IsAny<CancellationToken>()))
             .ReturnsAsync([story])
             .ReturnsAsync([]);
         await subject.SelectNavigationAsync(unread);
@@ -171,6 +176,7 @@ public sealed class AppViewModelTests
     public async Task TogglingSavedOutsideCurrentFilterPreservesTheSelectedStoryAndNewValue()
     {
         var story = CreateStory() with { IsRead = true };
+        SetupStoryDetails(story);
         var subject = CreateSubject();
         subject.NavigationItems.Add(new("all", "All", NavigationItemKind.Filter));
         await subject.SelectNavigationAsync(subject.NavigationItems[0]);
@@ -187,7 +193,11 @@ public sealed class AppViewModelTests
     public async Task SwitchingCollectionClearsThePreviouslyOpenArticle()
     {
         var subject = CreateSubject();
-        await subject.SelectStoryAsync(CreateStory() with { IsRead = true });
+        var story = CreateStory() with { IsRead = true };
+        SetupStoryDetails(story);
+        await subject.SelectStoryAsync(story);
+        Assert.Equal(story.Hash, subject.SelectedStory?.Hash);
+        Assert.Contains("Body", subject.ReaderHtml);
 
         await subject.SelectNavigationAsync(new("saved", "Saved", NavigationItemKind.Filter, StoryFilter.Saved));
 
@@ -267,6 +277,13 @@ public sealed class AppViewModelTests
 
     private AppViewModel CreateSubject() =>
         new(_repository.Object, _session.Object, _sync.Object, _settings);
+
+    private void SetupStoryDetails(Story story) =>
+        _repository.Setup(repository => repository.QueryStoriesAsync(
+                It.Is<ContentQuery>(query =>
+                    query.StoryHash == story.Hash && query.IncludeContent && query.Limit == 1),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([story]);
 
     private static Story CreateStory() =>
         new(
