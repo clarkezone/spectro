@@ -7,29 +7,25 @@ $package = Get-AppxPackage -Name A3C06F23-C3A9-4304-A172-22F2D2F7A78C
 if (-not $package) { throw 'Spectro is not installed for this Windows user.' }
 $database = Join-Path $env:LOCALAPPDATA "Packages\$($package.PackageFamilyName)\LocalState\spectro.db"
 if (-not (Test-Path -LiteralPath $database)) { throw 'The production-mode test database does not exist.' }
-$native = Get-ChildItem -LiteralPath $package.InstallLocation -Filter e_sqlite3.dll -Recurse | Select-Object -First 1
-if (-not $native) { throw 'The app SQLite library was not found.' }
+# Windows' SQLite can load outside the protected MSIX installation directory.
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
 public static class SpectroE2ESqlite {
-    [DllImport("kernel32", CharSet=CharSet.Unicode)]
-    public static extern IntPtr LoadLibrary(string path);
-    [DllImport("e_sqlite3", CallingConvention=CallingConvention.Cdecl)]
+    [DllImport("winsqlite3", CallingConvention=CallingConvention.Cdecl)]
     public static extern int sqlite3_open_v2([MarshalAs(UnmanagedType.LPUTF8Str)] string path, out IntPtr db, int flags, IntPtr vfs);
-    [DllImport("e_sqlite3", CallingConvention=CallingConvention.Cdecl)]
+    [DllImport("winsqlite3", CallingConvention=CallingConvention.Cdecl)]
     public static extern int sqlite3_prepare_v2(IntPtr db, [MarshalAs(UnmanagedType.LPUTF8Str)] string sql, int bytes, out IntPtr statement, IntPtr tail);
-    [DllImport("e_sqlite3", CallingConvention=CallingConvention.Cdecl)]
+    [DllImport("winsqlite3", CallingConvention=CallingConvention.Cdecl)]
     public static extern int sqlite3_step(IntPtr statement);
-    [DllImport("e_sqlite3", CallingConvention=CallingConvention.Cdecl)]
+    [DllImport("winsqlite3", CallingConvention=CallingConvention.Cdecl)]
     public static extern IntPtr sqlite3_column_text(IntPtr statement, int column);
-    [DllImport("e_sqlite3", CallingConvention=CallingConvention.Cdecl)]
+    [DllImport("winsqlite3", CallingConvention=CallingConvention.Cdecl)]
     public static extern int sqlite3_finalize(IntPtr statement);
-    [DllImport("e_sqlite3", CallingConvention=CallingConvention.Cdecl)]
+    [DllImport("winsqlite3", CallingConvention=CallingConvention.Cdecl)]
     public static extern int sqlite3_close(IntPtr db);
 }
 '@
-if ([SpectroE2ESqlite]::LoadLibrary($native.FullName) -eq [IntPtr]::Zero) { throw 'SQLite could not load.' }
 $handle = [IntPtr]::Zero
 $statement = [IntPtr]::Zero
 try {

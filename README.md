@@ -36,6 +36,16 @@ pixel-identical copy and does not add the legacy social/global timelines.
 The production application lives in `src/Spectro.App`. The former UWP, Realm,
 Fody, and compatibility-shim implementation has been removed.
 
+## Install a test build
+
+PR CI produces `spectro-win-x64-msix` and `spectro-win-arm64-msix` artifacts.
+Extract the appropriate ZIP, explicitly trust its public test certificate,
+then install the signed MSIX and launch Spectro from Start. These are
+**self-signed test builds**, not Store releases. The x64 CI job verifies
+installation and activation before uploading its artifact.
+See [installation and certificate instructions](docs/installing-test-builds.md).
+Loose Native AOT executables are not an installation method.
+
 ## Build
 
 Prerequisites:

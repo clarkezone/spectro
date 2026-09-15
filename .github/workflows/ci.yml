@@ -51,7 +51,7 @@ jobs:
         run: dotnet build src\Spectro.App\Spectro.App.csproj -c Debug -p:Platform=x64
 
   native-aot:
-    name: Native AOT ${{ matrix.platform }}
+    name: MSIX ${{ matrix.platform }} (Native AOT)
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -66,6 +66,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.401
+      - uses: microsoft/setup-WinAppCli@v0.1
+        with:
+          version: v0.6.1
       - name: Locate Visual C++ environment
         id: vcvars
         shell: pwsh
@@ -79,13 +82,33 @@ jobs:
       - name: Publish Native AOT
         shell: cmd
         run: |
-          call "${{ steps.vcvars.outputs.installation }}\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.platform == 'ARM64' && 'amd64_arm64' || 'amd64' }}
           set "PATH=%PATH%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
+          call "${{ steps.vcvars.outputs.installation }}\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.platform == 'ARM64' && 'amd64_arm64' || 'amd64' }}
+          if errorlevel 1 exit /b %errorlevel%
           dotnet publish src\Spectro.App\Spectro.App.csproj -c Release -p:Platform=${{ matrix.platform }} -r ${{ matrix.runtime }} --self-contained true
-      - name: Upload publish output
+      - name: Package and sign test MSIX
+        shell: pwsh
+        run: |
+          .\tools\New-SpectroMsix.ps1 -Runtime ${{ matrix.runtime }} `
+            -OutputDirectory .\artifacts\msix\${{ matrix.runtime }} `
+            -PackageVersion "1.0.${{ github.run_number }}.${{ github.run_attempt }}"
+      - name: Verify x64 MSIX install and launch
+        if: matrix.platform == 'x64'
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem .\artifacts\msix\${{ matrix.runtime }}\*.msix
+          $certificate = Get-ChildItem .\artifacts\msix\${{ matrix.runtime }}\*.cer
+          if ($package.Count -ne 1 -or $certificate.Count -ne 1) {
+            throw "Expected exactly one package and public test certificate."
+          }
+          .\tools\Test-SpectroMsix.ps1 -PackagePath $package.FullName -CertificatePath $certificate.FullName
+      - name: Upload installable test build
         uses: actions/upload-artifact@v4
         with:
-          name: spectro-${{ matrix.runtime }}-native-aot
-          path: src\Spectro.App\bin\Release\**\${{ matrix.runtime }}\publish\**
+          name: spectro-${{ matrix.runtime }}-msix
+          path: |
+            artifacts\msix\${{ matrix.runtime }}\*.msix
+            artifacts\msix\${{ matrix.runtime }}\*.cer
+            artifacts\msix\${{ matrix.runtime }}\INSTALL.md
           if-no-files-found: error
           retention-days: 14

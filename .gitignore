@@ -12,6 +12,8 @@ AppPackages/
 #################
 SkyDriveAccess.txt
 /.hyperloop/
+/artifacts/
+*.pfx
 
 #################
 ## Eclipse
