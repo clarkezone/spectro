@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace NewsBlurSharp.Model.Response
 {
@@ -18,181 +18,181 @@ namespace NewsBlurSharp.Model.Response
 
     public class Classifiers
     {
-        [JsonProperty("authors")]
+        [JsonPropertyName("authors")]
         public Authors Authors { get; set; }
 
-        //[JsonProperty("feeds")]
+        //[JsonPropertyName("feeds")]
         //public Feeds Feeds { get; set; }
 
-        [JsonProperty("titles")]
+        [JsonPropertyName("titles")]
         public Titles Titles { get; set; }
 
-        [JsonProperty("tags")]
+        [JsonPropertyName("tags")]
         public Tags Tags { get; set; }
     }
 
     public class Intelligence
     {
-        [JsonProperty("feed")]
+        [JsonPropertyName("feed")]
         public int Feed { get; set; }
 
-        [JsonProperty("tags")]
+        [JsonPropertyName("tags")]
         public int Tags { get; set; }
 
-        [JsonProperty("author")]
+        [JsonPropertyName("author")]
         public int Author { get; set; }
 
-        [JsonProperty("title")]
+        [JsonPropertyName("title")]
         public int Title { get; set; }
     }
 
     public class Story
     {
-        [JsonProperty("friend_shares")]
+        [JsonPropertyName("friend_shares")]
         public object[] FriendShares { get; set; }
 
-        [JsonProperty("story_authors")]
+        [JsonPropertyName("story_authors")]
         public string Authors { get; set; }
 
-        [JsonProperty("intelligence")]
+        [JsonPropertyName("intelligence")]
         public Intelligence Intelligence { get; set; }
 
-        [JsonProperty("story_permalink")]
+        [JsonPropertyName("story_permalink")]
         public string Permalink { get; set; }
 
-        [JsonProperty("reply_count")]
+        [JsonPropertyName("reply_count")]
         public int ReplyCount { get; set; }
 
-        [JsonProperty("comment_user_ids")]
+        [JsonPropertyName("comment_user_ids")]
         public object[] CommentUserIds { get; set; }
 
-        [JsonProperty("story_timestamp")]
+        [JsonPropertyName("story_timestamp")]
         public string Timestamp { get; set; }
 
-        [JsonProperty("share_user_ids")]
+        [JsonPropertyName("share_user_ids")]
         public int[] ShareUserIds { get; set; }
 
-        [JsonProperty("story_hash")]
+        [JsonPropertyName("story_hash")]
         public string Hash { get; set; }
 
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; }
 
-        [JsonProperty("comment_count")]
+        [JsonPropertyName("comment_count")]
         public int? CommentCount { get; set; }
 
-        [JsonProperty("score")]
+        [JsonPropertyName("score")]
         public int Score { get; set; }
 
-        [JsonProperty("story_tags")]
+        [JsonPropertyName("story_tags")]
         public string[] Tags { get; set; }
 
-        [JsonProperty("share_count")]
+        [JsonPropertyName("share_count")]
         public int? ShareCount { get; set; }
 
-        [JsonProperty("friend_comments")]
+        [JsonPropertyName("friend_comments")]
         public object[] FriendComments { get; set; }
 
-        [JsonProperty("story_date")]
+        [JsonPropertyName("story_date")]
         public string Date { get; set; }
 
-        [JsonProperty("short_parsed_date")]
+        [JsonPropertyName("short_parsed_date")]
         public string ShortParsedDate { get; set; }
 
-        [JsonProperty("guid_hash")]
+        [JsonPropertyName("guid_hash")]
         public string GuidHash { get; set; }
 
-        [JsonProperty("image_urls")]
+        [JsonPropertyName("image_urls")]
         public string[] ImageUrls { get; set; }
 
-        [JsonProperty("story_feed_id")]
+        [JsonPropertyName("story_feed_id")]
         public int FeedId { get; set; }
 
-        [JsonProperty("long_parsed_date")]
+        [JsonPropertyName("long_parsed_date")]
         public string LongParsedDate { get; set; }
 
-        [JsonProperty("public_comments")]
+        [JsonPropertyName("public_comments")]
         public object[] PublicComments { get; set; }
 
-        [JsonProperty("read_status")]
+        [JsonPropertyName("read_status")]
         public int ReadStatus { get; set; }
 
-        [JsonProperty("has_modifications")]
+        [JsonPropertyName("has_modifications")]
         public bool HasModifications { get; set; }
 
-        [JsonProperty("story_title")]
+        [JsonPropertyName("story_title")]
         public string Title { get; set; }
 
-        [JsonProperty("story_content")]
+        [JsonPropertyName("story_content")]
         public string Content { get; set; }
 
-        [JsonProperty("shared_by_friends")]
+        [JsonPropertyName("shared_by_friends")]
         public object[] SharedByFriends { get; set; }
 
-        [JsonProperty("share_count_public")]
+        [JsonPropertyName("share_count_public")]
         public int? ShareCountPublic { get; set; }
 
-        [JsonProperty("friend_user_ids")]
+        [JsonPropertyName("friend_user_ids")]
         public object[] FriendUserIds { get; set; }
 
-        [JsonProperty("public_user_ids")]
+        [JsonPropertyName("public_user_ids")]
         public int[] PublicUserIds { get; set; }
 
-        [JsonProperty("share_count_friends")]
+        [JsonPropertyName("share_count_friends")]
         public int? ShareCountFriends { get; set; }
 
-        [JsonProperty("shared_by_public")]
+        [JsonPropertyName("shared_by_public")]
         public int[] SharedByPublic { get; set; }
 
-        [JsonProperty("commented_by_public")]
+        [JsonPropertyName("commented_by_public")]
         public object[] CommentedByPublic { get; set; }
 
-        [JsonProperty("commented_by_friends")]
+        [JsonPropertyName("commented_by_friends")]
         public object[] CommentedByFriends { get; set; }
     }
 
     public class StoriesResponse
     {
-        [JsonProperty("updated")]
+        [JsonPropertyName("updated")]
         public string Updated { get; set; }
 
-        [JsonProperty("authenticated")]
+        [JsonPropertyName("authenticated")]
         public bool Authenticated { get; set; }
 
-        [JsonProperty("feed_tags")]
+        [JsonPropertyName("feed_tags")]
         public object[][] FeedTags { get; set; }
 
-        [JsonProperty("feed_id")]
+        [JsonPropertyName("feed_id")]
         public int FeedId { get; set; }
 
-        [JsonProperty("hidden_stories_removed")]
+        [JsonPropertyName("hidden_stories_removed")]
         public int HiddenStoriesRemoved { get; set; }
 
-        [JsonProperty("classifiers")]
+        [JsonPropertyName("classifiers")]
         public Classifiers Classifiers { get; set; }
 
-        [JsonProperty("elapsed_time")]
+        [JsonPropertyName("elapsed_time")]
         public double ElapsedTime { get; set; }
 
-        [JsonProperty("user_search")]
+        [JsonPropertyName("user_search")]
         public object UserSearch { get; set; }
 
-        [JsonProperty("stories")]
+        [JsonPropertyName("stories")]
         public List<Story> Stories { get; set; }
 
-        [JsonProperty("result")]
+        [JsonPropertyName("result")]
         public string Result { get; set; }
 
-        [JsonProperty("user_id")]
+        [JsonPropertyName("user_id")]
         public int UserId { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public object Message { get; set; }
 
-        [JsonProperty("feed_authors")]
+        [JsonPropertyName("feed_authors")]
         public object[][] FeedAuthors { get; set; }
 
-        [JsonProperty("user_profiles")]
+        [JsonPropertyName("user_profiles")]
         public List<UserProfile> UserProfiles { get; set; }
     }
 

@@ -1,411 +1,412 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Diagnostics;
-using NewsBlurSharp.Converters;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using NewsBlurSharp.Serialization;
 
 namespace NewsBlurSharp.Model.Response
 {
     public class SocialProfile
     {
-        [JsonProperty("website")]
+        [JsonPropertyName("website")]
         public object Website { get; set; }
 
-        [JsonProperty("following_user_ids")]
+        [JsonPropertyName("following_user_ids")]
         public object[] FollowingUserIds { get; set; }
 
-        [JsonProperty("following_count")]
+        [JsonPropertyName("following_count")]
         public int FollowingCount { get; set; }
 
-        [JsonProperty("shared_stories_count")]
+        [JsonPropertyName("shared_stories_count")]
         public int SharedStoriesCount { get; set; }
 
-        [JsonProperty("private")]
+        [JsonPropertyName("private")]
         public object Private { get; set; }
 
-        [JsonProperty("large_photo_url")]
+        [JsonPropertyName("large_photo_url")]
         public string LargePhotoUrl { get; set; }
 
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; }
 
-        [JsonProperty("feed_address")]
+        [JsonPropertyName("feed_address")]
         public string FeedAddress { get; set; }
 
-        [JsonProperty("user_id")]
+        [JsonPropertyName("user_id")]
         public int UserId { get; set; }
 
-        [JsonProperty("feed_link")]
+        [JsonPropertyName("feed_link")]
         public string FeedLink { get; set; }
 
-        [JsonProperty("follower_user_ids")]
+        [JsonPropertyName("follower_user_ids")]
         public object[] FollowerUserIds { get; set; }
 
-        [JsonProperty("location")]
+        [JsonPropertyName("location")]
         public object Location { get; set; }
 
-        [JsonProperty("popular_publishers")]
+        [JsonPropertyName("popular_publishers")]
         public object PopularPublishers { get; set; }
 
-        [JsonProperty("follower_count")]
+        [JsonPropertyName("follower_count")]
         public int FollowerCount { get; set; }
 
-        [JsonProperty("username")]
+        [JsonPropertyName("username")]
         public string Username { get; set; }
 
-        [JsonProperty("bio")]
+        [JsonPropertyName("bio")]
         public object Bio { get; set; }
 
-        [JsonProperty("average_stories_per_month")]
+        [JsonPropertyName("average_stories_per_month")]
         public int AverageStoriesPerMonth { get; set; }
 
-        [JsonProperty("feed_title")]
+        [JsonPropertyName("feed_title")]
         public string FeedTitle { get; set; }
 
-        [JsonProperty("photo_service")]
+        [JsonPropertyName("photo_service")]
         public object PhotoService { get; set; }
 
-        [JsonProperty("stories_last_month")]
+        [JsonPropertyName("stories_last_month")]
         public int StoriesLastMonth { get; set; }
 
-        [JsonProperty("photo_url")]
+        [JsonPropertyName("photo_url")]
         public string PhotoUrl { get; set; }
 
-        [JsonProperty("num_subscribers")]
+        [JsonPropertyName("num_subscribers")]
         public int NumSubscribers { get; set; }
 
-        [JsonProperty("protected")]
+        [JsonPropertyName("protected")]
         public object Protected { get; set; }
     }
 
     public class Preferences
     {
-        [JsonProperty("read_story_delay")]
+        [JsonPropertyName("read_story_delay")]
         public string ReadStoryDelay { get; set; }
 
-        [JsonProperty("feed_view_single_story")]
+        [JsonPropertyName("feed_view_single_story")]
         public string FeedViewSingleStory { get; set; }
 
-        [JsonProperty("story_styling")]
+        [JsonPropertyName("story_styling")]
         public string StoryStyling { get; set; }
 
-        [JsonProperty("story_share_kippt")]
+        [JsonPropertyName("story_share_kippt")]
         public bool StoryShareKippt { get; set; }
 
-        [JsonProperty("truncate_story")]
+        [JsonPropertyName("truncate_story")]
         public string TruncateStory { get; set; }
 
-        [JsonProperty("story_share_delicious")]
+        [JsonPropertyName("story_share_delicious")]
         public bool StoryShareDelicious { get; set; }
 
-        [JsonProperty("hide_story_changes")]
+        [JsonPropertyName("hide_story_changes")]
         public string HideStoryChanges { get; set; }
 
-        [JsonProperty("default_view")]
+        [JsonPropertyName("default_view")]
         public string DefaultView { get; set; }
 
-        [JsonProperty("story_share_evernote")]
+        [JsonPropertyName("story_share_evernote")]
         public bool StoryShareEvernote { get; set; }
 
-        [JsonProperty("story_share_diigo")]
+        [JsonPropertyName("story_share_diigo")]
         public bool StoryShareDiigo { get; set; }
 
-        [JsonProperty("hide_public_comments")]
+        [JsonPropertyName("hide_public_comments")]
         public bool HidePublicComments { get; set; }
 
-        [JsonProperty("default_read_filter")]
+        [JsonPropertyName("default_read_filter")]
         public string DefaultReadFilter { get; set; }
 
-        [JsonProperty("story_share_facebook")]
+        [JsonPropertyName("story_share_facebook")]
         public bool StoryShareFacebook { get; set; }
 
-        [JsonProperty("folder_counts")]
+        [JsonPropertyName("folder_counts")]
         public bool FolderCounts { get; set; }
 
-        [JsonProperty("story_share_twitter")]
+        [JsonPropertyName("story_share_twitter")]
         public bool StoryShareTwitter { get; set; }
 
-        [JsonProperty("story_share_readability")]
+        [JsonPropertyName("story_share_readability")]
         public bool StoryShareReadability { get; set; }
 
-        [JsonProperty("story_pane_anchor")]
+        [JsonPropertyName("story_pane_anchor")]
         public string StoryPaneAnchor { get; set; }
 
-        [JsonProperty("intro_page")]
+        [JsonPropertyName("intro_page")]
         public string IntroPage { get; set; }
 
-        [JsonProperty("open_feed_action")]
+        [JsonPropertyName("open_feed_action")]
         public string OpenFeedAction { get; set; }
 
-        [JsonProperty("ssl")]
+        [JsonPropertyName("ssl")]
         public string Ssl { get; set; }
 
-        [JsonProperty("new_window")]
+        [JsonPropertyName("new_window")]
         public string NewWindow { get; set; }
 
-        [JsonProperty("story_layout")]
+        [JsonPropertyName("story_layout")]
         public string StoryLayout { get; set; }
 
-        [JsonProperty("animations")]
+        [JsonPropertyName("animations")]
         public bool Animations { get; set; }
 
-        [JsonProperty("story_size")]
+        [JsonPropertyName("story_size")]
         public string StorySize { get; set; }
 
-        [JsonProperty("story_share_googleplus")]
+        [JsonPropertyName("story_share_googleplus")]
         public bool StoryShareGoogleplus { get; set; }
 
-        [JsonProperty("story_share_instapaper")]
+        [JsonPropertyName("story_share_instapaper")]
         public bool StoryShareInstapaper { get; set; }
 
-        [JsonProperty("default_order")]
+        [JsonPropertyName("default_order")]
         public string DefaultOrder { get; set; }
 
-        [JsonProperty("story_share_readitlater")]
+        [JsonPropertyName("story_share_readitlater")]
         public bool StoryShareReaditlater { get; set; }
 
-        [JsonProperty("feed_order")]
+        [JsonPropertyName("feed_order")]
         public string FeedOrder { get; set; }
 
-        [JsonProperty("title_counts")]
+        [JsonPropertyName("title_counts")]
         public bool TitleCounts { get; set; }
 
-        [JsonProperty("show_tooltips")]
+        [JsonPropertyName("show_tooltips")]
         public string ShowTooltips { get; set; }
 
-        [JsonProperty("story_share_tumblr")]
+        [JsonPropertyName("story_share_tumblr")]
         public bool StoryShareTumblr { get; set; }
 
-        [JsonProperty("story_share_pinboard")]
+        [JsonPropertyName("story_share_pinboard")]
         public bool StorySharePinboard { get; set; }
     }
 
     public class StarredCount
     {
-        [JsonProperty("count")]
+        [JsonPropertyName("count")]
         public int Count { get; set; }
 
-        [JsonProperty("feed_address")]
+        [JsonPropertyName("feed_address")]
         public string FeedAddress { get; set; }
 
-        [JsonProperty("tag")]
+        [JsonPropertyName("tag")]
         public object Tag { get; set; }
 
-        [JsonProperty("feed_id")]
+        [JsonPropertyName("feed_id")]
         public object FeedId { get; set; }
     }
 
     [DebuggerDisplay("Feed name: {FeedTitle}")]
     public class NewsFeedItem
     {
-        [JsonProperty("subs")]
+        [JsonPropertyName("subs")]
         public int Subs { get; set; }
 
-        [JsonProperty("favicon_url")]
+        [JsonPropertyName("favicon_url")]
         public string FaviconUrl { get; set; }
 
-        [JsonProperty("is_push")]
+        [JsonPropertyName("is_push")]
         public bool IsPush { get; set; }
 
-        [JsonProperty("feed_opens")]
+        [JsonPropertyName("feed_opens")]
         public int FeedOpens { get; set; }
 
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonProperty("s3_icon")]
+        [JsonPropertyName("s3_icon")]
         public bool S3Icon { get; set; }
 
-        [JsonProperty("feed_link")]
+        [JsonPropertyName("feed_link")]
         public string FeedLink { get; set; }
 
-        [JsonProperty("updated_seconds_ago")]
+        [JsonPropertyName("updated_seconds_ago")]
         public int UpdatedSecondsAgo { get; set; }
 
-        [JsonProperty("favicon_fetching")]
+        [JsonPropertyName("favicon_fetching")]
         public bool FaviconFetching { get; set; }
 
-        [JsonProperty("ng")]
+        [JsonPropertyName("ng")]
         public int Ng { get; set; }
 
-        [JsonProperty("favicon_border")]
+        [JsonPropertyName("favicon_border")]
         public string FaviconBorder { get; set; }
 
-        [JsonProperty("last_story_date")]
+        [JsonPropertyName("last_story_date")]
         public string LastStoryDate { get; set; }
 
-        [JsonProperty("nt")]
+        [JsonPropertyName("nt")]
         public int Nt { get; set; }
 
-        [JsonProperty("not_yet_fetched")]
+        [JsonPropertyName("not_yet_fetched")]
         public bool NotYetFetched { get; set; }
 
-        [JsonProperty("updated")]
+        [JsonPropertyName("updated")]
         public string Updated { get; set; }
 
-        [JsonProperty("average_stories_per_month")]
+        [JsonPropertyName("average_stories_per_month")]
         public int AverageStoriesPerMonth { get; set; }
 
-        [JsonProperty("ps")]
+        [JsonPropertyName("ps")]
         public int Ps { get; set; }
 
-        [JsonProperty("feed_address")]
+        [JsonPropertyName("feed_address")]
         public string FeedAddress { get; set; }
 
-        [JsonProperty("feed_title")]
+        [JsonPropertyName("feed_title")]
         public string FeedTitle { get; set; }
 
-        [JsonProperty("favicon_fade")]
+        [JsonPropertyName("favicon_fade")]
         public string FaviconFade { get; set; }
 
-        [JsonProperty("is_newsletter")]
+        [JsonPropertyName("is_newsletter")]
         public bool IsNewsletter { get; set; }
 
-        [JsonProperty("last_story_seconds_ago")]
+        [JsonPropertyName("last_story_seconds_ago")]
         public int LastStorySecondsAgo { get; set; }
 
-        [JsonProperty("favicon_color")]
+        [JsonPropertyName("favicon_color")]
         public string FaviconColor { get; set; }
 
-        [JsonProperty("stories_last_month")]
+        [JsonPropertyName("stories_last_month")]
         public int StoriesLastMonth { get; set; }
 
-        [JsonProperty("active")]
+        [JsonPropertyName("active")]
         public bool Active { get; set; }
 
-        [JsonProperty("fetched_once")]
+        [JsonPropertyName("fetched_once")]
         public bool FetchedOnce { get; set; }
 
-        [JsonProperty("favicon_text_color")]
+        [JsonPropertyName("favicon_text_color")]
         public string FaviconTextColor { get; set; }
 
-        [JsonProperty("subscribed")]
+        [JsonPropertyName("subscribed")]
         public bool Subscribed { get; set; }
 
-        [JsonProperty("num_subscribers")]
+        [JsonPropertyName("num_subscribers")]
         public int NumSubscribers { get; set; }
 
-        [JsonProperty("s3_page")]
+        [JsonPropertyName("s3_page")]
         public bool S3Page { get; set; }
 
-        [JsonProperty("min_to_decay")]
+        [JsonPropertyName("min_to_decay")]
         public int MinToDecay { get; set; }
 
-        [JsonProperty("search_indexed")]
+        [JsonPropertyName("search_indexed")]
         public bool? SearchIndexed { get; set; }
     }
     
     public class Facebook
     {
-        [JsonProperty("syncing")]
+        [JsonPropertyName("syncing")]
         public bool Syncing { get; set; }
 
-        [JsonProperty("facebook_picture_url")]
+        [JsonPropertyName("facebook_picture_url")]
         public object FacebookPictureUrl { get; set; }
 
-        [JsonProperty("facebook_uid")]
+        [JsonPropertyName("facebook_uid")]
         public object FacebookUid { get; set; }
     }
 
     public class Twitter
     {
-        [JsonProperty("twitter_username")]
+        [JsonPropertyName("twitter_username")]
         public object TwitterUsername { get; set; }
 
-        [JsonProperty("syncing")]
+        [JsonPropertyName("syncing")]
         public bool Syncing { get; set; }
 
-        [JsonProperty("twitter_picture_url")]
+        [JsonPropertyName("twitter_picture_url")]
         public object TwitterPictureUrl { get; set; }
 
-        [JsonProperty("twitter_uid")]
+        [JsonPropertyName("twitter_uid")]
         public object TwitterUid { get; set; }
     }
 
     public class Gravatar
     {
-        [JsonProperty("gravatar_picture_url")]
+        [JsonPropertyName("gravatar_picture_url")]
         public string GravatarPictureUrl { get; set; }
     }
 
     public class Appdotnet
     {
-        [JsonProperty("syncing")]
+        [JsonPropertyName("syncing")]
         public bool Syncing { get; set; }
 
-        [JsonProperty("appdotnet_uid")]
+        [JsonPropertyName("appdotnet_uid")]
         public object AppdotnetUid { get; set; }
 
-        [JsonProperty("appdotnet_picture_url")]
+        [JsonPropertyName("appdotnet_picture_url")]
         public object AppdotnetPictureUrl { get; set; }
     }
 
     public class Upload
     {
-        [JsonProperty("upload_picture_url")]
+        [JsonPropertyName("upload_picture_url")]
         public object UploadPictureUrl { get; set; }
     }
 
     public class SocialServices
     {
-        [JsonProperty("facebook")]
+        [JsonPropertyName("facebook")]
         public Facebook Facebook { get; set; }
 
-        [JsonProperty("twitter")]
+        [JsonPropertyName("twitter")]
         public Twitter Twitter { get; set; }
 
-        [JsonProperty("gravatar")]
+        [JsonPropertyName("gravatar")]
         public Gravatar Gravatar { get; set; }
 
-        [JsonProperty("appdotnet")]
+        [JsonPropertyName("appdotnet")]
         public Appdotnet Appdotnet { get; set; }
 
-        [JsonProperty("upload")]
+        [JsonPropertyName("upload")]
         public Upload Upload { get; set; }
     }
 
     public class NewsFeedResponse
     {
-        //[JsonProperty("folders")]
-        //public Folder[] Folders { get; set; }
+        [JsonPropertyName("folders")]
+        public JsonElement[] Folders { get; set; }
 
-        [JsonProperty("saved_searches")]
+        [JsonPropertyName("saved_searches")]
         public object[] SavedSearches { get; set; }
 
-        [JsonProperty("user_id")]
+        [JsonPropertyName("user_id")]
         public int UserId { get; set; }
 
-        [JsonProperty("social_profile")]
+        [JsonPropertyName("social_profile")]
         public SocialProfile SocialProfile { get; set; }
 
-        [JsonProperty("user_profile")]
+        [JsonPropertyName("user_profile")]
         public UserProfile UserProfile { get; set; }
 
-        [JsonProperty("starred_counts")]
+        [JsonPropertyName("starred_counts")]
         public StarredCount[] StarredCounts { get; set; }
 
-        [JsonProperty("starred_count")]
+        [JsonPropertyName("starred_count")]
         public int StarredCount { get; set; }
 
-        [JsonProperty("is_staff")]
+        [JsonPropertyName("is_staff")]
         public bool IsStaff { get; set; }
 
-        [JsonProperty("result")]
+        [JsonPropertyName("result")]
         public string Result { get; set; }
 
-        [JsonProperty("authenticated")]
+        [JsonPropertyName("authenticated")]
         public bool Authenticated { get; set; }
 
-        [JsonProperty("feeds")]
-        [JsonConverter(typeof(ObjectToArrayConverter<NewsFeedItem>))]
+        [JsonPropertyName("feeds")]
+        [JsonConverter(typeof(NewsFeedItemsConverter))]
         public List<NewsFeedItem> Feeds { get; set; }
 
-        [JsonProperty("social_services")]
+        [JsonPropertyName("social_services")]
         public SocialServices SocialServices { get; set; }
 
-        [JsonProperty("categories")]
+        [JsonPropertyName("categories")]
         public object Categories { get; set; }
 
-        [JsonProperty("social_feeds")]
+        [JsonPropertyName("social_feeds")]
         public object[] SocialFeeds { get; set; }
     }
 }

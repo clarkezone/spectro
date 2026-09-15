@@ -1,26 +1,34 @@
-﻿using System.Threading.Tasks;
-using NewsBlurSharp.Model.Response;
+using System.Net.Http;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace NewsBlurSharp.Tests
 {
     public class FeedsTests
     {
-        private readonly NewsBlurClient _subject;
-
-        public FeedsTests()
-        {
-            _subject = new NewsBlurClient();
-            _subject.SetCookieSessionId("qv9sseho0dbv4izpfy9jw8zrl4bdjpzh");
-        }
-
         [Fact]
-        public async Task GetFeedsPopulatesFeeds()
+        public async Task GetFeedsParsesFeedDictionaryFoldersAndEncodesOptions()
         {
-            NewsFeedResponse feeds = await _subject.GetFeedsAsync();
+            var handler = new RecordingHttpMessageHandler(request =>
+            {
+                Assert.Equal(HttpMethod.Get, request.Method);
+                Assert.Equal(
+                    "https://newsblur.com/reader/feeds?include_favicons=true&flat=false&update_counts=true",
+                    request.RequestUri.ToString());
+                return RecordingHttpMessageHandler.Json(
+                    "{\"authenticated\":true,\"folders\":[{\"Tech\":[7]}],\"feeds\":{\"7\":{\"id\":7,\"feed_title\":\"Example\",\"feed_address\":\"https://example.test/feed\",\"active\":true}}}");
+            });
 
-            Assert.NotNull(feeds);
+            var feeds = await new NewsBlurClient(handler).GetFeedsAsync(
+                includeFavIcons: true,
+                isFlatStructure: false,
+                updateCounts: true);
+
+            var feed = Assert.Single(feeds.Feeds);
+            Assert.Equal(7, feed.Id);
+            Assert.Equal("Example", feed.FeedTitle);
+            Assert.Equal("Tech", Assert.Single(feeds.Folders).EnumerateObject().First().Name);
         }
     }
 }
-

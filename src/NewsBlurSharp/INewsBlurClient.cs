@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,14 +8,20 @@ namespace NewsBlurSharp
     public interface INewsBlurClient
     {
         void SetCookieSessionId(string cookieSessionId);
-        Task<LoginResponse> LoginAsync(string username, string password, CancellationToken cancellation = default(CancellationToken));
-        Task LogoutAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task<SignupResponse> SignupAsync(string username, string emailAddress, string password = "", CancellationToken cancellationToken = default(CancellationToken));
-        Task<NewsFeedResponse> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default(CancellationToken));
-        Task<StoriesResponse> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default(CancellationToken));
-        Task<object> MarkStoriesReadAsync(List<String> storyHashList);
-        Task<object> MarkStoryUnreadAsync(String storyHash);
-        Task<object> GetUserPublicProfileAsync(int userID, CancellationToken cancellationToken = default(CancellationToken));
-        Task<ProfileResponse> GetUserProfileAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task<LoginResponse> LoginAsync(string username, string password, CancellationToken cancellation = default);
+        Task LogoutAsync(CancellationToken cancellationToken = default);
+        Task<NewsFeedResponse> GetFeedsAsync(bool? includeFavIcons = null, bool? isFlatStructure = null, bool? updateCounts = null, CancellationToken cancellationToken = default);
+        Task<StoriesResponse> GetStoriesAsync(int feedId, int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, bool includeHiddenStories = false, CancellationToken cancellationToken = default);
+        Task<StoriesResponse> GetRiverStoriesAsync(int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, CancellationToken cancellationToken = default);
+        Task<StoriesResponse> GetStarredStoriesAsync(int? pageIndex = null, CancellationToken cancellationToken = default);
+        Task<UnreadStoryHashesResponse> GetUnreadStoryHashesAsync(CancellationToken cancellationToken = default);
+        Task<OperationResponse> MarkStoriesReadAsync(List<string> storyHashList);
+        Task<OperationResponse> MarkStoriesReadAsync(List<string> storyHashList, CancellationToken cancellationToken);
+        Task<OperationResponse> MarkStoryUnreadAsync(string storyHash);
+        Task<OperationResponse> MarkStoryUnreadAsync(string storyHash, CancellationToken cancellationToken);
+        Task<OperationResponse> StarStoryAsync(string storyHash, CancellationToken cancellationToken = default);
+        Task<OperationResponse> UnstarStoryAsync(string storyHash, CancellationToken cancellationToken = default);
+        Task<OperationResponse> MarkFeedReadAsync(int feedId, CancellationToken cancellationToken = default);
+        Task<ProfileResponse> GetUserProfileAsync(CancellationToken cancellationToken = default);
     }
 }
