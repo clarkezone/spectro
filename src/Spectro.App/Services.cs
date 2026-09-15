@@ -15,6 +15,7 @@ internal sealed class SynchronizationService(
 {
     public Task<SyncResult> SynchronizeAsync(
         string accountId,
+        IProgress<SyncState>? progress,
         CancellationToken cancellationToken)
     {
         var synchronizer = new OfflineFirstSynchronizer(
@@ -24,7 +25,7 @@ internal sealed class SynchronizationService(
             {
                 RetentionAge = TimeSpan.FromDays(settingsStore.Load().RetentionDays)
             });
-        return synchronizer.SynchronizeAsync(new SyncRequest(accountId), cancellationToken);
+        return synchronizer.SynchronizeAsync(new SyncRequest(accountId), progress, cancellationToken);
     }
 }
 
@@ -309,6 +310,7 @@ internal sealed class DemoModeService(IContentRepository repository)
 
     public async Task<SyncResult> SynchronizeAsync(
         string accountId,
+        IProgress<SyncState>? progress,
         CancellationToken cancellationToken)
     {
         await SeedAsync(cancellationToken);

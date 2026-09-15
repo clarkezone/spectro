@@ -55,7 +55,7 @@ public sealed class NewsBlurSyncRemoteService(
             async () => MapCatalog(
                 await client.GetFeedsAsync(
                     includeFavIcons: true,
-                    isFlatStructure: true,
+                    isFlatStructure: false,
                     updateCounts: true,
                     cancellationToken).ConfigureAwait(false)));
 
@@ -107,54 +107,78 @@ public sealed class NewsBlurSyncRemoteService(
                 SyncRemoteFailureKind.Authentication);
         }
 
+        if (response.Folders is null)
+        {
+            throw Malformed("NewsBlur omitted the requested folder hierarchy.");
+        }
+
         var feeds = (response.Feeds ?? [])
             .Select(MapFeed)
             .ToArray();
         var feedIds = feeds.Select(static feed => feed.Id).ToHashSet();
         var folders = new List<Folder>();
         var folderFeeds = new List<FolderFeed>();
+        var folderIds = new HashSet<string>(StringComparer.Ordinal);
         var folderOrder = 0;
 
-        foreach (var folderElement in response.Folders ?? [])
+        foreach (var folderElement in response.Folders)
         {
-            if (folderElement.ValueKind == JsonValueKind.Number
-                && folderElement.TryGetInt32(out var unfiledFeedId)
-                && unfiledFeedId > 0)
+            MapFolderEntry(folderElement, null);
+        }
+
+        return new RemoteFeedCatalog(feeds, folders, folderFeeds);
+
+        void MapFolderEntry(JsonElement element, string? parentPath)
+        {
+            if (element.ValueKind == JsonValueKind.Number
+                && element.TryGetInt32(out var unfiledFeedId)
+                && unfiledFeedId > 0 && parentPath is null)
             {
-                continue;
+                return;
             }
 
-            if (folderElement.ValueKind != JsonValueKind.Object)
+            if (element.ValueKind != JsonValueKind.Object
+                || !element.EnumerateObject().Any())
             {
                 throw Malformed("NewsBlur returned a non-object folder entry.");
             }
 
-            foreach (var property in folderElement.EnumerateObject())
+            foreach (var property in element.EnumerateObject())
             {
-                var folderId = property.Name;
-                folders.Add(new Folder(folderId, property.Name, folderOrder++));
+                // The local contract is flat, so retain nested names as full paths.
+                var folderId = parentPath is null ? property.Name : $"{parentPath} / {property.Name}";
+                if (string.IsNullOrWhiteSpace(property.Name) || !folderIds.Add(folderId))
+                {
+                    throw Malformed($"NewsBlur returned an empty or ambiguous folder name '{folderId}'.");
+                }
+                folders.Add(new Folder(folderId, folderId, folderOrder++));
                 if (property.Value.ValueKind != JsonValueKind.Array)
                 {
                     throw Malformed($"Folder '{property.Name}' did not contain a feed array.");
                 }
 
                 var feedOrder = 0;
+                var members = new HashSet<int>();
                 foreach (var feedElement in property.Value.EnumerateArray())
                 {
-                    if (!feedElement.TryGetInt32(out var feedId))
+                    if (feedElement.ValueKind == JsonValueKind.Object)
+                    {
+                        MapFolderEntry(feedElement, folderId);
+                        continue;
+                    }
+                    if (feedElement.ValueKind != JsonValueKind.Number
+                        || !feedElement.TryGetInt32(out var feedId) || feedId <= 0)
                     {
                         throw Malformed($"Folder '{property.Name}' contained an invalid feed id.");
                     }
 
-                    if (feedIds.Contains(feedId))
+                    if (feedIds.Contains(feedId) && members.Add(feedId))
                     {
                         folderFeeds.Add(new FolderFeed(folderId, feedId, feedOrder++));
                     }
                 }
             }
         }
-
-        return new RemoteFeedCatalog(feeds, folders, folderFeeds);
     }
 
     private static Feed MapFeed(NewsFeedItem feed)
@@ -173,7 +197,7 @@ public sealed class NewsBlurSyncRemoteService(
             string.IsNullOrWhiteSpace(feed.FaviconUrl) ? null : feed.FaviconUrl,
             Math.Max(0, feed.Ng + feed.Nt + feed.Ps),
             ParseDate(feed.LastStoryDate),
-            feed.Active || feed.Subscribed);
+            feed.Active ?? feed.Subscribed);
     }
 
     private RemoteStoryPage MapStories(StoriesResponse response, bool isSaved)

@@ -18,6 +18,9 @@ public interface IContentRepository
 
     Task<IReadOnlyDictionary<int, int>> GetLocalUnreadCountsAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<int, FeedStoryCounts>> GetLocalFeedCountsAsync(
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<FeedFolder>> GetFeedFoldersAsync(
         CancellationToken cancellationToken = default);
 
@@ -56,6 +59,10 @@ public interface IContentRepository
 
     Task ReconcileRemoteContentAsync(
         RemoteContentBatch content,
+        CancellationToken cancellationToken = default);
+
+    Task CacheRemoteStoriesAsync(
+        IReadOnlyCollection<Story> stories,
         CancellationToken cancellationToken = default);
 
     Task SetCheckpointAsync(

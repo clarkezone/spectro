@@ -271,7 +271,7 @@ namespace NewsBlurSharp.Model.Response
         public int StoriesLastMonth { get; set; }
 
         [JsonPropertyName("active")]
-        public bool Active { get; set; }
+        public bool? Active { get; set; }
 
         [JsonPropertyName("fetched_once")]
         public bool FetchedOnce { get; set; }

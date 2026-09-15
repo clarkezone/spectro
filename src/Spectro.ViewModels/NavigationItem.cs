@@ -17,4 +17,6 @@ public sealed record NavigationItem(
     int? FeedId = null,
     string? FolderId = null,
     int UnreadCount = 0,
-    int Depth = 0);
+    int Depth = 0,
+    int SavedCount = 0,
+    int StoryCount = 0);

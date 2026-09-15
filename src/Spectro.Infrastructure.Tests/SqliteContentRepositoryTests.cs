@@ -397,6 +397,181 @@ public sealed class SqliteContentRepositoryTests : IDisposable
         Assert.Single(await repository.GetUploadedMutationsAsync());
     }
 
+    [Theory]
+    [InlineData("summary")]
+    [InlineData("title")]
+    [InlineData("empty")]
+    public async Task BodylessPreviewsAreBoundedWhileExactHashDetailReturnsFullContent(string summaryKind)
+    {
+        var repository = CreateRepository();
+        await repository.InitializeAsync();
+        await repository.UpsertFeedAsync(CreateFeed(1, "Feed", true));
+        var body = new string('b', 9000);
+        var summary = summaryKind switch
+        {
+            "summary" => new string('s', 6000),
+            "title" => "Story",
+            _ => ""
+        };
+        var target = CreateStory("1:target_%'") with { Content = body, Summary = summary };
+        await repository.UpsertStoryAsync(target);
+        await repository.UpsertStoryAsync(target with { Hash = "1:target_%'-suffix" });
+        for (var index = 0; index < 3; index++)
+            await repository.UpsertStoryAsync(target with
+            {
+                Hash = $"1:newer-{index}",
+                PublishedAt = target.PublishedAt.AddDays(index + 1)
+            });
+
+        var previews = await repository.QueryStoriesAsync(
+            new ContentQuery(StoryFilter.All, Limit: 2, IncludeContent: false));
+
+        Assert.Equal(["1:newer-2", "1:newer-1"], previews.Select(story => story.Hash));
+        var expectedPreview = (summaryKind == "summary" ? summary : body)[..4096];
+        Assert.All(previews, story =>
+        {
+            Assert.Equal("", story.Content);
+            Assert.Equal(4096, story.Summary.Length);
+            Assert.Equal(expectedPreview, story.Summary);
+            Assert.Equal(target with
+            {
+                Hash = story.Hash,
+                PublishedAt = story.PublishedAt,
+                Content = "",
+                Summary = expectedPreview
+            }, story);
+        });
+        var detail = Assert.Single(await repository.QueryStoriesAsync(
+            new ContentQuery(StoryFilter.All, Limit: 1, StoryHash: target.Hash)));
+        Assert.Equal(target, detail);
+        Assert.Empty(await repository.QueryStoriesAsync(
+            new ContentQuery(StoryFilter.All, StoryHash: "1:target")));
+        Assert.Empty(await repository.QueryStoriesAsync(
+            new ContentQuery(StoryFilter.All, StoryHash: "1:TARGET_%'")));
+        Assert.Empty(await repository.QueryStoriesAsync(
+            new ContentQuery(StoryFilter.All, FeedId: 2, StoryHash: target.Hash)));
+        Assert.Empty(await repository.QueryStoriesAsync(
+            new ContentQuery(StoryFilter.Read, StoryHash: target.Hash)));
+    }
+
+    [Fact]
+    public async Task CombinedFeedCountsIncludeAllReadSavedCombinationsAndReflectLocalChanges()
+    {
+        var repository = CreateRepository();
+        await repository.InitializeAsync();
+        await repository.ReplaceFeedCatalogAsync(
+            [CreateFeed(1, "One", true), CreateFeed(2, "Two", true), CreateFeed(3, "Empty", true)],
+            [], []);
+        Assert.Empty(await repository.GetLocalFeedCountsAsync());
+        await repository.CacheRemoteStoriesAsync([
+            CreateStory("1:unread"),
+            CreateStory("1:unread-saved", isSaved: true),
+            CreateStory("1:read", isRead: true),
+            CreateStory("1:read-saved", isRead: true, isSaved: true),
+            CreateStory("2:read", isRead: true, feedId: 2)
+        ]);
+
+        var counts = await repository.GetLocalFeedCountsAsync();
+        Assert.Equal(2, counts.Count);
+        Assert.Equal(new FeedStoryCounts(4, 2, 2), counts[1]);
+        Assert.Equal(new FeedStoryCounts(1, 0, 0), counts[2]);
+        Assert.False(counts.ContainsKey(3));
+        Assert.Equal((await repository.GetLocalUnreadCountsAsync())[1], counts[1].Unread);
+
+        await repository.SetStoryReadAsync("1:unread-saved", true);
+        await repository.SetStorySavedAsync("1:unread-saved", false);
+        counts = await CreateRepository().GetLocalFeedCountsAsync();
+        Assert.Equal(new FeedStoryCounts(4, 1, 1), counts[1]);
+        Assert.Equal(new FeedStoryCounts(1, 0, 0), counts[2]);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task PartialCachePreservesReadAndKnownSavedStateUntilAuthoritativeReconciliation(bool isRead, bool isSaved)
+    {
+        var repository = CreateRepository();
+        await repository.InitializeAsync();
+        await repository.UpsertFeedAsync(CreateFeed(1, "Feed", true));
+        var original = CreateStory("1:existing", isRead, isSaved);
+        await repository.UpsertStoryAsync(original);
+        var incoming = original with
+        {
+            Title = "Updated",
+            Content = "<p>Updated remote body</p>",
+            IsRead = !isRead,
+            IsSaved = !isSaved
+        };
+        var newStory = incoming with { Hash = "1:new" };
+
+        await repository.CacheRemoteStoriesAsync([incoming, newStory]);
+        await repository.CacheRemoteStoriesAsync([incoming, newStory]);
+        await repository.CacheRemoteStoriesAsync([incoming with { IsSaved = false }]);
+
+        var reopened = CreateRepository();
+        var stories = await reopened.GetStoriesAsync(1);
+        Assert.Equal(2, stories.Count);
+        Assert.Equal(incoming with { IsRead = isRead, IsSaved = isSaved || incoming.IsSaved },
+            stories.Single(story => story.Hash == original.Hash));
+        Assert.Equal(newStory, stories.Single(story => story.Hash == newStory.Hash));
+        Assert.Empty(await reopened.GetPendingMutationsAsync(10));
+        Assert.Empty(await reopened.GetUploadedMutationsAsync());
+
+        await reopened.ReconcileRemoteContentAsync(
+            new RemoteContentBatch([], new HashSet<string>(["1:existing", "1:new"]), true,
+                new HashSet<string>(), true));
+        Assert.All(await reopened.GetStoriesAsync(1), story =>
+        {
+            Assert.False(story.IsRead);
+            Assert.False(story.IsSaved);
+            Assert.Equal(incoming.Content, story.Content);
+        });
+    }
+
+    [Theory]
+    [InlineData("pending")]
+    [InlineData("uploaded")]
+    [InlineData("newer-local")]
+    public async Task PartialCacheDoesNotAcknowledgePendingOrUploadedMutationSnapshots(string boundary)
+    {
+        var time = new TestTimeProvider(new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero));
+        var repository = CreateRepository(time);
+        await repository.InitializeAsync();
+        await repository.UpsertFeedAsync(CreateFeed(1, "Feed", true));
+        await repository.UpsertStoryAsync(CreateStory("1:abc"));
+        await repository.SetStoryReadAsync("1:abc", true);
+        await repository.SetStorySavedAsync("1:abc", true);
+        var snapshots = await repository.GetPendingMutationsAsync(10);
+        if (boundary != "pending")
+        {
+            foreach (var mutation in snapshots)
+                await repository.RecordUploadedMutationAsync(mutation);
+            if (boundary == "uploaded")
+                Assert.Equal(2, await repository.AcknowledgePendingMutationsAsync(snapshots));
+            else
+            {
+                time.Advance(TimeSpan.FromSeconds(1));
+                await repository.SetStoryReadAsync("1:abc", false);
+                await repository.SetStorySavedAsync("1:abc", false);
+            }
+        }
+        var pending = await repository.GetPendingMutationsAsync(10);
+        var uploaded = await repository.GetUploadedMutationsAsync();
+        var before = Assert.Single(await repository.GetStoriesAsync(1));
+
+        // Even a page matching uploaded intent cannot acknowledge an authoritative boundary.
+        var incoming = CreateStory("1:abc", isRead: true, isSaved: true) with { Content = "Fresh body" };
+        await repository.CacheRemoteStoriesAsync([incoming]);
+        await repository.CacheRemoteStoriesAsync([incoming with { IsRead = false, IsSaved = false }]);
+
+        var reopened = CreateRepository(time);
+        Assert.Equal(before with { Content = incoming.Content }, Assert.Single(await reopened.GetStoriesAsync(1)));
+        Assert.Equal(pending, await reopened.GetPendingMutationsAsync(10));
+        Assert.Equal(uploaded, await reopened.GetUploadedMutationsAsync());
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();

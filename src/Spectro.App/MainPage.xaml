@@ -135,7 +135,7 @@
                                  TextChanged="FeedSearch_TextChanged" AutomationProperties.Name="Search news feeds" />
                         <TextBlock Text="YOUR LIBRARY" Margin="0,12,0,0" FontSize="10" CharacterSpacing="160" Foreground="{ThemeResource MutedInkBrush}" />
                     </StackPanel>
-                    <ListView x:Name="NavigationList" Grid.Row="1" SelectionMode="Single"
+                    <ListView x:Name="NavigationList" Grid.Row="1" SelectionMode="Single" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}"
                               SelectionChanged="NavigationList_SelectionChanged"
                               ItemContainerStyle="{StaticResource LibraryItemStyle}"
                               AutomationProperties.AutomationId="NavigationList" AutomationProperties.Name="Library and subscriptions">
@@ -148,7 +148,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <FontIcon Glyph="{x:Bind Glyph}" FontSize="16" Foreground="{ThemeResource MutedInkBrush}" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind Title}" FontSize="13" VerticalAlignment="Center"
+                                    <TextBlock Grid.Column="1" Text="{x:Bind Title}" FontWeight="{x:Bind TitleWeight}" FontSize="13" VerticalAlignment="Center"
                                                Foreground="{ThemeResource InkBrush}" TextTrimming="CharacterEllipsis"
                                                ToolTipService.ToolTip="{x:Bind Title}" />
                                     <TextBlock Grid.Column="2" Text="{x:Bind CountText}" FontSize="12" VerticalAlignment="Center"
@@ -175,16 +175,16 @@
                     <StackPanel Margin="22,24,22,16">
                         <TextBlock Text="News feeds" FontSize="25" Foreground="{ThemeResource InkBrush}" />
                     </StackPanel>
-                    <ListView x:Name="FeedList" Grid.Row="1" ItemContainerStyle="{StaticResource FeedItemStyle}"
+                    <ListView x:Name="FeedList" Grid.Row="1" ItemContainerStyle="{StaticResource FeedItemStyle}" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}"
                               SelectionChanged="FeedList_SelectionChanged" AutomationProperties.Name="News feeds" AutomationProperties.AutomationId="FeedList">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="local:NavigationItemView">
-                                <Grid MinHeight="32" Padding="8,4" ColumnSpacing="10" AutomationProperties.Name="{x:Bind Title}">
+                                <Grid MinHeight="32" Padding="8,4" ColumnSpacing="10" AutomationProperties.Name="{x:Bind AccessibleName}">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <Border Width="24" Height="24" CornerRadius="6" Background="{x:Bind BadgeBrush}">
                                         <TextBlock Text="{x:Bind Initial}" Foreground="White" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
-                                    <TextBlock Grid.Column="1" Text="{x:Bind Title}" VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource InkBrush}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind Title}" FontWeight="{x:Bind TitleWeight}" VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource InkBrush}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind AccessibleName}" />
                                     <TextBlock Grid.Column="2" Text="{x:Bind CountText}" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource MutedInkBrush}" />
                                 </Grid>
                             </DataTemplate>
@@ -192,9 +192,9 @@
                     </ListView>
                     <Grid Grid.Row="2" ColumnSpacing="2" Padding="8" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource RuleBrush}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Button x:Name="AllFilterButton" HorizontalAlignment="Stretch" MinHeight="44" Content="All" Tag="all" Click="Filter_Click" Style="{StaticResource QuietButton}" />
-                        <Button x:Name="UnreadFilterButton" Grid.Column="1" HorizontalAlignment="Stretch" MinHeight="44" Content="Unread" Tag="unread" Click="Filter_Click" Style="{StaticResource QuietButton}" />
-                        <Button x:Name="SavedFilterButton" Grid.Column="2" HorizontalAlignment="Stretch" MinHeight="44" Content="Saved" Tag="saved" Click="Filter_Click" Style="{StaticResource QuietButton}" />
+                        <ToggleButton x:Name="AllFilterButton" HorizontalAlignment="Stretch" MinHeight="44" Content="All" Tag="all" Click="Filter_Click" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}" />
+                        <ToggleButton x:Name="UnreadFilterButton" Grid.Column="1" HorizontalAlignment="Stretch" MinHeight="44" Content="Unread" Tag="unread" Click="Filter_Click" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}" />
+                        <ToggleButton x:Name="SavedFilterButton" Grid.Column="2" HorizontalAlignment="Stretch" MinHeight="44" Content="Saved" Tag="saved" Click="Filter_Click" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}" />
                     </Grid>
                 </Grid>
 
@@ -210,7 +210,7 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="44" /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions>
                             <TextBlock x:Name="LibraryHeading" Text="Unread" FontSize="25" FontWeight="SemiBold" Foreground="{ThemeResource InkBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             <Button Grid.Column="1" Style="{StaticResource QuietButton}" Click="Sync_Click"
-                                    IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}"
+                                    IsEnabled="{x:Bind ViewModel.CanSynchronize, Mode=OneWay}"
                                     AutomationProperties.AutomationId="Sync" AutomationProperties.Name="Sync now" ToolTipService.ToolTip="Sync now (Ctrl+R)">
                                 <FontIcon Glyph="&#xE72C;" FontSize="17" />
                             </Button>
@@ -220,7 +220,7 @@
                             </Button>
                         </Grid>
                         <TextBlock x:Name="LibrarySubtitle" FontSize="12" Foreground="{ThemeResource MutedInkBrush}" />
-                        <ComboBox x:Name="NavigationPicker" MinHeight="44" HorizontalAlignment="Stretch"
+                        <ComboBox x:Name="NavigationPicker" MinHeight="44" HorizontalAlignment="Stretch" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}"
                                   SelectionChanged="NavigationPicker_SelectionChanged"
                                   AutomationProperties.AutomationId="NavigationPicker" AutomationProperties.Name="Choose library or subscription">
                             <ComboBox.ItemTemplate>
@@ -233,7 +233,7 @@
                     <TextBox x:Name="StorySearch" Grid.Row="1" Margin="22,0,22,16" MinHeight="36"
                              PlaceholderText="Search this collection" TextChanged="StorySearch_TextChanged"
                              AutomationProperties.Name="Search downloaded stories" />
-                    <ListView x:Name="StoryList" Grid.Row="2" SelectionChanged="StoryList_SelectionChanged" SelectionMode="Single"
+                    <ListView x:Name="StoryList" Grid.Row="2" SelectionChanged="StoryList_SelectionChanged" SelectionMode="Single" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}"
                               ItemContainerStyle="{StaticResource StoryItemStyle}" IsItemClickEnabled="True" ItemClick="StoryList_ItemClick"
                               AutomationProperties.AutomationId="StoryList" AutomationProperties.Name="Downloaded stories">
                         <ListView.ItemsPanel>
@@ -280,11 +280,12 @@
                         <TextBlock x:Name="ListEmptyMessage" Text="Choose another collection or sync for new stories." TextWrapping="Wrap" TextAlignment="Center" Foreground="{ThemeResource MutedInkBrush}" FontSize="13" />
                     </StackPanel>
                     <Grid Grid.Row="3" Padding="22,12" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource RuleBrush}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <FontIcon x:Name="SyncStatusIcon" Glyph="&#xE73E;" FontSize="11" Foreground="{ThemeResource MutedInkBrush}" />
-                            <TextBlock x:Name="SyncStatusText" Text="Available offline" FontSize="11" Foreground="{ThemeResource MutedInkBrush}"
-                                       AutomationProperties.LiveSetting="Polite" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
+                            <TextBlock x:Name="SyncStatusText" Grid.Column="1" Margin="8,0" VerticalAlignment="Center" Text="Available offline" FontSize="11" Foreground="{ThemeResource MutedInkBrush}"
+                                       AutomationProperties.AutomationId="SyncProgress" AutomationProperties.LiveSetting="Polite" TextWrapping="Wrap" />
+                            <Button x:Name="CancelSyncButton" Grid.Column="2" Content="Cancel" Visibility="Collapsed"
+                                    Click="CancelSync_Click" AutomationProperties.AutomationId="CancelSync" AutomationProperties.Name="Cancel sync" />
                     </Grid>
                 </Grid>
 
