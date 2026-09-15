@@ -42,6 +42,14 @@ sign-in rather than sample data.
 
 ## Build and packaging
 
+CI packages both Native AOT architectures as self-contained, test-signed MSIX
+artifacts using the Windows development skills packaging playbook. The x64 job
+also installs and activates the actual MSIX on its isolated runner before
+uploading it. Artifacts include only the package, public certificate, and
+[installation instructions](installing-test-builds.md), never the private key.
+Test signing and an automated launch check do not satisfy the release gates
+below; ARM64 device validation and production signing remain separate.
+
 - [ ] `win-x64` and `win-arm64` publish with Native AOT and no reachable
       trimming warnings.
 - [ ] The final Store identity and publisher values are applied.

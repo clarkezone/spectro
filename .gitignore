@@ -11,6 +11,8 @@ AppPackages/
 ## Project specific
 #################
 SkyDriveAccess.txt
+/artifacts/
+*.pfx
 
 #################
 ## Eclipse
