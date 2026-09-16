@@ -1,11 +1,13 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using Spectro.Domain;
 
 namespace Spectro.Sync;
 
-public sealed class OfflineFirstSynchronizer
+public sealed partial class OfflineFirstSynchronizer
 {
     public const string SuccessfulSyncCheckpointName = "last-successful-sync";
+    public const string BackoffCheckpointName = "sync-backoff";
 
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> AccountLocks =
         new(StringComparer.Ordinal);
@@ -72,6 +74,17 @@ public sealed class OfflineFirstSynchronizer
                 run.SetStage(SyncStage.Initialize);
                 await _repository.InitializeAsync(cancellationToken).ConfigureAwait(false);
                 await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
+                var backoff = await _repository.GetCheckpointAsync(
+                    BackoffCheckpointName, cancellationToken).ConfigureAwait(false);
+                if (backoff is not null)
+                {
+                    var pause = JsonSerializer.Deserialize(backoff.Value, SyncJsonContext.Default.SyncBackoff)
+                        ?? throw new InvalidDataException("The saved sync backoff is invalid.");
+                    if (pause.RetryAt > _timeProvider.GetUtcNow())
+                    {
+                        throw BackoffException(pause);
+                    }
+                }
 
                 run.SetStage(SyncStage.UploadPendingMutations);
                 await UploadPendingMutationsAsync(run, cancellationToken).ConfigureAwait(false);
@@ -95,29 +108,16 @@ public sealed class OfflineFirstSynchronizer
                 await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
 
                 run.SetStage(SyncStage.FetchUnreadState);
-                var unread = await ExecuteRemoteAsync(
-                    token => _remoteService.GetUnreadStoryHashesAsync(token),
-                    run, cancellationToken).ConfigureAwait(false);
-                await _repository.ReconcileRemoteContentAsync(
-                    new RemoteContentBatch([], unread, true, new HashSet<string>(), false),
-                    cancellationToken).ConfigureAwait(false);
-                run.ContentChanged();
-
-                run.SetStage(SyncStage.FetchStories);
-                var saved = await FetchRemoteContentAsync(catalog, unread, run, cancellationToken)
+                var retentionCutoff = await FetchInventoryContentAsync(catalog, run, cancellationToken)
                     .ConfigureAwait(false);
                 await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
 
                 run.SetStage(SyncStage.Reconcile);
-                await _repository.ReconcileRemoteContentAsync(
-                    new RemoteContentBatch([], unread, true, saved.Hashes, saved.IsComplete),
-                    cancellationToken).ConfigureAwait(false);
-                run.ContentChanged();
                 await CompleteStageAsync(run.State, cancellationToken).ConfigureAwait(false);
 
                 run.SetStage(SyncStage.Checkpoint);
                 await _repository.DeleteStoriesOlderThanAsync(
-                    _timeProvider.GetUtcNow() - _options.RetentionAge,
+                    retentionCutoff,
                     cancellationToken).ConfigureAwait(false);
                 var checkpointTime = _timeProvider.GetUtcNow();
                 await _repository.SetCheckpointAsync(
@@ -141,12 +141,17 @@ public sealed class OfflineFirstSynchronizer
             }
             catch (SyncRemoteException exception)
             {
+                var pause = run.Backoff;
                 return new SyncResult(
-                    MapOutcome(exception.Kind),
+                    MapOutcome(pause?.Kind ?? exception.Kind),
                     run.State,
                     startedAt,
                     _timeProvider.GetUtcNow(),
-                    exception.Message);
+                    exception.Message)
+                {
+                    RetryAt = pause?.RetryAt ?? exception.RetryAt,
+                    HttpStatusCode = pause?.HttpStatusCode ?? exception.HttpStatusCode
+                };
             }
         }
         finally
@@ -188,100 +193,13 @@ public sealed class OfflineFirstSynchronizer
         }
     }
 
-    private async Task<(IReadOnlySet<string> Hashes, bool IsComplete)> FetchRemoteContentAsync(
-        RemoteFeedCatalog catalog,
-        IReadOnlySet<string> unread,
-        SyncRun run,
-        CancellationToken cancellationToken)
-    {
-        using var downloads = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var savedHashes = new HashSet<string>(StringComparer.Ordinal);
-        var savedComplete = false;
-        var tasks = new List<Task>
-        {
-            DownloadAsync(async () =>
-            {
-                for (var page = 1; page <= _options.MaximumStoryPages; page++)
-                {
-                    var result = await ExecuteRemoteAsync(
-                        token => _remoteService.GetStarredStoriesAsync(page, token),
-                        run, downloads.Token, "Saved stories", page).ConfigureAwait(false);
-                    foreach (var story in result.Stories) savedHashes.Add(story.Hash);
-                    await CachePageAsync(result.Stories, unread, isSaved: true, run, downloads.Token)
-                        .ConfigureAwait(false);
-                    if (result.IsLastPage)
-                    {
-                        savedComplete = true;
-                        break;
-                    }
-                }
-            })
-        };
-
-        foreach (var feed in catalog.Feeds.Where(static feed => feed.IsActive))
-        {
-            tasks.Add(DownloadAsync(async () =>
-            {
-                for (var page = 1; page <= _options.MaximumStoryPages; page++)
-                {
-                    var result = await ExecuteRemoteAsync(
-                        token => _remoteService.GetFeedStoriesAsync(feed.Id, page, token),
-                        run, downloads.Token, feed.Title, page).ConfigureAwait(false);
-                    await CachePageAsync(result.Stories, unread, isSaved: false, run, downloads.Token)
-                        .ConfigureAwait(false);
-                    if (result.IsLastPage) break;
-                }
-                run.Update(state => state with { CompletedFeedCount = state.CompletedFeedCount + 1 });
-            }));
-        }
-
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-        return (savedHashes, savedComplete);
-
-        async Task DownloadAsync(Func<Task> operation)
-        {
-            try { await operation().ConfigureAwait(false); }
-            catch
-            {
-                await downloads.CancelAsync().ConfigureAwait(false);
-                throw;
-            }
-        }
-    }
-
-    private async Task CachePageAsync(
-        IReadOnlyCollection<Story> stories,
-        IReadOnlySet<string> unread,
-        bool isSaved,
-        SyncRun run,
-        CancellationToken cancellationToken)
-    {
-        await run.PersistenceGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var page = stories.Select(story => story with
-            {
-                IsRead = !unread.Contains(story.Hash),
-                IsSaved = isSaved || story.IsSaved
-            }).ToArray();
-            await _repository.CacheRemoteStoriesAsync(page, cancellationToken).ConfigureAwait(false);
-            foreach (var story in page) run.DownloadedHashes.Add(story.Hash);
-            run.Update(state => state with
-            {
-                StoryCount = run.DownloadedHashes.Count,
-                DownloadedPageCount = state.DownloadedPageCount + 1,
-                LocalRevision = state.LocalRevision + (page.Length > 0 ? 1 : 0)
-            });
-        }
-        finally { run.PersistenceGate.Release(); }
-    }
-
     private async Task<T> ExecuteRemoteAsync<T>(
         Func<CancellationToken, Task<T>> operation,
         SyncRun run,
         CancellationToken cancellationToken,
         string? feedTitle = null,
-        int page = 0)
+        int page = 0,
+        bool savedRequest = false)
     {
         for (var attempt = 1; ; attempt++)
         {
@@ -290,6 +208,8 @@ public sealed class OfflineFirstSynchronizer
             {
                 try
                 {
+                    if (run.Backoff is { } pause) throw BackoffException(pause);
+                    await PaceRequestAsync(run, savedRequest, cancellationToken).ConfigureAwait(false);
                     run.Update(state => state with
                     {
                         NetworkAttemptCount = state.NetworkAttemptCount + 1,
@@ -299,10 +219,34 @@ public sealed class OfflineFirstSynchronizer
                     });
                     return await operation(cancellationToken).ConfigureAwait(false);
                 }
+                catch (SyncRemoteException exception) when (
+                    exception.Kind == SyncRemoteFailureKind.RateLimited
+                    || exception.RetryAt > _timeProvider.GetUtcNow())
+                {
+                    var now = _timeProvider.GetUtcNow();
+                    var pause = run.Pause(new SyncBackoff(
+                        exception.RetryAt > now ? exception.RetryAt.Value
+                            : now + _options.RateLimitRetryDelay
+                                + TimeSpan.FromSeconds(_random.NextDouble() * 30),
+                        exception.Kind,
+                        exception.HttpStatusCode));
+                    await run.PersistenceGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+                    try
+                    {
+                        pause = run.Backoff ?? throw new InvalidOperationException("Sync backoff was not recorded.");
+                        await _repository.SetCheckpointAsync(new SyncCheckpoint(
+                            BackoffCheckpointName,
+                            JsonSerializer.Serialize(pause, SyncJsonContext.Default.SyncBackoff),
+                            now), CancellationToken.None).ConfigureAwait(false);
+                    }
+                    finally { run.PersistenceGate.Release(); }
+                    throw BackoffException(pause);
+                }
                 finally { run.NetworkSlots.Release(); }
             }
             catch (SyncRemoteException exception)
                 when (exception.Kind == SyncRemoteFailureKind.Transient
+                    && exception.RetryAt is null
                     && attempt < _options.MaximumNetworkAttempts)
             {
                 await _delay.DelayAsync(
@@ -368,6 +312,7 @@ public sealed class OfflineFirstSynchronizer
             SyncRemoteFailureKind.Authentication => SyncOutcome.AuthenticationRequired,
             SyncRemoteFailureKind.MalformedData => SyncOutcome.MalformedRemoteData,
             SyncRemoteFailureKind.Permanent => SyncOutcome.PermanentFailure,
+            SyncRemoteFailureKind.RateLimited => SyncOutcome.RateLimited,
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
         };
 
@@ -392,13 +337,26 @@ public sealed class OfflineFirstSynchronizer
         {
             throw new ArgumentOutOfRangeException(nameof(options));
         }
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.RateLimitRetryDelay, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MinimumRequestInterval, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MinimumSavedRequestInterval, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.RecentStoriesPerFeed, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.RecentStoriesPerFeed, 500);
     }
+
+    private static SyncRemoteException BackoffException(SyncBackoff pause) =>
+        new("NewsBlur requested a pause before further requests.", pause.Kind)
+        {
+            RetryAt = pause.RetryAt,
+            HttpStatusCode = pause.HttpStatusCode
+        };
 
     private sealed class SyncRun : IDisposable
     {
         private readonly object _gate = new();
         private readonly IProgress<SyncState>? _progress;
         private SyncState _state;
+        private SyncBackoff? _backoff;
 
         public SyncRun(string accountId, int concurrency, IProgress<SyncState>? progress)
         {
@@ -408,9 +366,21 @@ public sealed class OfflineFirstSynchronizer
         }
 
         public SyncState State { get { lock (_gate) return _state; } }
+        public SyncBackoff? Backoff { get { lock (_gate) return _backoff; } }
         public SemaphoreSlim NetworkSlots { get; }
         public SemaphoreSlim PersistenceGate { get; } = new(1, 1);
+        public SemaphoreSlim PacingGate { get; } = new(1, 1);
         public HashSet<string> DownloadedHashes { get; } = new(StringComparer.Ordinal);
+        public HashSet<string> DownloadedSavedHashes { get; } = new(StringComparer.Ordinal);
+
+        public SyncBackoff Pause(SyncBackoff pause)
+        {
+            lock (_gate)
+            {
+                if (_backoff is null || _backoff.RetryAt < pause.RetryAt) _backoff = pause;
+                return _backoff;
+            }
+        }
 
         public void Update(Func<SyncState, SyncState> update)
         {
@@ -432,6 +402,7 @@ public sealed class OfflineFirstSynchronizer
         {
             NetworkSlots.Dispose();
             PersistenceGate.Dispose();
+            PacingGate.Dispose();
         }
     }
 }

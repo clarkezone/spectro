@@ -10,7 +10,8 @@ namespace NewsBlurSharp.Model
         Offline,
         Transient,
         MalformedResponse,
-        Timeout
+        Timeout,
+        RateLimited
     }
 
     public class NewsBlurException : Exception
@@ -23,16 +24,20 @@ namespace NewsBlurSharp.Model
             string message,
             NewsBlurFailureKind kind = NewsBlurFailureKind.Http,
             HttpStatusCode? statusCode = null,
-            Exception innerException = null)
+            Exception innerException = null,
+            DateTimeOffset? retryAt = null)
             : base(message, innerException)
         {
             Kind = kind;
             StatusCode = statusCode;
+            RetryAt = retryAt;
         }
 
         public NewsBlurFailureKind Kind { get; }
 
         public HttpStatusCode? StatusCode { get; }
+
+        public DateTimeOffset? RetryAt { get; }
     }
 
     public sealed class NewsBlurAuthenticationException : NewsBlurException
@@ -48,8 +53,17 @@ namespace NewsBlurSharp.Model
         public NewsBlurTransientException(
             string message,
             HttpStatusCode? statusCode = null,
-            Exception innerException = null)
-            : base(message, NewsBlurFailureKind.Transient, statusCode, innerException)
+            Exception innerException = null,
+            DateTimeOffset? retryAt = null)
+            : base(message, NewsBlurFailureKind.Transient, statusCode, innerException, retryAt)
+        {
+        }
+    }
+
+    public sealed class NewsBlurRateLimitedException : NewsBlurException
+    {
+        public NewsBlurRateLimitedException(string message, DateTimeOffset? retryAt = null)
+            : base(message, NewsBlurFailureKind.RateLimited, HttpStatusCode.TooManyRequests, retryAt: retryAt)
         {
         }
     }

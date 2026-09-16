@@ -404,7 +404,7 @@ public sealed class SqliteLibraryTests : IAsyncLifetime
 
     [Theory]
     [InlineData(SyncOutcome.Offline, "Offline", "Showing downloaded stories.")]
-    [InlineData(SyncOutcome.TransientFailure, "Sync delayed", "temporarily unavailable")]
+    [InlineData(SyncOutcome.TransientFailure, "Sync delayed", "Remote failure")]
     [InlineData(SyncOutcome.AuthenticationRequired, "Session expired", "sign in again")]
     [InlineData(SyncOutcome.MalformedRemoteData, "Sync error", "could not read")]
     [InlineData(SyncOutcome.PermanentFailure, "Sync error", "Remote failure")]

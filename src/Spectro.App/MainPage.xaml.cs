@@ -22,6 +22,7 @@ public sealed partial class MainPage : Page
     private ulong _readerNavigationId;
     private bool _focusReaderAfterNavigation;
     private Control? _settingsReturnFocus;
+    private readonly LoginSubmission _loginSubmission = new();
 
     public AppViewModel ViewModel { get; } = App.Services.ViewModel;
 
@@ -31,6 +32,14 @@ public sealed partial class MainPage : Page
         Root.AddHandler(
             UIElement.KeyDownEvent,
             new KeyEventHandler(Root_KeyDown),
+            handledEventsToo: true);
+        UsernameBox.AddHandler(
+            UIElement.KeyDownEvent,
+            new KeyEventHandler(Login_KeyDown),
+            handledEventsToo: true);
+        PasswordBox.AddHandler(
+            UIElement.KeyDownEvent,
+            new KeyEventHandler(Login_KeyDown),
             handledEventsToo: true);
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         ActualThemeChanged += (_, _) => NavigateReader();
@@ -65,17 +74,36 @@ public sealed partial class MainPage : Page
         await RefreshImagesAsync();
     }
 
-    private async void SignIn_Click(object sender, RoutedEventArgs e)
+    private async void SignIn_Click(object sender, RoutedEventArgs e) => await SignInAsync();
+
+    private async void Login_KeyDown(object sender, KeyRoutedEventArgs e) =>
+        await _loginSubmission.OnKeyDownAsync(
+            e.Key == Windows.System.VirtualKey.Enter,
+            ViewModel.IsLoginScreen,
+            () => e.Handled = true,
+            SignInAsync);
+
+    private Task SignInAsync() => _loginSubmission.RunAsync(ViewModel.CanInteract, async () =>
     {
+        // Keep incomplete input so validation does not erase a partially filled form.
+        if (string.IsNullOrWhiteSpace(ViewModel.Username) || string.IsNullOrEmpty(ViewModel.Password))
+        {
+            await RunUiActionAsync("Sign in", () => ViewModel.LoginAsync());
+            return;
+        }
+
         LoginProgress.Visibility = Visibility.Visible;
-        await RunUiActionAsync("Sign in", () => ViewModel.LoginAsync());
-        PasswordBox.Password = string.Empty;
-        BindLocalCollections();
-        LoginProgress.Visibility = Visibility.Collapsed;
-        UpdateScreen();
-        SelectCurrentNavigation();
-        await RefreshImagesAsync();
-    }
+        try
+        {
+            await RunUiActionAsync("Sign in", () => ViewModel.LoginAsync());
+            PasswordBox.Password = string.Empty;
+            BindLocalCollections();
+            UpdateScreen();
+            SelectCurrentNavigation();
+            await RefreshImagesAsync();
+        }
+        finally { LoginProgress.Visibility = Visibility.Collapsed; }
+    });
 
     private async void Sync_Click(object sender, RoutedEventArgs e)
     {

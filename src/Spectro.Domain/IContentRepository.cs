@@ -28,6 +28,10 @@ public interface IContentRepository
         int feedId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Returns all cached story identities and state without loading content or summaries.</summary>
+    Task<IReadOnlyList<CachedStory>> GetCachedStoryIndexAsync(
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Story>> QueryStoriesAsync(
         ContentQuery query,
         CancellationToken cancellationToken = default);
