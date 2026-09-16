@@ -217,6 +217,10 @@ before cleanup.
 mutations remain blocked. The explicit `recover-add` command can reconcile only
 a journaled pending add whose unique URL, placement, and unchanged ownership
 match two fresh catalog reads; it never retransmits or deletes the subscription.
+Fixture API requests are durably paced (three seconds globally, eight seconds
+for saved bodies). HTTP 429 records a cooldown; rerunning before its reported
+deadline makes no HTTP requests. Errors identify the actual endpoint, not just
+the outer setup/cleanup stage, without exposing request or response contents.
 
 Copy `tools\Test-SpectroLibraryUI.ps1` and `tools\Get-SpectroE2EState.ps1`
 to the same folder inside the isolated VM. Invoke the former in the interactive
