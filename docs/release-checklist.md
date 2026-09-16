@@ -187,8 +187,10 @@ subsets, selected filters, folder scope, local unread counts, and reading during
 sync. Counts in the feed pane describe downloaded stories, not the entire remote
 account.
 
-The library now updates after each committed page. Up to four HTTP requests run
-concurrently; read/save actions and navigation remain available during sync.
+The library updates after each committed batch. Hash inventories select up to
+60 recent All stories per active feed; missing bodies are fetched in batches of
+100 rather than re-downloading every feed page. Up to four HTTP requests run
+concurrently with durable pacing; read/save actions and navigation remain available during sync.
 Progress reports subscriptions, unread-state reconciliation, feed/page counts,
 retry attempts, and completion. Cancel retains committed pages and local changes.
 Changes made during a sync remain queued when necessary, with an explicit
@@ -206,10 +208,15 @@ than clearing the lists on every page.
 `tools\newsblur-library-fixture.cjs` creates reversible subscriptions and two
 folders on the dedicated automation account. It verifies the signed-in identity,
 preserves pre-existing subscriptions, and journals only fixture ownership/state
-under `%LOCALAPPDATA%\Spectro\E2E`. Run `prepare`, then `status`; run `cleanup`
+under `%LOCALAPPDATA%\Spectro\E2E`. Run `prepare` (or `prepare --large` for 25
+added feeds), then `status`; run `cleanup`
 after acceptance. Never use it against a personal account or upload its browser
 profile. After a failed interaction test, reconcile pending desktop mutations
 before cleanup.
+`probe` performs read-only identity, inventory, and protocol checks. Interrupted
+mutations remain blocked. The explicit `recover-add` command can reconcile only
+a journaled pending add whose unique URL, placement, and unchanged ownership
+match two fresh catalog reads; it never retransmits or deletes the subscription.
 
 Copy `tools\Test-SpectroLibraryUI.ps1` and `tools\Get-SpectroE2EState.ps1`
 to the same folder inside the isolated VM. Invoke the former in the interactive
@@ -228,9 +235,20 @@ user's session with `-WindowHandle` and `-ExpectedVersion`:
   physically disconnect the VM adapter and restore its original switch in
   `finally`; it verifies cached content and failure feedback.
 
-The matrix requires at least four feeds/two populated folders and at most 500
-cached stories. It is an actual running-UI check, not a substitute for the
+The matrix requires at least four feeds/two populated folders and supports a
+bounded snapshot of 10,000 cached stories. It applies the application's 500-row
+display limit **after** filtering and scrolls virtualized story and feed lists.
+For automation hosts with short command timeouts, split it with
+`-MatrixSection Global -MatrixFilter All` (also Unread/Saved/Read),
+`-MatrixSection Folders -FolderTitle '<folder>' -MatrixFilter All`
+(also Unread/Saved), and `-MatrixSection Search`.
+It is an actual running-UI check, not a substitute for the
 SQLite presentation and controlled-concurrency regression tests.
+
+Use `Invoke-NewsBlurDesktopLogin.ps1 -SubmitMode PasswordEnter` or
+`-SubmitMode UsernameEnter` to exercise native Enter without placing credentials
+in command arguments or files. Restart the same signed package and upgrade it
+without clearing account data to verify Windows Credential Locker persistence.
 
 Local signed Release measurements on the isolated VM (2026-09-15): usable
 stories appeared after **1.6-2.4 seconds**, before initial sync finished in

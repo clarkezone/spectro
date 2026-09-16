@@ -1,4 +1,9 @@
-param([string]$StoryHash, [switch]$Library, [switch]$Base64)
+param(
+    [string]$StoryHash,
+    [switch]$Library,
+    [switch]$Base64,
+    [ValidateRange(1, 10000)][int]$StoryLimit = 500
+)
 $ErrorActionPreference = 'Stop'
 if ($StoryHash -and $StoryHash -notmatch '^\d+:[A-Za-z0-9_-]+$') {
     throw 'Invalid fixture story hash.'
@@ -51,8 +56,9 @@ try {
   'stories', (SELECT json_group_array(json_object(
     'hash', story_hash, 'title', title, 'feedId', feed_id, 'read', is_read, 'saved', is_saved))
     FROM (SELECT story_hash,title,feed_id,is_read,is_saved FROM story
-          ORDER BY published_utc DESC,story_hash LIMIT 500))
+          ORDER BY published_utc DESC,story_hash LIMIT __STORY_LIMIT__))
 '@ } else { '' }
+    $libraryQuery = $libraryQuery.Replace('__STORY_LIMIT__', $StoryLimit.ToString([Globalization.CultureInfo]::InvariantCulture))
     $query = @"
 SELECT json_object(
   'storyCount', (SELECT COUNT(*) FROM story),
