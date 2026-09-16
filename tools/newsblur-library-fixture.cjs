@@ -7,6 +7,11 @@
 // Pending mutations stay blocked even if probe observes the pre-mutation inventory.
 // Explicit recover-add only reconciles one committed pending add_url after two stable catalogs.
 // It requires the authenticated profile, makes no remote mutations, and records a local receipt.
+// HTTP 429 cooldowns and API pacing persist in library-fixture-throttle.json under the same lock.
+// Legacy interrupted cleanup waits six minutes from the journal's last write, not from restart.
+// Cooldown is at least six minutes plus 10-30 seconds of jitter, honoring longer Retry-After.
+// API requests are spaced at least three seconds apart, including across restarts.
+// Saved-story body requests additionally remain at least eight seconds apart.
 // --large: 25 added feeds (26 active including Guardian); default: four added feeds.
 // The journal owns the size on resume/status/cleanup; --large cannot upgrade an existing plan.
 // Both sizes mutate stories only in the original four feeds. Large folders alternate.
@@ -24,11 +29,16 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { randomUUID, createHash } = require('node:crypto');
+const { randomUUID, createHash, randomInt } = require('node:crypto');
 const { createRequire } = require('node:module');
 
 const ORIGINAL_IDS = [5771943, 10310620];
 const ORIGIN = 'https://newsblur.com';
+const COOLDOWN_MS = 6 * 60 * 1000;
+// load_feeds allows 60 requests across current+previous minute buckets (shared session key).
+// Source: NewsBlur main apps/reader/views.py and utils/ratelimit.py. delete_feed has no decorator.
+const REQUEST_INTERVAL_MS = 3 * 1000;
+const SAVED_BODY_INTERVAL_MS = 8 * 1000;
 const PLANS = [
   { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', folder: 0, read: true, saved: true },
   { url: 'https://feeds.npr.org/1001/rss.xml', folder: 0, read: false, saved: true },
@@ -98,16 +108,63 @@ function unreadWindowValues(data, feedId) {
   return values;
 }
 
-function httpFailure(response) {
-  const raw = response.headers()['retry-after'];
-  let retryAfter = 'absent';
+function retryAfterInfo(raw, now = Date.now()) {
+  let label = 'absent';
+  let until = null;
   if (raw !== undefined) {
-    if (/^\d{1,10}$/.test(raw)) retryAfter = `${Number(raw)} seconds`;
+    if (/^\d{1,10}$/.test(raw)) {
+      label = `${Number(raw)} seconds`;
+      until = now + Number(raw) * 1000;
+    }
     else if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(raw) &&
-      Number.isFinite(Date.parse(raw))) retryAfter = new Date(raw).toUTCString();
-    else retryAfter = 'invalid (suppressed)';
+      Number.isFinite(Date.parse(raw))) {
+      label = new Date(raw).toUTCString();
+      until = Date.parse(raw);
+    } else label = 'invalid (suppressed)';
   }
-  return `NewsBlur HTTP ${response.status()}; Retry-After: ${retryAfter}; response suppressed, pending journal unchanged.`;
+  return { label, until };
+}
+
+function httpFailure(response, endpoint) {
+  return `NewsBlur ${endpoint} HTTP ${response.status()}; response suppressed, pending journal unchanged.`;
+}
+
+function writeJsonAtomic(file, value) {
+  const temporary = `${file}.tmp`;
+  const fd = fs.openSync(temporary, 'w', 0o600);
+  try {
+    fs.writeFileSync(fd, JSON.stringify(value, null, 2) + '\n');
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(temporary, file);
+}
+
+function validateThrottle(throttle) {
+  const timestamp = value => value === null ||
+    (typeof value === 'string' && Number.isFinite(Date.parse(value)));
+  check(throttle && throttle.version === 1 &&
+    timestamp(throttle.lastRequestAt) && timestamp(throttle.nextRequestAt) &&
+    (throttle.nextSavedBodyAt === undefined || timestamp(throttle.nextSavedBodyAt)) &&
+    (throttle.lastRequestAt === null) === (throttle.nextRequestAt === null) &&
+    (throttle.nextRequestAt === null ||
+      Date.parse(throttle.nextRequestAt) - Date.parse(throttle.lastRequestAt) >= REQUEST_INTERVAL_MS),
+  'Invalid persistent fixture pacing; no HTTP requests permitted.');
+  if (throttle.cooldown !== null) {
+    const cooldown = throttle.cooldown;
+    check(cooldown && ['http-429', 'legacy-cleanup'].includes(cooldown.reason) &&
+      typeof cooldown.observedAt === 'string' && typeof cooldown.until === 'string' &&
+      Number.isFinite(Date.parse(cooldown.observedAt)) && Number.isFinite(Date.parse(cooldown.until)) &&
+      Date.parse(cooldown.until) - Date.parse(cooldown.observedAt) >= COOLDOWN_MS,
+    'Invalid persistent fixture cooldown; no HTTP requests permitted.');
+  }
+}
+
+function cooldownRecord(reason, retryAfter, now = Date.now()) {
+  return { reason, observedAt: new Date(now).toISOString(),
+    until: new Date(Math.max(now + COOLDOWN_MS, retryAfter?.until || 0) +
+      randomInt(10000, 30001)).toISOString() };
 }
 
 function shapeOf(value, depth = 0) {
@@ -296,6 +353,7 @@ async function run(action, flags = []) {
     process.env.LOCALAPPDATA, 'Required automation environment is missing.');
   const directory = path.join(process.env.LOCALAPPDATA, 'Spectro', 'E2E');
   const journalPath = path.join(directory, 'library-fixture.json');
+  const throttlePath = path.join(directory, 'library-fixture-throttle.json');
   const lockPath = path.join(directory, 'library-fixture.lock');
   fs.mkdirSync(directory, { recursive: true });
   stage = 'exclusive-fixture-lock';
@@ -303,6 +361,30 @@ async function run(action, flags = []) {
   let context;
   try {
     let journal = fs.existsSync(journalPath) ? JSON.parse(fs.readFileSync(journalPath, 'utf8')) : null;
+    const hadThrottle = fs.existsSync(throttlePath);
+    const throttle = hadThrottle ? JSON.parse(fs.readFileSync(throttlePath, 'utf8')) :
+      { version: 1, cooldown: null, lastRequestAt: null, nextRequestAt: null, nextSavedBodyAt: null };
+    validateThrottle(throttle);
+    const saveThrottle = () => {
+      validateThrottle(throttle);
+      writeJsonAtomic(throttlePath, throttle);
+    };
+    function assertNoCooldown() {
+      stage = 'fixture-cooldown';
+      check(!throttle.cooldown || Date.now() >= Date.parse(throttle.cooldown.until),
+        `Fixture cooldown active until ${throttle.cooldown?.until}; no HTTP requests permitted.`);
+    }
+    if (!hadThrottle && journal?.state === 'cleaning' && journal.pending === null) {
+      validateJournal(journal);
+      const lastWrite = fs.statSync(journalPath).mtimeMs;
+      check(Number.isFinite(lastWrite), 'Invalid legacy cleanup timestamp; no HTTP requests permitted.');
+      throttle.cooldown = { reason: 'legacy-cleanup', observedAt: new Date(lastWrite).toISOString(),
+        until: new Date(lastWrite + COOLDOWN_MS).toISOString() };
+      saveThrottle();
+    }
+    assertNoCooldown();
+    check(journal || action !== 'recover-add',
+      'Explicit recovery requires an existing ownership journal.');
     if (journal) {
       if (action === 'recover-add') {
         pendingAddIntent(journal);
@@ -317,22 +399,13 @@ async function run(action, flags = []) {
       } else {
         validateJournal(journal);
       }
-      if (action === 'recover-add') pendingAddIntent(journal);
       check(!requestedPlan || (journal.plan || 'standard') === requestedPlan,
         'Requested size conflicts with the ownership journal; no resources will be changed.');
     }
     const plans = journal ? plansFor(journal) : requestedPlan === 'large' ? LARGE_PLANS : PLANS;
     const save = () => {
       check(!['probe', 'probe-coverage'].includes(action), 'Read-only probe cannot write the journal.');
-      const temporary = `${journalPath}.tmp`;
-      const fd = fs.openSync(temporary, 'w', 0o600);
-      try {
-        fs.writeFileSync(fd, JSON.stringify(journal, null, 2) + '\n');
-        fs.fsyncSync(fd);
-      } finally {
-        fs.closeSync(fd);
-      }
-      fs.renameSync(temporary, journalPath);
+      writeJsonAtomic(journalPath, journal);
     };
     stage = 'browser-launch';
     const moduleRoot = process.env.SPECTRO_PLAYWRIGHT_ROOT ||
@@ -344,6 +417,7 @@ async function run(action, flags = []) {
     const page = await context.newPage();
     // Browser UI must not mark a restored story read; only explicit API calls below may mutate.
     await context.route('**/*', route => {
+      if (throttle.cooldown && Date.now() < Date.parse(throttle.cooldown.until)) return route.abort();
       const request = route.request();
       const url = new URL(request.url());
       const login = !remoteReadOnly && url.origin === ORIGIN &&
@@ -373,6 +447,9 @@ async function run(action, flags = []) {
     const clusterSafe = !remoteReadOnly &&
       await page.evaluate(() => window.NEWSBLUR.Preferences.cluster_mark_read === false);
     async function api(endpoint, form, params) {
+      assertNoCooldown();
+      check(/^(?:[a-z_]+|feed\/[1-9]\d*)$/.test(endpoint), 'Invalid fixture API endpoint.');
+      stage = endpoint;
       check(action !== 'probe' || (!form &&
         ['feeds', 'unread_story_hashes', 'starred_story_hashes'].includes(endpoint)),
       'Read-only probe only permits the catalog and hash GET endpoints.');
@@ -380,13 +457,35 @@ async function run(action, flags = []) {
         'Add recovery only permits catalog GET requests.');
       check(action !== 'probe-coverage' || (!form && ['feeds', 'unread_story_hashes'].includes(endpoint)),
         'Coverage probe only permits catalog and unread hash GET requests.');
+      const requestNotBefore = Math.max(
+        throttle.nextRequestAt ? Date.parse(throttle.nextRequestAt) : 0,
+        endpoint === 'starred_stories' && throttle.nextSavedBodyAt ? Date.parse(throttle.nextSavedBodyAt) : 0);
+      if (requestNotBefore) {
+        const remaining = requestNotBefore - Date.now();
+        check(remaining <= 60000, 'Persistent API pacing is too far in the future; inspect the system clock.');
+        if (remaining > 0) await page.waitForTimeout(remaining);
+      }
+      assertNoCooldown();
+      stage = endpoint;
+      const now = Date.now();
+      check(now >= requestNotBefore,
+        'API pacing deadline has not elapsed; no HTTP request sent.');
+      throttle.lastRequestAt = new Date(now).toISOString();
+      throttle.nextRequestAt = new Date(now + REQUEST_INTERVAL_MS).toISOString();
+      if (endpoint === 'starred_stories') throttle.nextSavedBodyAt = new Date(now + SAVED_BODY_INTERVAL_MS).toISOString();
+      saveThrottle();
       const response = form
         ? await context.request.post(`${ORIGIN}/reader/${endpoint}`, { form, timeout: 90000, maxRedirects: 0 })
         : await context.request.get(`${ORIGIN}/reader/${endpoint}`, {
           params, timeout: 90000, maxRedirects: 0,
           ...(action === 'recover-add' ? { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } } : {})
         });
-      if (response.status() !== 200) throw new SafetyError(httpFailure(response));
+      if (response.status() === 429) {
+        throttle.cooldown = cooldownRecord('http-429', retryAfterInfo(response.headers()['retry-after']));
+        saveThrottle();
+        throw new SafetyError(`${httpFailure(response, endpoint)} Cooldown until ${throttle.cooldown.until}; no HTTP requests permitted before then.`);
+      }
+      if (response.status() !== 200) throw new SafetyError(httpFailure(response, endpoint));
       const data = await response.json();
       check(data && data.authenticated === true, 'NewsBlur API did not confirm authentication.');
       if (form) check(typeof data.code === 'number' && data.code >= 0,
