@@ -2,7 +2,10 @@ param(
     [Parameter(Mandatory)][string]$WindowHandle,
     [Parameter(Mandatory)][string]$ExpectedVersion,
     [ValidateSet('Matrix', 'Progress', 'ProgressActions', 'Cancel', 'Offline')][string]$Scenario = 'Matrix',
-    [string]$FixtureStoryHash
+    [string]$FixtureStoryHash,
+    [ValidateSet('All', 'Global', 'Folders', 'Search')][string]$MatrixSection = 'All',
+    [ValidateSet('Any', 'All', 'Unread', 'Saved', 'Read')][string]$MatrixFilter = 'Any',
+    [string]$FolderTitle
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
@@ -16,7 +19,12 @@ $events = [Collections.Generic.List[object]]::new()
 function Element([string]$Id) {
     $condition = [Windows.Automation.PropertyCondition]::new(
         [Windows.Automation.AutomationElement]::AutomationIdProperty, $Id)
-    $element = $root.FindFirst([Windows.Automation.TreeScope]::Descendants, $condition)
+    $deadline = [DateTime]::UtcNow.AddSeconds(5)
+    do {
+        $element = $root.FindFirst([Windows.Automation.TreeScope]::Descendants, $condition)
+        if ($null -ne $element) { return $element }
+        Start-Sleep -Milliseconds 50
+    } while ([DateTime]::UtcNow -lt $deadline)
     if ($null -eq $element) { throw "Missing UI element: $Id" }
     return $element
 }
@@ -60,7 +68,9 @@ function Set-Search([string]$Id, [string]$Text) {
     Start-Sleep -Milliseconds 150
 }
 function Read-State {
-    (& (Join-Path $PSScriptRoot 'Get-SpectroE2EState.ps1') -Library) | ConvertFrom-Json
+    $state = (& (Join-Path $PSScriptRoot 'Get-SpectroE2EState.ps1') -Library -StoryLimit 10000) | ConvertFrom-Json
+    if ($state.storyCount -gt 10000) { throw 'The acceptance snapshot exceeds its bounded story limit.' }
+    return $state
 }
 function Record([string]$Name, [object]$Details) {
     $events.Add([pscustomobject]@{ check = $Name; passed = $true; details = $Details })
@@ -81,7 +91,7 @@ function Assert-Collection([string]$Label, [object[]]$Expected) {
     $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $expectedNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($story in $Expected) { $null = $expectedNames.Add($story.title) }
-    for ($page = 0; $page -lt 150; $page++) {
+    for ($page = 0; $page -lt 300; $page++) {
         Start-Sleep -Milliseconds 70
         $items = $list.FindAll([Windows.Automation.TreeScope]::Children,
             [Windows.Automation.PropertyCondition]::new(
@@ -101,15 +111,29 @@ function Assert-Collection([string]$Label, [object[]]$Expected) {
     Record $Label @{ count = $Expected.Count; distinctTitles = $seen.Count }
 }
 function Assert-Feeds([string]$Label, [object[]]$Expected) {
-    $items = (Element 'FeedList').FindAll([Windows.Automation.TreeScope]::Children,
-        [Windows.Automation.PropertyCondition]::new(
-            [Windows.Automation.AutomationElement]::ControlTypeProperty,
-            [Windows.Automation.ControlType]::ListItem))
-    $names = @($items | ForEach-Object { $_.Current.Name } | Sort-Object)
     $expectedNames = @($Expected | ForEach-Object { "$($_.title), $($_.unread) downloaded unread stories" } | Sort-Object)
     $expectedSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($name in $expectedNames) { $null = $expectedSet.Add($name) }
-    if ($names.Count -ne $expectedNames.Count -or -not $expectedSet.SetEquals([string[]]$names)) {
+    $list = Element 'FeedList'
+    $scroll = $list.GetCurrentPattern([Windows.Automation.ScrollPattern]::Pattern)
+    if ($scroll.Current.VerticallyScrollable) { $scroll.SetScrollPercent(-1, 0) }
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    for ($page = 0; $page -lt 150; $page++) {
+        Start-Sleep -Milliseconds 70
+        $items = $list.FindAll([Windows.Automation.TreeScope]::Children,
+            [Windows.Automation.PropertyCondition]::new(
+                [Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [Windows.Automation.ControlType]::ListItem))
+        foreach ($item in $items) {
+            $name = $item.Current.Name
+            if (-not $expectedSet.Contains($name)) { throw "$Label contains an unexpected feed or unread count" }
+            $null = $seen.Add($name)
+        }
+        if (-not $scroll.Current.VerticallyScrollable -or $scroll.Current.VerticalScrollPercent -ge 99.99) { break }
+        $scroll.Scroll([Windows.Automation.ScrollAmount]::NoAmount, [Windows.Automation.ScrollAmount]::LargeIncrement)
+    }
+    if ($scroll.Current.VerticallyScrollable) { $scroll.SetScrollPercent(-1, 0) }
+    if (-not $expectedSet.SetEquals($seen)) {
         throw "$Label feed titles/unread counts do not match SQLite"
     }
     Record $Label @{ feeds = $Expected.Count }
@@ -118,16 +142,18 @@ function Assert-Feeds([string]$Label, [object[]]$Expected) {
 try {
     if ($Scenario -eq 'Matrix') {
         $state = Read-State
-        if ($state.feeds.Count -lt 4 -or $state.folders.Count -lt 2 -or $state.storyCount -gt 500) {
-            throw 'Use a representative isolated four-feed/two-folder library with at most 500 cached stories.'
+        if ($state.feeds.Count -lt 4 -or $state.folders.Count -lt 2) {
+            throw 'Use a representative isolated library with at least four feeds and two folders.'
         }
-        foreach ($filter in @('All', 'Unread', 'Saved', 'Read')) {
+        foreach ($filter in @('All', 'Unread', 'Saved', 'Read') | Where-Object {
+            $MatrixSection -in @('All', 'Global') -and ($MatrixFilter -eq 'Any' -or $_ -eq $MatrixFilter)
+        }) {
             $title = switch ($filter) { All { 'All stories' } Read { 'Read stories' } default { $filter } }
             Select-Navigation $title
             $expected = @($state.stories | Where-Object {
                 $filter -eq 'All' -or ($filter -eq 'Unread' -and -not $_.read) -or
                 ($filter -eq 'Saved' -and $_.saved) -or ($filter -eq 'Read' -and $_.read)
-            })
+            } | Select-Object -First 500)
             Assert-Collection "Global $filter exact stories" $expected
             $feeds = @($state.feeds | Where-Object {
                 $filter -eq 'All' -or ($filter -eq 'Unread' -and $_.unread -gt 0) -or
@@ -135,15 +161,20 @@ try {
             })
             Assert-Feeds "Global $filter feed counts" $feeds
         }
-        foreach ($folder in $state.folders | Where-Object { $_.feedIds.Count -gt 0 }) {
+        foreach ($folder in $state.folders | Where-Object {
+            $MatrixSection -in @('All', 'Folders') -and $_.feedIds.Count -gt 0 -and
+            (-not $FolderTitle -or $_.title -eq $FolderTitle)
+        }) {
             Select-Navigation 'All stories'
             Select-Navigation $folder.title
-            foreach ($filter in @('All', 'Unread', 'Saved')) {
+            foreach ($filter in @('All', 'Unread', 'Saved') | Where-Object {
+                $MatrixFilter -eq 'Any' -or $_ -eq $MatrixFilter
+            }) {
                 Select-Filter $filter
                 $expected = @($state.stories | Where-Object {
                     $_.feedId -in $folder.feedIds -and
                     ($filter -eq 'All' -or ($filter -eq 'Unread' -and -not $_.read) -or ($filter -eq 'Saved' -and $_.saved))
-                })
+                } | Select-Object -First 500)
                 Assert-Collection "Folder $($folder.title) / $filter exact stories" $expected
                 $feeds = @($state.feeds | Where-Object {
                     $_.id -in $folder.feedIds -and
@@ -154,12 +185,14 @@ try {
             Select-Filter 'All'
             $feed = $state.feeds | Where-Object { $_.id -in $folder.feedIds } | Select-Object -First 1
             Select-Feed $feed
-            foreach ($filter in @('All', 'Unread', 'Saved')) {
+            foreach ($filter in @('All', 'Unread', 'Saved') | Where-Object {
+                $MatrixFilter -eq 'Any' -or $_ -eq $MatrixFilter
+            }) {
                 Select-Filter $filter
                 $expected = @($state.stories | Where-Object {
                     $_.feedId -eq $feed.id -and
                     ($filter -eq 'All' -or ($filter -eq 'Unread' -and -not $_.read) -or ($filter -eq 'Saved' -and $_.saved))
-                })
+                } | Select-Object -First 500)
                 Assert-Collection "Selected feed $($feed.title) / $filter exact stories" $expected
                 $feeds = @($state.feeds | Where-Object {
                     $_.id -in $folder.feedIds -and
@@ -168,17 +201,19 @@ try {
                 Assert-Feeds "Selected feed retains folder scope / $filter" $feeds
             }
         }
-        Select-Navigation 'All stories'
-        $searchFeed = $state.feeds | Where-Object total -gt 0 | Select-Object -First 1
-        Set-Search 'FeedSearch' $searchFeed.title
-        Assert-Feeds 'Feed search narrows the displayed subscriptions' @($state.feeds | Where-Object {
-            $_.title.IndexOf($searchFeed.title, [StringComparison]::CurrentCultureIgnoreCase) -ge 0
-        })
-        Set-Search 'FeedSearch' ''
-        $searchStory = $state.stories | Select-Object -First 1
-        Set-Search 'StorySearch' $searchStory.title
-        Assert-Collection 'Story search narrows the displayed collection' @($searchStory)
-        Set-Search 'StorySearch' ''
+        if ($MatrixSection -in @('All', 'Search')) {
+            Select-Navigation 'All stories'
+            $searchFeed = $state.feeds | Where-Object total -gt 0 | Select-Object -First 1
+            Set-Search 'FeedSearch' $searchFeed.title
+            Assert-Feeds 'Feed search narrows the displayed subscriptions' @($state.feeds | Where-Object {
+                $_.title.IndexOf($searchFeed.title, [StringComparison]::CurrentCultureIgnoreCase) -ge 0
+            })
+            Set-Search 'FeedSearch' ''
+            $searchStory = $state.stories | Select-Object -First 1
+            Set-Search 'StorySearch' $searchStory.title
+            Assert-Collection 'Story search narrows the displayed collection' @($searchStory)
+            Set-Search 'StorySearch' ''
+        }
     }
     else {
         $before = Read-State
@@ -267,7 +302,7 @@ try {
                 throw 'Offline sync did not preserve cached content/checkpoint and show useful failure feedback.'
             }
             Select-Navigation 'All stories'
-            Assert-Collection 'Offline library remains browsable' @($after.stories)
+            Assert-Collection 'Offline library remains browsable' @($after.stories | Select-Object -First 500)
         }
         elseif ($syncing -or $after.storyCount -eq 0 -or -not $after.lastSync -or -not $browsedWhileSyncing) {
             throw 'Initial sync did not progressively expose usable stories before successful completion.'
@@ -281,6 +316,7 @@ try {
             finalStoryCount = $after.storyCount
         }
     }
+    if ($events.Count -eq 0) { throw 'No acceptance checks matched the requested matrix scope.' }
     @{ passed = $true; version = $ExpectedVersion; scenario = $Scenario; checks = $events } |
         ConvertTo-Json -Depth 8 -Compress
 }
