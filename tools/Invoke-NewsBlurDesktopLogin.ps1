@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)][string]$VMName,
     [Parameter(Mandatory)][string]$WindowHandle,
     [Parameter(Mandatory)][string]$HyperloopPath,
-    [string]$VMUser = 'AdminUser'
+    [string]$VMUser = 'AdminUser',
+    [ValidateSet('Button', 'UsernameEnter', 'PasswordEnter')][string]$SubmitMode = 'Button'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -82,6 +83,8 @@ try {
     Start-Sleep -Milliseconds 500
     $enteredUsername = ([System.Windows.Automation.ValuePattern]$username.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)).Current.Value
     if ($enteredUsername -ne $credential.username) { throw 'Username entry did not reach the control.' }
+    if ('__SUBMIT__' -eq 'UsernameEnter') { $username.SetFocus() }
+    elseif ('__SUBMIT__' -eq 'PasswordEnter') { $password.SetFocus() }
     '{"credentialsEntered":true}'
 }
 catch { throw 'Desktop credential entry failed; sensitive diagnostics suppressed.' }
@@ -90,7 +93,8 @@ finally {
     $pipe.Dispose()
 }
 '@
-    $script = $script.Replace('__HWND__', $WindowHandle.Substring(2)).Replace('__PIPE__', $pipeName)
+    $script = $script.Replace('__HWND__', $WindowHandle.Substring(2)).Replace('__PIPE__', $pipeName).
+        Replace('__SUBMIT__', $SubmitMode)
     & $HyperloopPath context $VMName --title 'Signing into Spectro with the dedicated test account'
     $result = & $HyperloopPath shell $VMName --name 'Enter test credentials through an in-memory pipe' --script $script --timeout 30 |
         ConvertFrom-Json
@@ -99,9 +103,15 @@ finally {
     $null = Wait-Job $job -Timeout 10
     if ($job.State -ne 'Completed') { throw 'Credential delivery did not complete.' }
     Receive-Job $job
-    $submitted = & $HyperloopPath uia-invoke $VMName --hwnd $WindowHandle --id SignIn --pattern invoke |
-        ConvertFrom-Json
-    if ($LASTEXITCODE -ne 0 -or -not $submitted.invoked) { throw 'Desktop sign-in submission failed.' }
+    if ($SubmitMode -eq 'Button') {
+        $submitted = & $HyperloopPath uia-invoke $VMName --hwnd $WindowHandle --id SignIn --pattern invoke |
+            ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or -not $submitted.invoked) { throw 'Desktop sign-in submission failed.' }
+    }
+    else {
+        & $HyperloopPath hotkey $VMName --hwnd $WindowHandle --combo Enter
+        if ($LASTEXITCODE -ne 0) { throw 'Desktop Enter submission failed.' }
+    }
     '{"submitted":true}'
 }
 finally {

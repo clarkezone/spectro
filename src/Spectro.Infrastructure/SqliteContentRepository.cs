@@ -272,6 +272,36 @@ public sealed class SqliteContentRepository(
             new ContentQuery(StoryFilter.All, FeedId: feedId),
             cancellationToken).ConfigureAwait(false);
 
+    public async Task<IReadOnlyList<CachedStory>> GetCachedStoryIndexAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory
+            .OpenAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT story_hash, feed_id, published_utc, is_read, is_saved
+            FROM story
+            ORDER BY story_hash;
+            """;
+
+        var stories = new List<CachedStory>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken)
+            .ConfigureAwait(false);
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            stories.Add(new CachedStory(
+                reader.GetString(0),
+                reader.GetInt32(1),
+                DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(2)),
+                reader.GetInt32(3) == 1,
+                reader.GetInt32(4) == 1));
+        }
+
+        return stories;
+    }
+
     public async Task<IReadOnlyList<Story>> QueryStoriesAsync(
         ContentQuery query,
         CancellationToken cancellationToken = default)
@@ -542,18 +572,28 @@ public sealed class SqliteContentRepository(
         await WriteRemoteStoriesAsync(connection, (SqliteTransaction)transaction, content.Stories,
             preserveExistingState: false, cancellationToken).ConfigureAwait(false);
 
-        if (content.UnreadSetIsComplete)
+        if (!content.UnreadSetIsComplete && content.ReadStoryHashes.Count > 0)
         {
             await ApplyRemoteStateSetAsync(
                 connection,
                 (SqliteTransaction)transaction,
                 "is_read",
                 "read",
-                content.UnreadStoryHashes,
-                valueWhenPresent: false,
-                valueWhenMissing: true,
+                content.ReadStoryHashes,
+                valueWhenPresent: true,
+                valueWhenMissing: null,
                 cancellationToken).ConfigureAwait(false);
         }
+
+        await ApplyRemoteStateSetAsync(
+            connection,
+            (SqliteTransaction)transaction,
+            "is_read",
+            "read",
+            content.UnreadStoryHashes,
+            valueWhenPresent: false,
+            valueWhenMissing: content.UnreadSetIsComplete ? true : null,
+            cancellationToken).ConfigureAwait(false);
 
         if (content.SavedSetIsComplete)
         {
@@ -976,8 +1016,11 @@ public sealed class SqliteContentRepository(
         PendingStoryMutation mutation) =>
         mutation.Kind switch
         {
-            StoryMutationKind.Read when content.UnreadSetIsComplete =>
-                !content.UnreadStoryHashes.Contains(mutation.StoryHash),
+            StoryMutationKind.Read
+                when content.UnreadStoryHashes.Contains(mutation.StoryHash) => false,
+            StoryMutationKind.Read
+                when content.UnreadSetIsComplete
+                    || content.ReadStoryHashes.Contains(mutation.StoryHash) => true,
             StoryMutationKind.Saved when content.SavedSetIsComplete =>
                 content.SavedStoryHashes.Contains(mutation.StoryHash),
             StoryMutationKind.Saved

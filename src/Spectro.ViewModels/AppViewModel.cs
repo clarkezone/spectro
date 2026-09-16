@@ -664,15 +664,24 @@ public sealed class AppViewModel : ObservableObject
         IsStale = !result.IsSuccess;
         (StatusTitle, StatusMessage) = result.Outcome switch
         {
-            SyncOutcome.Succeeded => ("Up to date", $"Synced {result.State.StoryCount} stories."),
+            SyncOutcome.Succeeded => ("Up to date", $"Synced {result.State.StoryCount} stories in {result.State.NetworkAttemptCount} requests."),
             SyncOutcome.Offline => ("Offline", "Showing downloaded stories. Changes will sync later."),
             SyncOutcome.AuthenticationRequired => ("Session expired", "Sign out, then sign in again."),
-            SyncOutcome.TransientFailure => ("Sync delayed", "NewsBlur is temporarily unavailable. Your local library is safe."),
-            SyncOutcome.MalformedRemoteData => ("Sync error", "NewsBlur returned data Spectro could not read."),
+            SyncOutcome.TransientFailure => ("Sync delayed", SyncFailureMessage(result)),
+            SyncOutcome.RateLimited => ("Rate limited by NewsBlur", SyncFailureMessage(result)),
+            SyncOutcome.MalformedRemoteData => ("Sync error", $"NewsBlur returned data Spectro could not read. {result.ErrorMessage}"),
             SyncOutcome.PermanentFailure => ("Sync error", result.ErrorMessage ?? "The sync could not be completed."),
             _ => ("Sync canceled", "Downloaded stories and local changes are safe. Sync again to continue.")
         };
         OnPropertyChanged(nameof(StatusTitle));
         OnPropertyChanged(nameof(StatusMessage));
+    }
+
+    private static string SyncFailureMessage(SyncResult result)
+    {
+        var status = result.HttpStatusCode is { } code ? $"HTTP {code}. " : string.Empty;
+        if (result.RetryAt is { } retryAt)
+            return $"{status}Next sync allowed after {retryAt.ToLocalTime():g}. Your downloaded stories and changes are safe.";
+        return $"{status}{result.ErrorMessage ?? "NewsBlur is temporarily unavailable."} Your local library is safe; try syncing again shortly.";
     }
 }

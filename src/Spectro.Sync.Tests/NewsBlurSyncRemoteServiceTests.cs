@@ -27,7 +27,7 @@ public sealed class NewsBlurSyncRemoteServiceTests
             await repository.InitializeAsync();
             await repository.UpsertFeedAsync(
                 new Feed(10310620, "Previously visible", "https://example.test/daily", null, 0, null, true));
-            var downloads = new System.Collections.Concurrent.ConcurrentQueue<int>();
+            var inventoryScopes = new List<int[]>();
             var handler = new ScriptedHandler(request =>
             {
                 var path = request.RequestUri!.AbsolutePath;
@@ -53,15 +53,21 @@ public sealed class NewsBlurSyncRemoteServiceTests
                         """);
                 }
                 if (path == "/reader/unread_story_hashes")
-                    return Json("""{"authenticated":true,"unread_feed_story_hashes":{}}""");
-                if (path == "/reader/feed/7") downloads.Enqueue(7);
-                else if (path == "/reader/feed/10310620") downloads.Enqueue(10310620);
-                else Assert.Equal("/reader/starred_stories", path);
-                return Json("""{"authenticated":true,"stories":[]}""");
+                {
+                    var ids = request.RequestUri.Query.TrimStart('?').Split('&')
+                        .Where(parameter => parameter.StartsWith("feed_id=", StringComparison.Ordinal))
+                        .Select(parameter => int.Parse(parameter["feed_id=".Length..],
+                            System.Globalization.CultureInfo.InvariantCulture)).Order().ToArray();
+                    inventoryScopes.Add(ids);
+                    var entries = string.Join(",", ids.Select(id => $"\"{id}\":[]"));
+                    return Json($"{{\"authenticated\":true,\"unread_feed_story_hashes\":{{{entries}}}}}");
+                }
+                Assert.Equal("/reader/starred_story_hashes", path);
+                return Json("""{"authenticated":true,"starred_story_hashes":[]}""");
             });
             var remote = new NewsBlurSyncRemoteService(new NewsBlurClient(handler));
 
-            var result = await new OfflineFirstSynchronizer(repository, remote)
+            var result = await new OfflineFirstSynchronizer(repository, remote, UnpacedOptions)
                 .SynchronizeAsync(new SyncRequest(Guid.NewGuid().ToString("N")));
 
             Assert.True(result.IsSuccess);
@@ -71,7 +77,9 @@ public sealed class NewsBlurSyncRemoteServiceTests
             Assert.Equal(expectedIds, (await repository.GetFeedsAsync()).Select(feed => feed.Id).Order());
             var folder = Assert.Single(await repository.GetFeedFoldersAsync());
             Assert.Equal(expectedIds, folder.Feeds.Select(feed => feed.Id).Order());
-            Assert.Equal(expectedIds, downloads.Order());
+            Assert.Equal(2, inventoryScopes.Count);
+            Assert.All(inventoryScopes, scope => Assert.Equal(expectedIds, scope));
+            Assert.Equal(4, handler.CallCount);
             await using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={databasePath}");
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
@@ -195,7 +203,7 @@ public sealed class NewsBlurSyncRemoteServiceTests
                 $$"""{"authenticated":true,"feeds":{}{{foldersProperty}}}"""));
             var remote = new NewsBlurSyncRemoteService(new NewsBlurClient(handler));
 
-            var result = await new OfflineFirstSynchronizer(repository, remote)
+            var result = await new OfflineFirstSynchronizer(repository, remote, UnpacedOptions)
                 .SynchronizeAsync(new SyncRequest(Guid.NewGuid().ToString("N")));
 
             Assert.Equal(SyncOutcome.MalformedRemoteData, result.Outcome);
@@ -255,31 +263,35 @@ public sealed class NewsBlurSyncRemoteServiceTests
                       }
                     }
                     """),
-                "/reader/feed/7" => Json(StoryJson(readStatus: 1)),
+                "/reader/river_stories" => Json(StoryJson(readStatus: 1)),
                 "/reader/unread_story_hashes" => Json(
                     """
                     {
                       "authenticated": true,
-                      "unread_feed_story_hashes": { "7": ["7:abc"] }
+                      "unread_feed_story_hashes": { "7": [["7:abc",1789416000.125]] }
                     }
                     """),
                 "/reader/starred_stories" => Json(StoryJson(readStatus: 0)),
+                "/reader/starred_story_hashes" => Json(
+                    """{"authenticated":true,"starred_story_hashes":[["7:abc",1789416000.875]]}"""),
                 _ => throw new InvalidOperationException(path)
             };
         });
         var subject = new NewsBlurSyncRemoteService(new NewsBlurClient(handler));
 
         var catalog = await subject.GetFeedCatalogAsync(CancellationToken.None);
-        var stories = await subject.GetFeedStoriesAsync(7, 1, CancellationToken.None);
-        var unread = await subject.GetUnreadStoryHashesAsync(CancellationToken.None);
-        var starred = await subject.GetStarredStoriesAsync(1, CancellationToken.None);
+        var stories = await subject.GetStoriesByHashesAsync(["7:abc"], false, CancellationToken.None);
+        var unread = await subject.GetStoryHashInventoryAsync(true, [7], CancellationToken.None);
+        var savedHashes = await subject.GetSavedStoryHashesAsync(CancellationToken.None);
+        var starred = await subject.GetStoriesByHashesAsync(["7:abc"], true, CancellationToken.None);
 
         Assert.Equal("Example", Assert.Single(catalog.Feeds).Title);
         Assert.Equal("Tech", Assert.Single(catalog.Folders).Title);
         Assert.Equal(7, Assert.Single(catalog.FolderFeeds).FeedId);
         Assert.True(Assert.Single(stories.Stories).IsRead);
         Assert.False(stories.IsLastPage);
-        Assert.Contains("7:abc", unread);
+        Assert.Equal(new RemoteStoryHash("7:abc", 7, 1789416000.125), Assert.Single(unread.Feeds[7]));
+        Assert.Equal(1789416000.875, savedHashes["7:abc"]);
         Assert.True(Assert.Single(starred.Stories).IsSaved);
         Assert.False(starred.IsLastPage);
     }
@@ -295,8 +307,68 @@ public sealed class NewsBlurSyncRemoteServiceTests
         var handler = new ScriptedHandler(_ => Json(json));
         var subject = new NewsBlurSyncRemoteService(new NewsBlurClient(handler));
         var error = await Assert.ThrowsAsync<SyncRemoteException>(
-            () => subject.GetUnreadStoryHashesAsync(CancellationToken.None));
+            () => subject.GetStoryHashInventoryAsync(true, [7], CancellationToken.None));
         Assert.Equal(SyncRemoteFailureKind.MalformedData, error.Kind);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"starred_story_hashes\":null}")]
+    [InlineData("{\"starred_story_hashes\":{\"7\":[]}}")]
+    [InlineData("{\"starred_story_hashes\":[[\"7:abc\"]]}")]
+    [InlineData("{\"starred_story_hashes\":[[\"7:abc\",\"NaN\"]]}")]
+    public async Task InvalidSavedInventoryCannotBecomeAnAuthoritativeEmptySet(string json)
+    {
+        var subject = new NewsBlurSyncRemoteService(new NewsBlurClient(new ScriptedHandler(_ => Json(json))));
+
+        var error = await Assert.ThrowsAsync<SyncRemoteException>(
+            () => subject.GetSavedStoryHashesAsync(CancellationToken.None));
+
+        Assert.Equal(SyncRemoteFailureKind.MalformedData, error.Kind);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BulkBodyMappingUsesEachStoryFeedIdInsteadOfTopLevelFeedId(bool saved)
+    {
+        var handler = new ScriptedHandler(request =>
+        {
+            Assert.Equal(saved ? "/reader/starred_stories" : "/reader/river_stories",
+                request.RequestUri!.AbsolutePath);
+            return Json(
+                """
+                {
+                  "authenticated":true,
+                  "feed_id":99,
+                  "stories":[
+                    {"story_hash":"7:abc","story_feed_id":7,"story_title":"Seven",
+                     "story_content":"seven","story_timestamp":"1789416000","read_status":1},
+                    {"story_hash":"8:def","story_feed_id":8,"story_title":"Eight",
+                     "story_content":"eight","story_timestamp":"1789416001","read_status":0}
+                  ]
+                }
+                """);
+        });
+        var subject = new NewsBlurSyncRemoteService(new NewsBlurClient(handler));
+
+        var page = await subject.GetStoriesByHashesAsync(["7:abc", "8:def"], saved, CancellationToken.None);
+
+        Assert.Collection(page.Stories,
+            story =>
+            {
+                Assert.Equal("7:abc", story.Hash);
+                Assert.Equal(7, story.FeedId);
+                Assert.True(story.IsRead);
+                Assert.Equal(saved, story.IsSaved);
+            },
+            story =>
+            {
+                Assert.Equal("8:def", story.Hash);
+                Assert.Equal(8, story.FeedId);
+                Assert.False(story.IsRead);
+                Assert.Equal(saved, story.IsSaved);
+            });
     }
 
     [Theory]
@@ -304,11 +376,31 @@ public sealed class NewsBlurSyncRemoteServiceTests
     [InlineData(6, false)]
     public async Task EmptyPageIsTerminalOnlyWhenNoStoriesWereHidden(int hidden, bool terminal)
     {
-        var handler = new ScriptedHandler(_ => Json(
-            $$"""{"authenticated":true,"stories":[],"hidden_stories_removed":{{hidden}}}"""));
+        var handler = new ScriptedHandler(request =>
+        {
+            Assert.Equal("/reader/feed/7", request.RequestUri!.AbsolutePath);
+            Assert.Contains("include_hidden=true", request.RequestUri.Query);
+            return Json($$"""{"authenticated":true,"stories":[],"hidden_stories_removed":{{hidden}}}""");
+        });
         var subject = new NewsBlurSyncRemoteService(new NewsBlurClient(handler));
         var page = await subject.GetFeedStoriesAsync(7, 1, CancellationToken.None);
         Assert.Equal(terminal, page.IsLastPage);
+    }
+
+    [Fact]
+    public async Task AmbiguousForbiddenResponseIsPermanentRatherThanInvalidatingAuthentication()
+    {
+        var handler = new ScriptedHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)
+        {
+            Content = new StringContent("Forbidden", Encoding.UTF8, "text/plain")
+        });
+        var subject = new NewsBlurSyncRemoteService(new NewsBlurClient(handler));
+
+        var error = await Assert.ThrowsAsync<SyncRemoteException>(
+            () => subject.GetStoryHashInventoryAsync(false, [7], CancellationToken.None));
+
+        Assert.Equal(SyncRemoteFailureKind.Permanent, error.Kind);
+        Assert.Equal(403, error.HttpStatusCode);
     }
 
     [Theory]
@@ -387,6 +479,12 @@ public sealed class NewsBlurSyncRemoteServiceTests
         {
             Content = new StringContent(content, Encoding.UTF8, "application/json")
         };
+
+    private static SyncOptions UnpacedOptions => new()
+    {
+        MinimumRequestInterval = TimeSpan.Zero,
+        MinimumSavedRequestInterval = TimeSpan.Zero
+    };
 
     private sealed class ScriptedHandler(
         Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

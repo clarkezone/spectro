@@ -11,6 +11,50 @@ namespace Spectro.Sync;
 public sealed class NewsBlurSyncRemoteService(
     INewsBlurClient client) : ISyncRemoteService
 {
+    public Task<RemoteStoryInventory> GetStoryHashInventoryAsync(
+        bool unreadOnly, IReadOnlyCollection<int> feedIds, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () =>
+        {
+            var response = await client.GetStoryHashInventoryAsync(unreadOnly, feedIds, cancellationToken)
+                .ConfigureAwait(false);
+            if (response.UnreadStoryHashes is null)
+                throw Malformed("NewsBlur omitted its story hash inventory.");
+            var feeds = new Dictionary<int, IReadOnlyList<RemoteStoryHash>>();
+            foreach (var pair in response.UnreadStoryHashes)
+            {
+                if (!int.TryParse(pair.Key, NumberStyles.None, CultureInfo.InvariantCulture, out var feedId)
+                    || !feedIds.Contains(feedId) || pair.Value is null || pair.Value.Count > 500
+                    || pair.Value.Select(static entry => entry.Hash).Distinct(StringComparer.Ordinal).Count() != pair.Value.Count)
+                    throw Malformed("NewsBlur returned an invalid feed hash inventory.");
+                var entries = pair.Value.Select(entry =>
+                {
+                    if (!entry.Hash.StartsWith($"{feedId}:", StringComparison.Ordinal))
+                        throw Malformed("NewsBlur returned a story hash under the wrong feed.");
+                    return new RemoteStoryHash(entry.Hash, feedId, entry.Timestamp);
+                }).ToArray();
+                feeds.Add(feedId, entries);
+            }
+            return new RemoteStoryInventory(feeds);
+        });
+
+    public Task<IReadOnlyDictionary<string, double>> GetSavedStoryHashesAsync(
+        CancellationToken cancellationToken) =>
+        ExecuteAsync<IReadOnlyDictionary<string, double>>(async () =>
+        {
+            var response = await client.GetStarredStoryHashInventoryAsync(cancellationToken).ConfigureAwait(false);
+            if (response.StarredStoryHashes is null
+                || response.StarredStoryHashes.Select(static entry => entry.Hash)
+                    .Distinct(StringComparer.Ordinal).Count() != response.StarredStoryHashes.Count)
+                throw Malformed("NewsBlur returned an invalid saved story inventory.");
+            return response.StarredStoryHashes.ToDictionary(
+                static entry => entry.Hash, static entry => entry.Timestamp, StringComparer.Ordinal);
+        });
+
+    public Task<RemoteStoryPage> GetStoriesByHashesAsync(
+        IReadOnlyCollection<string> hashes, bool saved, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => MapStories(
+            await client.GetStoriesByHashesAsync(hashes, saved, cancellationToken).ConfigureAwait(false), saved));
+
     public async Task UploadMutationAsync(
         PendingStoryMutation mutation,
         CancellationToken cancellationToken)
@@ -68,6 +112,7 @@ public sealed class NewsBlurSyncRemoteService(
                 await client.GetStoriesAsync(
                     feedId,
                     page,
+                    includeHiddenStories: true,
                     cancellationToken: cancellationToken).ConfigureAwait(false),
                 isSaved: false));
 
@@ -310,6 +355,18 @@ public sealed class NewsBlurSyncRemoteService(
         {
             OperationCanceledException => exception,
             SyncRemoteException => exception,
+            NewsBlurRateLimitedException limited => new SyncRemoteException(
+                limited.Message,
+                SyncRemoteFailureKind.RateLimited,
+                limited)
+            {
+                RetryAt = limited.RetryAt,
+                HttpStatusCode = (int?)limited.StatusCode
+            },
+            NewsBlurAuthenticationException { StatusCode: System.Net.HttpStatusCode.Forbidden } => new SyncRemoteException(
+                exception.Message,
+                SyncRemoteFailureKind.Permanent,
+                exception) { HttpStatusCode = 403 },
             NewsBlurAuthenticationException => new SyncRemoteException(
                 exception.Message,
                 SyncRemoteFailureKind.Authentication,
@@ -322,7 +379,15 @@ public sealed class NewsBlurSyncRemoteService(
                 exception.Message,
                 SyncRemoteFailureKind.Offline,
                 exception),
-            NewsBlurTransientException or NewsBlurTimeoutException => new SyncRemoteException(
+            NewsBlurTransientException transient => new SyncRemoteException(
+                transient.Message,
+                SyncRemoteFailureKind.Transient,
+                transient)
+            {
+                RetryAt = transient.RetryAt,
+                HttpStatusCode = (int?)transient.StatusCode
+            },
+            NewsBlurTimeoutException => new SyncRemoteException(
                 exception.Message,
                 SyncRemoteFailureKind.Transient,
                 exception),

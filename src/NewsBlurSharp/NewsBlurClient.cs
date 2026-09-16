@@ -27,6 +27,7 @@ namespace NewsBlurSharp
         private readonly ILogger _logger;
         private readonly TimeSpan _requestTimeout;
         private readonly string _userAgent;
+        private readonly TimeProvider _timeProvider;
 
         private CookieContainer _cookieJar;
         private string _cookieSessionId;
@@ -37,12 +38,14 @@ namespace NewsBlurSharp
             IClientHandlerFactory handlerFactory,
             ILogger logger,
             string userAgent = "NewsBlurSharp",
-            TimeSpan? requestTimeout = null)
+            TimeSpan? requestTimeout = null,
+            TimeProvider timeProvider = null)
         {
             _handlerFactory = handlerFactory;
             _logger = logger ?? new NullLogger();
             _userAgent = userAgent;
             _requestTimeout = ValidateTimeout(requestTimeout);
+            _timeProvider = timeProvider ?? TimeProvider.System;
             _handler = GetHandlerFromFactory(handlerFactory);
             _httpClient = CreateHttpClient(_handler);
         }
@@ -61,11 +64,13 @@ namespace NewsBlurSharp
             HttpMessageHandler messageHandler,
             ILogger logger = null,
             string userAgent = "NewsBlurSharp",
-            TimeSpan? requestTimeout = null)
+            TimeSpan? requestTimeout = null,
+            TimeProvider timeProvider = null)
         {
             _logger = logger ?? new NullLogger();
             _userAgent = userAgent;
             _requestTimeout = ValidateTimeout(requestTimeout);
+            _timeProvider = timeProvider ?? TimeProvider.System;
             _cookieJar = new CookieContainer();
             _httpClient = CreateHttpClient(
                 messageHandler ?? throw new ArgumentNullException(nameof(messageHandler)));
@@ -230,6 +235,94 @@ namespace NewsBlurSharp
                 cancellationToken: cancellationToken);
         }
 
+        public Task<StoryHashInventoryResponse> GetStoryHashInventoryAsync(
+            bool unreadOnly,
+            IReadOnlyCollection<int> feedIds,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(feedIds);
+            if (feedIds.Count == 0)
+            {
+                throw new ArgumentException("At least one feed ID must be provided.", nameof(feedIds));
+            }
+
+            var options = new List<KeyValuePair<string, string>>
+            {
+                new("read_filter", unreadOnly ? "unread" : "all"),
+                new("order", "newest"),
+                new("include_timestamps", "true")
+            };
+            foreach (var feedId in feedIds)
+            {
+                if (feedId <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(feedIds), "Feed IDs must be positive.");
+                }
+
+                options.Add(new("feed_id", feedId.ToString(CultureInfo.InvariantCulture)));
+            }
+
+            return SendAsync(
+                HttpMethod.Get,
+                "reader/unread_story_hashes",
+                NewsBlurJsonContext.Default.StoryHashInventoryResponse,
+                query: options,
+                cancellationToken: cancellationToken,
+                requiredResponseProperty: "unread_feed_story_hashes");
+        }
+
+        public Task<StarredStoryHashInventoryResponse> GetStarredStoryHashInventoryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return SendAsync(
+                HttpMethod.Get,
+                "reader/starred_story_hashes",
+                NewsBlurJsonContext.Default.StarredStoryHashInventoryResponse,
+                query: new Dictionary<string, string> { ["include_timestamps"] = "true" },
+                cancellationToken: cancellationToken,
+                requiredResponseProperty: "starred_story_hashes");
+        }
+
+        public Task<StoriesResponse> GetStoriesByHashesAsync(
+            IReadOnlyCollection<string> hashes,
+            bool starred,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(hashes);
+            if (hashes.Count is < 1 or > 100)
+            {
+                throw new ArgumentOutOfRangeException(nameof(hashes), "Provide between 1 and 100 story hashes.");
+            }
+
+            var options = new List<KeyValuePair<string, string>>();
+            foreach (var hash in hashes)
+            {
+                ValidateStoryHash(hash, nameof(hashes));
+                options.Add(new("h", hash));
+            }
+
+            // The saved-copy endpoint reads request.GET only, unlike the river endpoint.
+            if (starred)
+            {
+                return SendAsync(
+                    HttpMethod.Get,
+                    "reader/starred_stories",
+                    NewsBlurJsonContext.Default.StoriesResponse,
+                    query: options,
+                    cancellationToken: cancellationToken,
+                    requiredResponseProperty: "stories");
+            }
+
+            options.Add(new("include_hidden", "true"));
+            return SendAsync(
+                HttpMethod.Post,
+                "reader/river_stories",
+                NewsBlurJsonContext.Default.StoriesResponse,
+                formData: options,
+                cancellationToken: cancellationToken,
+                requiredResponseProperty: "stories");
+        }
+
         public Task<OperationResponse> MarkStoriesReadAsync(List<string> storyHashList)
         {
             return MarkStoriesReadAsync(storyHashList, CancellationToken.None);
@@ -389,10 +482,11 @@ namespace NewsBlurSharp
             HttpMethod method,
             string path,
             JsonTypeInfo<T> responseType,
-            Dictionary<string, string> query = null,
+            IEnumerable<KeyValuePair<string, string>> query = null,
             IEnumerable<KeyValuePair<string, string>> formData = null,
             CancellationToken cancellationToken = default,
-            bool allowUnauthenticatedPayload = false)
+            bool allowUnauthenticatedPayload = false,
+            string requiredResponseProperty = null)
         {
             HandlerNeedsRecreating();
 
@@ -426,9 +520,6 @@ namespace NewsBlurSharp
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
                     timeoutSource.Token).ConfigureAwait(false);
-                var responseBody = await response.Content.ReadAsStringAsync(
-                    timeoutSource.Token).ConfigureAwait(false);
-
                 stopwatch.Stop();
                 _logger.Debug(
                     "Received {0} after {1} ms for {2} {3}",
@@ -437,8 +528,10 @@ namespace NewsBlurSharp
                     method.Method,
                     requestUri.AbsolutePath);
 
-                ThrowForStatus(response.StatusCode, method, requestUri);
+                ThrowForStatus(response, method, requestUri);
                 CaptureSessionCookie(response, requestUri);
+                var responseBody = await response.Content.ReadAsStringAsync(
+                    timeoutSource.Token).ConfigureAwait(false);
 
                 try
                 {
@@ -450,6 +543,17 @@ namespace NewsBlurSharp
                     {
                         throw new NewsBlurAuthenticationException(
                             $"NewsBlur rejected {method.Method} {requestUri.AbsolutePath}.");
+                    }
+
+                    if (requiredResponseProperty != null
+                        && (document.RootElement.ValueKind != JsonValueKind.Object
+                            || !document.RootElement.TryGetProperty("authenticated", out var authentication)
+                            || authentication.ValueKind != JsonValueKind.True
+                            || !document.RootElement.TryGetProperty(requiredResponseProperty, out var requiredValue)
+                            || requiredValue.ValueKind == JsonValueKind.Null))
+                    {
+                        throw new JsonException(
+                            $"The response requires authenticated: true and a nonnull {requiredResponseProperty} property.");
                     }
 
                     var result = JsonSerializer.Deserialize(responseBody, responseType);
@@ -493,22 +597,32 @@ namespace NewsBlurSharp
 
         private static Uri CreateRequestUri(
             string path,
-            Dictionary<string, string> query)
+            IEnumerable<KeyValuePair<string, string>> query)
         {
             var url = BaseUrl + path.TrimStart('/');
-            if (query != null && query.Count > 0)
+            if (query != null)
             {
-                url += "?" + query.ToQueryString();
+                var parameters = new List<string>();
+                foreach (var pair in query)
+                {
+                    parameters.Add(
+                        Uri.EscapeDataString(pair.Key) + "=" + Uri.EscapeDataString(pair.Value));
+                }
+                if (parameters.Count > 0)
+                {
+                    url += "?" + string.Join("&", parameters);
+                }
             }
 
             return new Uri(url);
         }
 
-        private static void ThrowForStatus(
-            HttpStatusCode statusCode,
+        private void ThrowForStatus(
+            HttpResponseMessage response,
             HttpMethod method,
             Uri requestUri)
         {
+            var statusCode = response.StatusCode;
             if ((int)statusCode is >= 200 and <= 299)
             {
                 return;
@@ -521,11 +635,18 @@ namespace NewsBlurSharp
                 throw new NewsBlurAuthenticationException(message, statusCode);
             }
 
-            if (statusCode is HttpStatusCode.RequestTimeout
-                or HttpStatusCode.TooManyRequests
-                || (int)statusCode >= 500)
+            DateTimeOffset? retryAt = response.Headers.RetryAfter?.Date;
+            if (response.Headers.RetryAfter?.Delta is { } delay)
             {
-                throw new NewsBlurTransientException(message, statusCode);
+                retryAt = _timeProvider.GetUtcNow() + delay;
+            }
+            if (statusCode == HttpStatusCode.TooManyRequests)
+            {
+                throw new NewsBlurRateLimitedException(message, retryAt);
+            }
+            if (statusCode == HttpStatusCode.RequestTimeout || (int)statusCode >= 500)
+            {
+                throw new NewsBlurTransientException(message, statusCode, retryAt: retryAt);
             }
 
             throw new NewsBlurException(message, NewsBlurFailureKind.Http, statusCode);

@@ -98,6 +98,20 @@ article when it leaves the Unread list. The article toolbar and context menu
 provide read/save actions; Ctrl+R, Ctrl+Shift+M, Ctrl+Shift+S, Ctrl+O, and Ctrl+D
 also work while the embedded reader has focus.
 
+Sync keeps up to 60 recent articles per active feed, including read articles.
+It compares NewsBlur's hash inventory with the local cache and fetches missing
+articles in batches of at most 100 instead of re-downloading every feed page.
+Unchanged libraries need only metadata requests. Saved articles use NewsBlur's
+retained saved copies; changed saved versions are refreshed. Capped or omitted
+unread inventories never implicitly mark unobserved articles read.
+
+Requests are paced, and HTTP 429 is reported separately from timeouts and server
+errors. A server's `Retry-After` deadline survives manual sync and app restarts;
+without that header, throttling pauses requests for six minutes plus jitter.
+Your downloaded library and pending changes remain available during the pause.
+Windows Credential Locker securely remembers sign-in; temporary verification
+failures do not erase it. Enter in either credential field submits sign-in.
+
 Preview images are downloaded during sync with a separate, credential-free HTTPS
 client and kept in a bounded local bitmap cache. Settings can disable new image
 downloads. The reader uses sanitized HTML from a local virtual host (including

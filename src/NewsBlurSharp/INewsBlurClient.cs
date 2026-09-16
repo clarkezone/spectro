@@ -15,6 +15,11 @@ namespace NewsBlurSharp
         Task<StoriesResponse> GetRiverStoriesAsync(int? pageIndex = null, bool invertOrder = false, bool filterReadStories = false, CancellationToken cancellationToken = default);
         Task<StoriesResponse> GetStarredStoriesAsync(int? pageIndex = null, CancellationToken cancellationToken = default);
         Task<UnreadStoryHashesResponse> GetUnreadStoryHashesAsync(CancellationToken cancellationToken = default);
+        /// <summary>Gets timestamped hashes grouped by feed, limited by NewsBlur to 500 stories per feed in either read mode.</summary>
+        Task<StoryHashInventoryResponse> GetStoryHashInventoryAsync(bool unreadOnly, IReadOnlyCollection<int> feedIds, CancellationToken cancellationToken = default);
+        Task<StarredStoryHashInventoryResponse> GetStarredStoryHashInventoryAsync(CancellationToken cancellationToken = default);
+        /// <summary>Gets 1 to 100 stories by hash, using retained saved copies when starred is true.</summary>
+        Task<StoriesResponse> GetStoriesByHashesAsync(IReadOnlyCollection<string> hashes, bool starred, CancellationToken cancellationToken = default);
         Task<OperationResponse> MarkStoriesReadAsync(List<string> storyHashList);
         Task<OperationResponse> MarkStoriesReadAsync(List<string> storyHashList, CancellationToken cancellationToken);
         Task<OperationResponse> MarkStoryUnreadAsync(string storyHash);

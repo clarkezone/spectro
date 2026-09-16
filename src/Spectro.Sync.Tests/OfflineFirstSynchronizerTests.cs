@@ -56,12 +56,13 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task NonterminalEmptyAndRepeatedPagesDoNotTruncateLaterStories(bool emptyFirst)
+    public async Task CappedUnreadFallbackDoesNotTruncateAfterEmptyOrRepeatedNonterminalPages(bool emptyFirst)
     {
         var repository = CreateRepository();
-        var remote = new ScriptedRemoteService();
+        var remote = new ScriptedRemoteService { CappedUnread = true, IncludeSaved = false };
         var first = CreateStory(isRead: false, isSaved: false);
         var later = first with { Hash = "7:later" };
+        remote.InventoryStories = emptyFirst ? [later] : [first, later];
         remote.FeedPages.Enqueue(new RemoteStoryPage(emptyFirst ? [] : [first], false));
         remote.FeedPages.Enqueue(new RemoteStoryPage(emptyFirst ? [] : [first], false));
         remote.FeedPages.Enqueue(new RemoteStoryPage([later], false));
@@ -71,21 +72,21 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             .SynchronizeAsync(new SyncRequest("account"));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(new[] { 1, 2, 3, 4 }, remote.RequestedPages);
+        Assert.Equal(new[] { 1, 2, 3 }, remote.RequestedPages);
         Assert.Contains(await repository.GetStoriesAsync(7), story => story.Hash == "7:later");
     }
 
     [Fact]
-    public async Task NonterminalPagesRemainBoundedByConfiguredLimit()
+    public async Task UnresolvedCappedUnreadFallbackFailsAtConfiguredPageLimit()
     {
-        var remote = new ScriptedRemoteService();
+        var remote = new ScriptedRemoteService { CappedUnread = true, IncludeSaved = false };
         for (var i = 0; i < 4; i++) remote.FeedPages.Enqueue(new RemoteStoryPage([], false));
 
         var result = await CreateSynchronizer(
             CreateRepository(), remote, new SyncOptions { MaximumStoryPages = 3 })
             .SynchronizeAsync(new SyncRequest("account"));
 
-        Assert.True(result.IsSuccess);
+        Assert.Equal(SyncOutcome.MalformedRemoteData, result.Outcome);
         Assert.Equal(new[] { 1, 2, 3 }, remote.RequestedPages);
     }
 
@@ -248,6 +249,8 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             options: new SyncOptions
             {
                 MaximumNetworkAttempts = 3,
+                MinimumRequestInterval = TimeSpan.Zero,
+                MinimumSavedRequestInterval = TimeSpan.Zero,
                 InitialRetryDelay = TimeSpan.FromSeconds(2),
                 MaximumRetryDelay = TimeSpan.FromSeconds(3),
                 RetryJitterRatio = 0,
@@ -307,6 +310,8 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             new SyncOptions
             {
                 MaximumNetworkAttempts = 3,
+                MinimumRequestInterval = TimeSpan.Zero,
+                MinimumSavedRequestInterval = TimeSpan.Zero,
                 InitialRetryDelay = TimeSpan.FromSeconds(2),
                 MaximumRetryDelay = TimeSpan.FromSeconds(3),
                 RetryJitterRatio = 0.5
@@ -360,7 +365,7 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     }
 
     [Fact]
-    public async Task CatalogAndFirstPageAreDurableAndReportedWhileOtherDownloadsAreBlocked()
+    public async Task CatalogAndFirstBatchAreDurableAndReportedWhileOtherDownloadsAreBlocked()
     {
         var repository = CreateRepository();
         var remote = new GatedRemoteService(feedCount: 2);
@@ -370,7 +375,7 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             .SynchronizeAsync(new SyncRequest("account"), progress, cancellation.Token);
         try
         {
-            var requests = await remote.TakeAsync(3);
+            var requests = (await remote.TakeAsync(2)).OrderByDescending(request => request.Hashes.Length).ToArray();
             Assert.False(sync.IsCompleted);
             var reopened = CreateRepository();
             Assert.Equal(2, (await reopened.GetFeedsAsync()).Count);
@@ -379,31 +384,25 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
                 state.Stage == SyncStage.RefreshFeedsAndFolders
                 && state.LocalRevision == 1 && state.FeedCount == 2);
 
-            requests.Single(request => request.FeedId == 7)
-                .Complete([CreateStory(false, false)], isLastPage: false);
-            var nextPage = Assert.Single(await remote.TakeAsync(1));
-            Assert.Equal(7, nextPage.FeedId);
-            Assert.Equal(2, nextPage.Page);
+            requests[0].CompleteAll();
+            await progress.FirstBodyCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.False(sync.IsCompleted);
-            Assert.Equal("7:abc", Assert.Single(await reopened.GetStoriesAsync(7)).Hash);
+            Assert.Equal(100, (await reopened.GetCachedStoryIndexAsync()).Count);
             Assert.Null(await reopened.GetCheckpointAsync(
                 OfflineFirstSynchronizer.SuccessfulSyncCheckpointName));
             Assert.Contains(progress.States, state =>
                 state.Stage == SyncStage.FetchStories && state.DownloadedPageCount == 1
-                && state.StoryCount == 1 && state.LocalRevision == 3);
+                && state.StoryCount == 100 && state.LocalRevision > 1
+                && state.CompletedFeedCount == 1);
 
-            nextPage.Complete([CreateStory(false, false) with { Hash = "7:second" }]);
-            requests.Single(request => request.FeedId == 8)
-                .Complete([CreateStory(false, false) with { Hash = "8:abc", FeedId = 8 }]);
-            requests.Single(request => request.FeedId is null).Complete([CreateStory(false, true)]);
+            requests[1].CompleteAll();
             var result = await sync.WaitAsync(TimeSpan.FromSeconds(5));
 
             Assert.True(result.IsSuccess);
-            Assert.Equal(3, result.State.StoryCount);
-            Assert.Equal(4, result.State.DownloadedPageCount);
+            Assert.Equal(120, result.State.StoryCount);
+            Assert.Equal(2, result.State.DownloadedPageCount);
             Assert.Equal(2, result.State.CompletedFeedCount);
-            Assert.Equal(7, result.State.LocalRevision);
-            Assert.True((await reopened.GetStoriesAsync(7)).Single(story => story.Hash == "7:abc").IsSaved);
+            Assert.Equal(60, (await reopened.GetStoriesAsync(7)).Count);
             var revisions = progress.States.Select(state => state.LocalRevision).ToArray();
             Assert.Equal(revisions.Order(), revisions);
             Assert.NotNull(await reopened.GetCheckpointAsync(
@@ -423,7 +422,7 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     [InlineData(8)]
     public async Task NetworkRequestsOverlapWithoutExceedingConfiguredBound(int concurrency)
     {
-        var remote = new GatedRemoteService(feedCount: 10);
+        var remote = new GatedRemoteService(feedCount: 20);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         // Exercise the default rather than explicitly configuring four slots.
         var options = concurrency == 4 ? new SyncOptions()
@@ -435,17 +434,17 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             var initial = await remote.TakeAsync(concurrency);
             Assert.Equal(concurrency, remote.ActiveRequests);
             Assert.False(sync.IsCompleted);
-            foreach (var request in initial) request.Complete([]);
-            for (var remaining = 11 - concurrency; remaining > 0; remaining--)
-                Assert.Single(await remote.TakeAsync(1)).Complete([]);
+            foreach (var request in initial) request.CompleteAll();
+            for (var remaining = 12 - concurrency; remaining > 0; remaining--)
+                Assert.Single(await remote.TakeAsync(1)).CompleteAll();
 
             var result = await sync.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.True(result.IsSuccess);
             Assert.Equal(concurrency, remote.MaximumActiveRequests);
             Assert.Equal(0, remote.ActiveRequests);
-            Assert.Equal(13, result.State.NetworkAttemptCount);
-            Assert.Equal(11, result.State.DownloadedPageCount);
-            Assert.Equal(10, result.State.CompletedFeedCount);
+            Assert.Equal(16, result.State.NetworkAttemptCount);
+            Assert.Equal(12, result.State.DownloadedPageCount);
+            Assert.Equal(20, result.State.CompletedFeedCount);
         }
         finally
         {
@@ -457,31 +456,30 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task LaterFailureOrCancellationPreservesCommittedPagesWithoutCheckpoint(bool cancel)
+    public async Task LaterFailureOrCancellationPreservesCommittedBatchesWithoutCheckpoint(bool cancel)
     {
         var remote = new GatedRemoteService(feedCount: 2);
+        var progress = new RecordingProgress();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var sync = CreateSynchronizer(CreateRepository(), remote)
-            .SynchronizeAsync(new SyncRequest("account"), cancellation.Token);
+            .SynchronizeAsync(new SyncRequest("account"), progress, cancellation.Token);
         try
         {
-            var requests = await remote.TakeAsync(3);
-            requests.Single(request => request.FeedId == 7)
-                .Complete([CreateStory(false, false)], isLastPage: false);
-            var secondPage = Assert.Single(await remote.TakeAsync(1));
-            Assert.Equal(2, secondPage.Page);
+            var requests = (await remote.TakeAsync(2)).OrderByDescending(request => request.Hashes.Length).ToArray();
+            requests[0].CompleteAll();
+            await progress.FirstBodyCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             if (cancel) await cancellation.CancelAsync();
-            else secondPage.Fail(new SyncRemoteException("later page failed", SyncRemoteFailureKind.Permanent));
+            else requests[1].Fail(new SyncRemoteException("later batch failed", SyncRemoteFailureKind.Permanent));
 
             var result = await sync.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(cancel ? SyncOutcome.Canceled : SyncOutcome.PermanentFailure, result.Outcome);
             Assert.Equal(SyncStage.FetchStories, result.State.Stage);
-            Assert.Equal(1, result.State.StoryCount);
+            Assert.Equal(100, result.State.StoryCount);
             Assert.Equal(1, result.State.DownloadedPageCount);
-            Assert.Equal(3, result.State.LocalRevision);
+            Assert.True(result.State.LocalRevision > 1);
             var reopened = CreateRepository();
             Assert.Equal(2, (await reopened.GetFeedsAsync()).Count);
-            Assert.Equal("7:abc", Assert.Single(await reopened.GetStoriesAsync(7)).Hash);
+            Assert.Equal(100, (await reopened.GetCachedStoryIndexAsync()).Count);
             Assert.Null(await reopened.GetCheckpointAsync(
                 OfflineFirstSynchronizer.SuccessfulSyncCheckpointName));
             Assert.Equal(0, remote.ActiveRequests);
@@ -494,7 +492,7 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     }
 
     [Fact]
-    public async Task LocalReadAndSaveWhileFetchIsPendingSurvivePageAndFinalReconciliation()
+    public async Task LocalReadAndSaveWhileFetchIsPendingSurviveBatchAndFinalReconciliation()
     {
         var repository = CreateRepository();
         await SeedCachedStoryAsync(repository);
@@ -504,21 +502,17 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             .SynchronizeAsync(new SyncRequest("account"), cancellation.Token);
         try
         {
-            var requests = await remote.TakeAsync(2);
+            var request = Assert.Single(await remote.TakeAsync(1));
             await repository.SetStoryReadAsync("7:abc", true);
             await repository.SetStorySavedAsync("7:abc", true);
             var pending = await repository.GetPendingMutationsAsync(10);
-            requests.Single(request => request.FeedId == 7)
-                .Complete([CreateStory(false, false)], isLastPage: false);
-            var nextPage = Assert.Single(await remote.TakeAsync(1));
-            var cached = Assert.Single(await CreateRepository().GetStoriesAsync(7));
+            request.CompleteAll();
+            Assert.True((await sync.WaitAsync(TimeSpan.FromSeconds(5))).IsSuccess);
+            var cached = (await CreateRepository().GetStoriesAsync(7)).Single(story => story.Hash == "7:abc");
             Assert.True(cached.IsRead);
             Assert.True(cached.IsSaved);
 
-            nextPage.Complete([]);
-            requests.Single(request => request.FeedId is null).Complete([]);
-            Assert.True((await sync.WaitAsync(TimeSpan.FromSeconds(5))).IsSuccess);
-            var final = Assert.Single(await CreateRepository().GetStoriesAsync(7));
+            var final = (await CreateRepository().GetStoriesAsync(7)).Single(story => story.Hash == "7:abc");
             Assert.True(final.IsRead);
             Assert.True(final.IsSaved);
             Assert.Equal(pending, await repository.GetPendingMutationsAsync(10));
@@ -532,14 +526,10 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     }
 
     [Fact]
-    public async Task RetryReportsSamePageAndAttemptWithoutCountingUncommittedPages()
+    public async Task RetryReportsSameBatchAndAttemptWithoutCountingUncommittedBodies()
     {
         var remote = new GatedRemoteService(feedCount: 1);
-        var savedCommitted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var progress = new RecordingProgress(state =>
-        {
-            if (state.DownloadedPageCount == 1) savedCommitted.TrySetResult();
-        });
+        var progress = new RecordingProgress();
         var delay = new RecordingDelay();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var sync = CreateSynchronizer(CreateRepository(), remote,
@@ -547,33 +537,24 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             .SynchronizeAsync(new SyncRequest("account"), progress, cancellation.Token);
         try
         {
-            var saved = Assert.Single(await remote.TakeAsync(1));
-            saved.Complete([]);
-            await savedCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
             var feed = Assert.Single(await remote.TakeAsync(1));
-            feed.Fail(new SyncRemoteException("retry page", SyncRemoteFailureKind.Transient));
+            feed.Fail(new SyncRemoteException("retry batch", SyncRemoteFailureKind.Transient));
             var retry = Assert.Single(await remote.TakeAsync(1));
-            Assert.Equal(feed.FeedId, retry.FeedId);
-            Assert.Equal(feed.Page, retry.Page);
+            Assert.Equal(feed.Hashes, retry.Hashes);
             var state = progress.States.Last();
-            Assert.Equal("Feed 7", state.CurrentFeedTitle);
-            Assert.Equal(1, state.CurrentPage);
+            Assert.Equal("Recent articles", state.CurrentFeedTitle);
             Assert.Equal(2, state.RetryAttempt);
-            Assert.Equal(5, state.NetworkAttemptCount);
-            Assert.Equal(1, state.DownloadedPageCount);
+            Assert.Equal(6, state.NetworkAttemptCount);
+            Assert.Equal(0, state.DownloadedPageCount);
             Assert.Equal(0, state.StoryCount);
             Assert.Equal(2, state.LocalRevision);
             Assert.Equal([TimeSpan.FromSeconds(1)], delay.Delays);
 
-            retry.Complete([CreateStory(false, false)], isLastPage: false);
-            var nextPage = Assert.Single(await remote.TakeAsync(1));
-            Assert.Equal(2, nextPage.Page);
-            Assert.Equal(1, progress.States.Last().RetryAttempt);
-            nextPage.Complete([]);
+            retry.CompleteAll();
             var result = await sync.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.True(result.IsSuccess);
-            Assert.Equal(3, result.State.DownloadedPageCount);
-            Assert.Equal(1, result.State.StoryCount);
+            Assert.Equal(1, result.State.DownloadedPageCount);
+            Assert.Equal(60, result.State.StoryCount);
             Assert.Equal(6, result.State.NetworkAttemptCount);
         }
         finally
@@ -598,7 +579,7 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Contains(progress.States, state => state.RetryAttempt == 2);
-        Assert.Equal(5, result.State.NetworkAttemptCount);
+        Assert.Equal(7, result.State.NetworkAttemptCount);
     }
 
     public void Dispose()
@@ -622,7 +603,11 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
         new(
             repository,
             remote,
-            options,
+            (options ?? new SyncOptions()) with
+            {
+                MinimumRequestInterval = TimeSpan.Zero,
+                MinimumSavedRequestInterval = TimeSpan.Zero
+            },
             _time,
             new FixedRandom(0.5),
             delay ?? new RecordingDelay(),
@@ -667,6 +652,9 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
         public Queue<SyncRemoteException> Failures { get; } = new();
 
         public Story FeedStory { get; init; } = CreateStory(isRead: true, isSaved: false);
+        public Story[]? InventoryStories { get; set; }
+        public bool CappedUnread { get; init; }
+        public bool IncludeSaved { get; init; } = true;
         public Queue<RemoteStoryPage> FeedPages { get; } = new();
         public List<int> RequestedPages { get; } = [];
 
@@ -676,6 +664,39 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
         public int UploadCount { get; private set; }
 
         public List<bool> UploadedValues { get; } = [];
+
+        public Task<RemoteStoryInventory> GetStoryHashInventoryAsync(
+            bool unreadOnly, IReadOnlyCollection<int> feedIds, CancellationToken cancellationToken)
+        {
+            ThrowIfScripted();
+            var stories = InventoryStories ?? [FeedStory];
+            IReadOnlyList<RemoteStoryHash> hashes = unreadOnly && CappedUnread
+                ? Enumerable.Range(0, 500).Select(index =>
+                    new RemoteStoryHash($"7:capped-{index}", 7, FeedStory.PublishedAt.ToUnixTimeSeconds())).ToArray()
+                : stories.Where(story => !unreadOnly || UnreadHashes.Contains(story.Hash))
+                    .Select(story => new RemoteStoryHash(story.Hash, story.FeedId, story.PublishedAt.ToUnixTimeSeconds()))
+                    .ToArray();
+            return Task.FromResult(new RemoteStoryInventory(new Dictionary<int, IReadOnlyList<RemoteStoryHash>>
+            {
+                [7] = hashes
+            }));
+        }
+
+        public Task<IReadOnlyDictionary<string, double>> GetSavedStoryHashesAsync(CancellationToken cancellationToken)
+        {
+            ThrowIfScripted();
+            return Task.FromResult<IReadOnlyDictionary<string, double>>(IncludeSaved
+                ? new Dictionary<string, double> { ["7:abc"] = 1 }
+                : new Dictionary<string, double>());
+        }
+
+        public Task<RemoteStoryPage> GetStoriesByHashesAsync(
+            IReadOnlyCollection<string> hashes, bool saved, CancellationToken cancellationToken)
+        {
+            ThrowIfScripted();
+            return Task.FromResult(new RemoteStoryPage(
+                (InventoryStories ?? [FeedStory]).Where(story => hashes.Contains(story.Hash)).ToArray(), true));
+        }
 
         public Task UploadMutationAsync(
             PendingStoryMutation mutation,
@@ -709,21 +730,13 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
         }
 
         public Task<IReadOnlySet<string>> GetUnreadStoryHashesAsync(
-            CancellationToken cancellationToken)
-        {
-            ThrowIfScripted();
-            return Task.FromResult(UnreadHashes);
-        }
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Legacy global unread requests are not expected.");
 
         public Task<RemoteStoryPage> GetStarredStoriesAsync(
             int page,
-            CancellationToken cancellationToken)
-        {
-            ThrowIfScripted();
-            return Task.FromResult(new RemoteStoryPage(
-                [CreateStory(isRead: false, isSaved: true)],
-                IsLastPage: true));
-        }
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Saved stories must use hash inventory and body requests.");
 
         private void ThrowIfScripted()
         {
@@ -736,6 +749,17 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
 
     private sealed class BlockingCatalogRemoteService : ISyncRemoteService
     {
+        public Task<RemoteStoryInventory> GetStoryHashInventoryAsync(
+            bool unreadOnly, IReadOnlyCollection<int> feedIds, CancellationToken cancellationToken) =>
+            Task.FromResult(new RemoteStoryInventory(new Dictionary<int, IReadOnlyList<RemoteStoryHash>>()));
+
+        public Task<IReadOnlyDictionary<string, double>> GetSavedStoryHashesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<string, double>>(new Dictionary<string, double>());
+
+        public Task<RemoteStoryPage> GetStoriesByHashesAsync(
+            IReadOnlyCollection<string> hashes, bool saved, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("An empty catalog has no missing bodies.");
+
         public TaskCompletionSource FirstCatalogEntered { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -780,16 +804,33 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     private sealed class RecordingProgress(Action<SyncState>? onReport = null) : IProgress<SyncState>
     {
         public ConcurrentQueue<SyncState> States { get; } = new();
+        public TaskCompletionSource FirstBodyCommitted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public void Report(SyncState value)
         {
             States.Enqueue(value);
+            if (value.DownloadedPageCount > 0) FirstBodyCommitted.TrySetResult();
             onReport?.Invoke(value);
         }
     }
 
     private sealed class GatedRemoteService(int feedCount) : ISyncRemoteService
     {
+        public Task<RemoteStoryInventory> GetStoryHashInventoryAsync(
+            bool unreadOnly, IReadOnlyCollection<int> feedIds, CancellationToken cancellationToken) =>
+            Task.FromResult(new RemoteStoryInventory(feedIds.ToDictionary(id => id,
+                id => (IReadOnlyList<RemoteStoryHash>)Enumerable.Range(0, 60)
+                    .Select(index => new RemoteStoryHash($"{id}:{(index == 0 ? "abc" : index)}", id,
+                        CreateStory(false, false).PublishedAt.ToUnixTimeSeconds() - index)).ToArray())));
+
+        public Task<IReadOnlyDictionary<string, double>> GetSavedStoryHashesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<string, double>>(new Dictionary<string, double>());
+
+        public Task<RemoteStoryPage> GetStoriesByHashesAsync(
+            IReadOnlyCollection<string> hashes, bool saved, CancellationToken cancellationToken) =>
+            FetchAsync(hashes, cancellationToken);
+
         private readonly Channel<GatedRequest> _requests = Channel.CreateUnbounded<GatedRequest>();
         private readonly object _gate = new();
         private int _active;
@@ -817,15 +858,15 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
                 Enumerable.Range(7, feedCount).Select(id => new FolderFeed("tech", id, id - 7)).ToArray()));
 
         public Task<IReadOnlySet<string>> GetUnreadStoryHashesAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(["7:abc"], StringComparer.Ordinal));
+            throw new InvalidOperationException("Legacy global unread requests are not expected.");
 
         public Task<RemoteStoryPage> GetFeedStoriesAsync(int feedId, int page, CancellationToken cancellationToken) =>
-            FetchAsync(feedId, page, cancellationToken);
+            throw new InvalidOperationException("Normal sync must not download per-feed pages.");
 
         public Task<RemoteStoryPage> GetStarredStoriesAsync(int page, CancellationToken cancellationToken) =>
-            FetchAsync(null, page, cancellationToken);
+            throw new InvalidOperationException("Normal sync must not page saved stories.");
 
-        private async Task<RemoteStoryPage> FetchAsync(int? feedId, int page, CancellationToken cancellationToken)
+        private async Task<RemoteStoryPage> FetchAsync(IReadOnlyCollection<string> hashes, CancellationToken cancellationToken)
         {
             lock (_gate)
             {
@@ -834,7 +875,7 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             }
             try
             {
-                var request = new GatedRequest(feedId, page);
+                var request = new GatedRequest(hashes.ToArray());
                 await _requests.Writer.WriteAsync(request, cancellationToken);
                 return await request.Response.Task.WaitAsync(cancellationToken);
             }
@@ -845,15 +886,20 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
         }
     }
 
-    private sealed class GatedRequest(int? feedId, int page)
+    private sealed class GatedRequest(string[] hashes)
     {
-        public int? FeedId { get; } = feedId;
-        public int Page { get; } = page;
+        public string[] Hashes { get; } = hashes;
         public TaskCompletionSource<RemoteStoryPage> Response { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public void Complete(IReadOnlyList<Story> stories, bool isLastPage = true) =>
             Response.SetResult(new RemoteStoryPage(stories, isLastPage));
+
+        public void CompleteAll() => Complete(Hashes.Select(hash => CreateStory(false, false) with
+        {
+            Hash = hash,
+            FeedId = int.Parse(hash.Split(':')[0], System.Globalization.CultureInfo.InvariantCulture)
+        }).ToArray());
 
         public void Fail(Exception exception) => Response.SetException(exception);
     }

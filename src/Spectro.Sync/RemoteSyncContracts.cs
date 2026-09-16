@@ -11,13 +11,19 @@ public sealed record RemoteStoryPage(
     IReadOnlyCollection<Story> Stories,
     bool IsLastPage);
 
+public sealed record RemoteStoryHash(string Hash, int FeedId, double Timestamp);
+
+public sealed record RemoteStoryInventory(
+    IReadOnlyDictionary<int, IReadOnlyList<RemoteStoryHash>> Feeds);
+
 public enum SyncRemoteFailureKind
 {
     Offline,
     Transient,
     Authentication,
     MalformedData,
-    Permanent
+    Permanent,
+    RateLimited
 }
 
 public sealed class SyncRemoteException(
@@ -26,10 +32,25 @@ public sealed class SyncRemoteException(
     Exception? innerException = null) : Exception(message, innerException)
 {
     public SyncRemoteFailureKind Kind { get; } = kind;
+    public DateTimeOffset? RetryAt { get; init; }
+    public int? HttpStatusCode { get; init; }
 }
 
 public interface ISyncRemoteService
 {
+    Task<RemoteStoryInventory> GetStoryHashInventoryAsync(
+        bool unreadOnly,
+        IReadOnlyCollection<int> feedIds,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyDictionary<string, double>> GetSavedStoryHashesAsync(
+        CancellationToken cancellationToken);
+
+    Task<RemoteStoryPage> GetStoriesByHashesAsync(
+        IReadOnlyCollection<string> hashes,
+        bool saved,
+        CancellationToken cancellationToken);
+
     Task UploadMutationAsync(
         PendingStoryMutation mutation,
         CancellationToken cancellationToken);

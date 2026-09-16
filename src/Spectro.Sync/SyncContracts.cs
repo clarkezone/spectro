@@ -23,7 +23,8 @@ public enum SyncOutcome
     AuthenticationRequired,
     MalformedRemoteData,
     PermanentFailure,
-    Canceled
+    Canceled,
+    RateLimited
 }
 
 public sealed record SyncState(
@@ -50,6 +51,8 @@ public sealed record SyncResult(
     string? ErrorMessage = null)
 {
     public bool IsSuccess => Outcome == SyncOutcome.Succeeded;
+    public DateTimeOffset? RetryAt { get; init; }
+    public int? HttpStatusCode { get; init; }
 }
 
 public sealed record SyncRequest(string AccountId);
@@ -65,6 +68,14 @@ public sealed record SyncOptions
     public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(1);
 
     public TimeSpan MaximumRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
+
+    public TimeSpan RateLimitRetryDelay { get; init; } = TimeSpan.FromMinutes(6);
+
+    public TimeSpan MinimumRequestInterval { get; init; } = TimeSpan.FromSeconds(1);
+
+    public TimeSpan MinimumSavedRequestInterval { get; init; } = TimeSpan.FromSeconds(8);
+
+    public int RecentStoriesPerFeed { get; init; } = 60;
 
     public double RetryJitterRatio { get; init; } = 0.2;
 
