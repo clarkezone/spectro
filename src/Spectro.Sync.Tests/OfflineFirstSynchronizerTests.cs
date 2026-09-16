@@ -423,11 +423,13 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
     public async Task NetworkRequestsOverlapWithoutExceedingConfiguredBound(int concurrency)
     {
         var remote = new GatedRemoteService(feedCount: 20);
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        // Each gated operation is bounded; persisting all 1,200 stories is not a throughput assertion.
+        using var cancellation = new CancellationTokenSource();
+        var delay = new RecordingDelay();
         // Exercise the default rather than explicitly configuring four slots.
         var options = concurrency == 4 ? new SyncOptions()
             : new SyncOptions { MaximumConcurrentRequests = concurrency };
-        var sync = CreateSynchronizer(CreateRepository(), remote, options)
+        var sync = CreateSynchronizer(CreateRepository(), remote, options, delay)
             .SynchronizeAsync(new SyncRequest("account"), cancellation.Token);
         try
         {
@@ -445,6 +447,7 @@ public sealed class OfflineFirstSynchronizerTests : IDisposable
             Assert.Equal(16, result.State.NetworkAttemptCount);
             Assert.Equal(12, result.State.DownloadedPageCount);
             Assert.Equal(20, result.State.CompletedFeedCount);
+            Assert.Empty(delay.Delays);
         }
         finally
         {
