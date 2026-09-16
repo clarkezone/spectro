@@ -1,97 +1,97 @@
-﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace NewsBlurSharp.Model
 {
     public class FeedInfo
     {
-        [JsonProperty("subs")]
+        [JsonPropertyName("subs")]
         public int Subs { get; set; }
 
-        [JsonProperty("favicon")]
+        [JsonPropertyName("favicon")]
         public string Favicon { get; set; }
 
-        [JsonProperty("favicon_url")]
+        [JsonPropertyName("favicon_url")]
         public string FaviconUrl { get; set; }
 
-        [JsonProperty("result")]
+        [JsonPropertyName("result")]
         public string Result { get; set; }
 
-        [JsonProperty("is_push")]
+        [JsonPropertyName("is_push")]
         public bool IsPush { get; set; }
 
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonProperty("s3_icon")]
+        [JsonPropertyName("s3_icon")]
         public bool S3Icon { get; set; }
 
-        [JsonProperty("authenticated")]
+        [JsonPropertyName("authenticated")]
         public bool Authenticated { get; set; }
 
-        [JsonProperty("feed_link")]
+        [JsonPropertyName("feed_link")]
         public string FeedLink { get; set; }
 
-        [JsonProperty("updated_seconds_ago")]
+        [JsonPropertyName("updated_seconds_ago")]
         public int UpdatedSecondsAgo { get; set; }
 
-        [JsonProperty("favicon_fetching")]
+        [JsonPropertyName("favicon_fetching")]
         public bool FaviconFetching { get; set; }
 
-        [JsonProperty("min_to_decay")]
+        [JsonPropertyName("min_to_decay")]
         public int MinToDecay { get; set; }
 
-        [JsonProperty("last_story_date")]
+        [JsonPropertyName("last_story_date")]
         public string LastStoryDate { get; set; }
 
-        [JsonProperty("not_yet_fetched")]
+        [JsonPropertyName("not_yet_fetched")]
         public bool NotYetFetched { get; set; }
 
-        [JsonProperty("updated")]
+        [JsonPropertyName("updated")]
         public string Updated { get; set; }
 
-        [JsonProperty("average_stories_per_month")]
+        [JsonPropertyName("average_stories_per_month")]
         public int AverageStoriesPerMonth { get; set; }
 
-        [JsonProperty("feed_address")]
+        [JsonPropertyName("feed_address")]
         public string FeedAddress { get; set; }
 
-        [JsonProperty("feed_title")]
+        [JsonPropertyName("feed_title")]
         public string FeedTitle { get; set; }
 
-        [JsonProperty("favicon_fade")]
+        [JsonPropertyName("favicon_fade")]
         public string FaviconFade { get; set; }
 
-        [JsonProperty("is_newsletter")]
+        [JsonPropertyName("is_newsletter")]
         public bool IsNewsletter { get; set; }
 
-        [JsonProperty("last_story_seconds_ago")]
+        [JsonPropertyName("last_story_seconds_ago")]
         public int LastStorySecondsAgo { get; set; }
 
-        [JsonProperty("favicon_color")]
+        [JsonPropertyName("favicon_color")]
         public string FaviconColor { get; set; }
 
-        [JsonProperty("stories_last_month")]
+        [JsonPropertyName("stories_last_month")]
         public int StoriesLastMonth { get; set; }
 
-        [JsonProperty("user_id")]
+        [JsonPropertyName("user_id")]
         public int UserId { get; set; }
 
-        [JsonProperty("fetched_once")]
+        [JsonPropertyName("fetched_once")]
         public bool FetchedOnce { get; set; }
 
-        [JsonProperty("favicon_text_color")]
+        [JsonPropertyName("favicon_text_color")]
         public string FaviconTextColor { get; set; }
 
-        [JsonProperty("num_subscribers")]
+        [JsonPropertyName("num_subscribers")]
         public int NumSubscribers { get; set; }
 
-        [JsonProperty("s3_page")]
+        [JsonPropertyName("s3_page")]
         public bool S3Page { get; set; }
 
-        [JsonProperty("favicon_border")]
+        [JsonPropertyName("favicon_border")]
         public string FaviconBorder { get; set; }
 
-        [JsonProperty("search_indexed")]
+        [JsonPropertyName("search_indexed")]
         public bool SearchIndexed { get; set; }
     }
 

@@ -1,7 +1,0 @@
-{
-  "profiles": {
-    "Spectro": {
-      "commandName": "MsixPackage"
-    }
-  }
-}

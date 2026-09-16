@@ -1,121 +1,121 @@
-﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace NewsBlurSharp.Model.Response
 {
     public class Services
     {
-        [JsonProperty("facebook")]
+        [JsonPropertyName("facebook")]
         public Facebook Facebook { get; set; }
 
-        [JsonProperty("twitter")]
+        [JsonPropertyName("twitter")]
         public Twitter Twitter { get; set; }
 
-        [JsonProperty("gravatar")]
+        [JsonPropertyName("gravatar")]
         public Gravatar Gravatar { get; set; }
 
-        [JsonProperty("appdotnet")]
+        [JsonPropertyName("appdotnet")]
         public Appdotnet Appdotnet { get; set; }
 
-        [JsonProperty("upload")]
+        [JsonPropertyName("upload")]
         public Upload Upload { get; set; }
     }
 
     public class UserProfile
     {
-        [JsonProperty("website")]
+        [JsonPropertyName("website")]
         public object Website { get; set; }
 
-        [JsonProperty("following_user_ids")]
+        [JsonPropertyName("following_user_ids")]
         public object[] FollowingUserIds { get; set; }
 
-        [JsonProperty("following_count")]
+        [JsonPropertyName("following_count")]
         public int FollowingCount { get; set; }
 
-        [JsonProperty("shared_stories_count")]
+        [JsonPropertyName("shared_stories_count")]
         public int SharedStoriesCount { get; set; }
 
-        [JsonProperty("private")]
+        [JsonPropertyName("private")]
         public object Private { get; set; }
 
-        [JsonProperty("large_photo_url")]
+        [JsonPropertyName("large_photo_url")]
         public string LargePhotoUrl { get; set; }
 
-        [JsonProperty("custom_bgcolor")]
+        [JsonPropertyName("custom_bgcolor")]
         public string CustomBgcolor { get; set; }
 
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; }
 
-        [JsonProperty("feed_address")]
+        [JsonPropertyName("feed_address")]
         public string FeedAddress { get; set; }
 
-        [JsonProperty("user_id")]
+        [JsonPropertyName("user_id")]
         public int UserId { get; set; }
 
-        [JsonProperty("feed_link")]
+        [JsonPropertyName("feed_link")]
         public string FeedLink { get; set; }
 
-        [JsonProperty("follower_user_ids")]
+        [JsonPropertyName("follower_user_ids")]
         public string[] FollowerUserIds { get; set; }
 
-        [JsonProperty("location")]
+        [JsonPropertyName("location")]
         public string Location { get; set; }
 
-        [JsonProperty("popular_publishers")]
+        [JsonPropertyName("popular_publishers")]
         public object PopularPublishers { get; set; }
 
-        [JsonProperty("follower_count")]
+        [JsonPropertyName("follower_count")]
         public int FollowerCount { get; set; }
 
-        [JsonProperty("username")]
+        [JsonPropertyName("username")]
         public string Username { get; set; }
 
-        [JsonProperty("bio")]
+        [JsonPropertyName("bio")]
         public string Bio { get; set; }
 
-        [JsonProperty("average_stories_per_month")]
+        [JsonPropertyName("average_stories_per_month")]
         public int AverageStoriesPerMonth { get; set; }
 
-        [JsonProperty("bb_permalink_direct")]
+        [JsonPropertyName("bb_permalink_direct")]
         public string BbPermalinkDirect { get; set; }
 
-        [JsonProperty("feed_title")]
+        [JsonPropertyName("feed_title")]
         public string FeedTitle { get; set; }
 
-        [JsonProperty("photo_service")]
+        [JsonPropertyName("photo_service")]
         public object PhotoService { get; set; }
 
-        [JsonProperty("stories_last_month")]
+        [JsonPropertyName("stories_last_month")]
         public int StoriesLastMonth { get; set; }
 
-        [JsonProperty("photo_url")]
+        [JsonPropertyName("photo_url")]
         public string PhotoUrl { get; set; }
 
-        [JsonProperty("custom_css")]
+        [JsonPropertyName("custom_css")]
         public object CustomCss { get; set; }
 
-        [JsonProperty("num_subscribers")]
+        [JsonPropertyName("num_subscribers")]
         public int NumSubscribers { get; set; }
 
-        [JsonProperty("protected")]
+        [JsonPropertyName("protected")]
         public object Protected { get; set; }
     }
 
     public class ProfileResponse
     {
-        [JsonProperty("services")]
+        [JsonPropertyName("services")]
         public Services Services { get; set; }
 
-        [JsonProperty("authenticated")]
+        [JsonPropertyName("authenticated")]
         public bool Authenticated { get; set; }
 
-        [JsonProperty("user_id")]
+        [JsonPropertyName("user_id")]
         public int UserId { get; set; }
 
-        [JsonProperty("result")]
+        [JsonPropertyName("result")]
         public string Result { get; set; }
 
-        [JsonProperty("user_profile")]
+        [JsonPropertyName("user_profile")]
         public UserProfile UserProfile { get; set; }
     }
 }
