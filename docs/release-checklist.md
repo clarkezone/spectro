@@ -48,7 +48,10 @@ also installs and activates the actual MSIX on its isolated runner before
 uploading it. Artifacts include only the package, public certificate, and
 [installation instructions](installing-test-builds.md), never the private key.
 Test signing and an automated launch check do not satisfy the release gates
-below; ARM64 device validation and production signing remain separate.
+below; ARM64 device validation and Store identity association remain separate.
+For MSIX Store submissions, Microsoft re-signs the accepted package; buying a
+code-signing certificate is not a prerequisite. See the identity, versioning,
+and submission requirements in [the Store listing draft](store-listing.md).
 
 - [ ] `win-x64` and `win-arm64` publish with Native AOT and no reachable
       trimming warnings.
