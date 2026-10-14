@@ -760,18 +760,34 @@ public sealed class SqliteContentRepository(
         await ExecuteAsync(
             connection,
             (SqliteTransaction)transaction,
-            """
+            $"""
             DELETE FROM pending_mutation;
             DELETE FROM uploaded_mutation;
             DELETE FROM story;
             DELETE FROM folder_feed;
             DELETE FROM folder;
             DELETE FROM feed;
-            DELETE FROM sync_checkpoint;
+            DELETE FROM sync_checkpoint WHERE name <> '{AccountDataCheckpoints.SignOut}';
             DELETE FROM account;
             """,
             cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task ClearPreservedDatabasesAsync(CancellationToken cancellationToken = default)
+    {
+        connectionFactory.ClearPools();
+        var directory = Path.GetDirectoryName(connectionFactory.DatabasePath)!;
+        var pattern = Path.GetFileName(connectionFactory.DatabasePath) + ".failed-*";
+        var failures = new List<Exception>();
+        foreach (var path in Directory.EnumerateFiles(directory, pattern))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try { File.Delete(path); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { failures.Add(exception); }
+        }
+        return failures.Count == 0 ? Task.CompletedTask
+            : Task.FromException(new AggregateException("Some preserved local databases could not be removed.", failures));
     }
 
     private async Task SetStoryStateAsync(

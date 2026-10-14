@@ -16,7 +16,11 @@ public sealed record SessionResult(
     bool IsAuthenticated,
     string? AccountId = null,
     SessionFailureKind FailureKind = SessionFailureKind.None,
-    string? Message = null);
+    string? Message = null)
+{
+    // Binds an offline restore to the saved credential without storing the cookie in SQLite.
+    public string? SessionFingerprint { get; init; }
+}
 
 public interface ISessionService
 {

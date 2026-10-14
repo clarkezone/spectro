@@ -121,26 +121,29 @@ internal sealed class WindowsSettingsStore : ISettingsStore
     }
 }
 
-internal sealed class WebViewDataCleaner : ISessionDataCleaner
+internal sealed class WebViewDataCleaner(string readerDirectory) : ISessionDataCleaner
 {
+    public Func<Task>? BeforeCleanup { get; set; }
     private CoreWebView2Profile? _profile;
-    private string? _readerDirectory;
+    private readonly string _readerDirectory = readerDirectory;
 
-    public void Register(CoreWebView2 webView, string readerDirectory)
+    public void Register(CoreWebView2 webView)
     {
         _profile = webView.Profile;
-        _readerDirectory = readerDirectory;
     }
 
     public async Task ClearAsync()
     {
-        if (_profile is not null)
-        {
-            await _profile.ClearBrowsingDataAsync();
-        }
-        if (_readerDirectory is not null && Directory.Exists(_readerDirectory))
-            foreach (var document in Directory.EnumerateFiles(_readerDirectory, "*.html"))
-                File.Delete(document);
+        await CleanupTasks.RunAllAsync(
+            async () => { if (BeforeCleanup is not null) await BeforeCleanup(); },
+            async () => { if (_profile is not null) await _profile.ClearBrowsingDataAsync(); },
+            () =>
+            {
+                if (_readerDirectory is not null && Directory.Exists(_readerDirectory))
+                    foreach (var document in Directory.EnumerateFiles(_readerDirectory, "*.html"))
+                        File.Delete(document);
+                return Task.CompletedTask;
+            });
     }
 }
 
@@ -191,6 +194,8 @@ internal sealed class DemoModeService(IContentRepository repository)
         await repository.InitializeAsync(cancellationToken);
         await repository.ClearAccountDataAsync(cancellationToken);
         await DemoLibrary.SeedAsync(repository, cancellationToken);
+        await repository.SetCheckpointAsync(new SyncCheckpoint(
+            AppViewModel.LibraryAccountCheckpointName, "demo", DateTimeOffset.UtcNow), cancellationToken);
         _seeded = true;
     }
 }

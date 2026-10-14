@@ -9,19 +9,27 @@ public enum AppScreen
 {
     Loading,
     Login,
-    Reader
+    Reader,
+    StartupError
 }
 
 public sealed class AppViewModel : ObservableObject
 {
+    public const string LibraryAccountCheckpointName = AccountDataCheckpoints.LibraryAccount;
+    public const string SessionFingerprintCheckpointName = AccountDataCheckpoints.SessionFingerprint;
+    public const string PendingSignOutCheckpointName = AccountDataCheckpoints.SignOut;
     private readonly IContentRepository _repository;
     private readonly ISessionService _sessionService;
     private readonly ISynchronizationService _synchronizationService;
     private readonly ISettingsStore _settingsStore;
+    private readonly Func<Task> _clearAccountArtifacts;
+    private string? _libraryBackupPath;
     private AppScreen _screen = AppScreen.Loading;
     private string _username = string.Empty;
     private string _password = string.Empty;
     private string? _accountId;
+    private string? _sessionFingerprint;
+    private bool _needsSignOutCleanup;
     private string _statusTitle = "Loading";
     private string _statusMessage = "Opening your local library…";
     private bool _isBusy;
@@ -39,6 +47,9 @@ public sealed class AppViewModel : ObservableObject
     private int _queryVersion;
     private int _refreshVersion;
     private int _selectionVersion;
+    private int _readerVersion;
+    private int _accountGeneration;
+    private readonly SemaphoreSlim _localMutationGate = new(1, 1);
     private int _libraryRevision;
     private StoryFilter _activeFilter;
     private string? _folderScope;
@@ -48,12 +59,14 @@ public sealed class AppViewModel : ObservableObject
         IContentRepository repository,
         ISessionService sessionService,
         ISynchronizationService synchronizationService,
-        ISettingsStore settingsStore)
+        ISettingsStore settingsStore,
+        Func<Task>? clearAccountArtifacts = null)
     {
         _repository = repository;
         _sessionService = sessionService;
         _synchronizationService = synchronizationService;
         _settingsStore = settingsStore;
+        _clearAccountArtifacts = clearAccountArtifacts ?? (() => Task.CompletedTask);
         _settings = settingsStore.Load();
     }
 
@@ -71,6 +84,7 @@ public sealed class AppViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsLoadingScreen));
                 OnPropertyChanged(nameof(IsLoginScreen));
                 OnPropertyChanged(nameof(IsReaderScreen));
+                OnPropertyChanged(nameof(IsStartupErrorScreen));
             }
         }
     }
@@ -78,6 +92,10 @@ public sealed class AppViewModel : ObservableObject
     public bool IsLoadingScreen => Screen == AppScreen.Loading;
     public bool IsLoginScreen => Screen == AppScreen.Login;
     public bool IsReaderScreen => Screen == AppScreen.Reader;
+    public bool IsStartupErrorScreen => Screen == AppScreen.StartupError;
+    public bool NeedsSignOutCleanup => _needsSignOutCleanup;
+    public string? LibraryBackupPath => _libraryBackupPath;
+    public string LibraryBackupMessage => $"Earlier local content and unsynced changes were preserved in a database backup at {_libraryBackupPath}.";
 
     public string Username
     {
@@ -116,8 +134,8 @@ public sealed class AppViewModel : ObservableObject
         }
     }
 
-    public bool CanInteract => !IsBusy;
-    public bool CanSynchronize => !IsBusy && !IsSyncing;
+    public bool CanInteract => !IsBusy && !NeedsSignOutCleanup;
+    public bool CanSynchronize => CanInteract && !IsSyncing;
     public bool IsSyncing
     {
         get => _isSyncing;
@@ -180,9 +198,17 @@ public sealed class AppViewModel : ObservableObject
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         IsBusy = true;
+        Screen = AppScreen.Loading;
         try
         {
             await Task.Run(() => _repository.InitializeAsync(cancellationToken), cancellationToken);
+            if (await Task.Run(() => _repository.GetCheckpointAsync(PendingSignOutCheckpointName, cancellationToken), cancellationToken) is { Value: not "complete" })
+            {
+                SetCleanupPending(true);
+                Screen = AppScreen.Login;
+                SetCleanupFailureStatus();
+                return;
+            }
             var session = await _sessionService.RestoreAsync(cancellationToken);
             if (!session.IsAuthenticated)
             {
@@ -191,11 +217,21 @@ public sealed class AppViewModel : ObservableObject
                 return;
             }
 
-            _accountId = session.AccountId;
+            _accountId = await BindLibraryAsync(session, cancellationToken);
+            if (_accountId is null) return;
+            _sessionFingerprint = session.SessionFingerprint;
             Screen = AppScreen.Reader;
             await RefreshLocalAsync(cancellationToken);
             IsBusy = false;
             await SynchronizeAsync(isInitial: true, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception exception)
+        {
+            ClearPresentation();
+            Screen = AppScreen.StartupError;
+            ReportError("Open library", exception);
+            StatusMessage = "Your existing library has been kept. Retry opening it, or reset the local database to preserve a backup and start again.";
         }
         finally
         {
@@ -205,6 +241,7 @@ public sealed class AppViewModel : ObservableObject
 
     public async Task LoginAsync(CancellationToken cancellationToken = default)
     {
+        if (!CanInteract) return;
         if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrEmpty(Password))
         {
             StatusTitle = "Check your details";
@@ -226,7 +263,9 @@ public sealed class AppViewModel : ObservableObject
                 return;
             }
 
-            _accountId = result.AccountId;
+            _accountId = await BindLibraryAsync(result, cancellationToken);
+            if (_accountId is null) return;
+            _sessionFingerprint = result.SessionFingerprint;
             Screen = AppScreen.Reader;
             await RefreshLocalAsync(cancellationToken);
             IsBusy = false;
@@ -236,6 +275,59 @@ public sealed class AppViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    private async Task<string?> BindLibraryAsync(SessionResult session, CancellationToken cancellationToken)
+    {
+        var owner = await Task.Run(() => _repository.GetCheckpointAsync(LibraryAccountCheckpointName, cancellationToken), cancellationToken);
+        var credential = await Task.Run(() => _repository.GetCheckpointAsync(SessionFingerprintCheckpointName, cancellationToken), cancellationToken);
+        var verified = session.FailureKind == SessionFailureKind.None
+            && !string.IsNullOrWhiteSpace(session.AccountId) && session.AccountId != "newsblur";
+        if (!verified)
+        {
+            if (owner is not null && !string.IsNullOrEmpty(session.SessionFingerprint)
+                && session.SessionFingerprint == credential?.Value)
+                return owner.Value;
+
+            Screen = AppScreen.StartupError;
+            IsStale = true;
+            StatusTitle = "Connect to verify your account";
+            StatusMessage = "Your saved session and library have been kept. Connect to the internet, then retry so Spectro can verify which account owns this library.";
+            return null;
+        }
+
+        if (owner is not null && owner.Value != session.AccountId
+            || owner is null && (await Task.Run(() => _repository.GetCachedStoryIndexAsync(cancellationToken), cancellationToken)).Count > 0)
+        {
+            // Unclaimed legacy caches cannot safely be assigned to a newly verified account.
+            // Preserve their content and unsynced changes instead of discarding or uploading them.
+            ++_accountGeneration;
+            ClearPresentation();
+            var reset = await ResetDatabaseAfterMutationsAsync(cancellationToken);
+            SetLibraryBackup(reset.PreservedDatabasePath);
+            await _clearAccountArtifacts();
+        }
+        await Task.Run(() => _repository.SetCheckpointAsync(new SyncCheckpoint(
+            LibraryAccountCheckpointName, session.AccountId!, DateTimeOffset.UtcNow), cancellationToken), cancellationToken);
+        if (session.SessionFingerprint is not null)
+            await Task.Run(() => _repository.SetCheckpointAsync(new SyncCheckpoint(
+                SessionFingerprintCheckpointName, session.SessionFingerprint, DateTimeOffset.UtcNow), cancellationToken), cancellationToken);
+        return session.AccountId;
+    }
+
+    public async Task RecoverDatabaseAsync(CancellationToken cancellationToken = default)
+    {
+        IsBusy = true;
+        try
+        {
+            ++_accountGeneration;
+            ClearPresentation();
+            var reset = await ResetDatabaseAfterMutationsAsync(cancellationToken);
+            SetLibraryBackup(reset.PreservedDatabasePath);
+            await _clearAccountArtifacts();
+            await InitializeAsync(cancellationToken);
+        }
+        finally { IsBusy = false; }
     }
 
     public Task SynchronizeAsync(
@@ -398,6 +490,7 @@ public sealed class AppViewModel : ObservableObject
     private void ClearSelection()
     {
         ++_selectionVersion;
+        ++_readerVersion;
         SelectedStory = null;
         ReaderHtml = string.Empty;
     }
@@ -406,33 +499,37 @@ public sealed class AppViewModel : ObservableObject
         Story? story,
         CancellationToken cancellationToken = default)
     {
+        var generation = _accountGeneration;
         var version = ++_selectionVersion;
         if (story is not null)
         {
             var details = await Task.Run(() => _repository.QueryStoriesAsync(
                 new ContentQuery(StoryFilter.All, Limit: 1, StoryHash: story.Hash), cancellationToken), cancellationToken);
-            if (version != _selectionVersion) return;
+            if (version != _selectionVersion || generation != _accountGeneration) return;
             story = details.FirstOrDefault()
                 ?? throw new InvalidOperationException("This story is no longer downloaded. Sync or choose another story.");
         }
         if (story is { IsRead: false })
         {
-            await Task.Run(() => _repository.SetStoryReadAsync(story.Hash, true, cancellationToken), cancellationToken);
-            if (version != _selectionVersion) return;
+            if (!await MutateStoryAsync(generation,
+                () => _repository.SetStoryReadAsync(story.Hash, true, cancellationToken), cancellationToken)) return;
+            if (version != _selectionVersion || generation != _accountGeneration) return;
             story = story with { IsRead = true };
             SelectedStory = story;
             await RefreshLocalAsync(cancellationToken);
         }
         if (version != _selectionVersion) return;
         SelectedStory = story;
-        ReaderHtml = story is null ? string.Empty : ReaderHtmlBuilder.Build(story, Settings);
+        await RefreshReaderHtmlAsync(cancellationToken);
     }
 
     public async Task ToggleReadAsync(
         Story story,
         CancellationToken cancellationToken = default)
     {
-        await Task.Run(() => _repository.SetStoryReadAsync(story.Hash, !story.IsRead, cancellationToken), cancellationToken);
+        var generation = _accountGeneration;
+        if (!await MutateStoryAsync(generation,
+            () => _repository.SetStoryReadAsync(story.Hash, !story.IsRead, cancellationToken), cancellationToken)) return;
         if (SelectedStory?.Hash == story.Hash) SelectedStory = SelectedStory with { IsRead = !story.IsRead };
         await RefreshLocalAsync(cancellationToken);
     }
@@ -441,12 +538,14 @@ public sealed class AppViewModel : ObservableObject
         Story story,
         CancellationToken cancellationToken = default)
     {
-        await Task.Run(() => _repository.SetStorySavedAsync(story.Hash, !story.IsSaved, cancellationToken), cancellationToken);
+        var generation = _accountGeneration;
+        if (!await MutateStoryAsync(generation,
+            () => _repository.SetStorySavedAsync(story.Hash, !story.IsSaved, cancellationToken), cancellationToken)) return;
         if (SelectedStory?.Hash == story.Hash) SelectedStory = SelectedStory with { IsSaved = !story.IsSaved };
         await RefreshLocalAsync(cancellationToken);
     }
 
-    public void UpdateSettings(ReaderSettings settings)
+    public async Task UpdateSettingsAsync(ReaderSettings settings)
     {
         Settings = settings with
         {
@@ -455,10 +554,48 @@ public sealed class AppViewModel : ObservableObject
             RetentionDays = Math.Clamp(settings.RetentionDays, 7, 365)
         };
         _settingsStore.Save(Settings);
-        if (SelectedStory is not null)
+        await RefreshReaderHtmlAsync();
+    }
+
+    private async Task<bool> MutateStoryAsync(int generation, Func<Task> mutation, CancellationToken cancellationToken)
+    {
+        if (IsBusy || NeedsSignOutCleanup) return false;
+        await _localMutationGate.WaitAsync(cancellationToken);
+        try
         {
-            ReaderHtml = ReaderHtmlBuilder.Build(SelectedStory, Settings);
+            if (generation != _accountGeneration || IsBusy || NeedsSignOutCleanup) return false;
+            await Task.Run(mutation, cancellationToken);
+            return generation == _accountGeneration;
         }
+        finally { _localMutationGate.Release(); }
+    }
+
+    private async Task ClearAccountAfterMutationsAsync(CancellationToken cancellationToken, bool clearBackups = false)
+    {
+        await _localMutationGate.WaitAsync(cancellationToken);
+        try
+        {
+            await CleanupTasks.RunAllAsync(
+                () => Task.Run(() => _repository.ClearAccountDataAsync(cancellationToken), cancellationToken),
+                () => clearBackups ? Task.Run(() => _repository.ClearPreservedDatabasesAsync(cancellationToken), cancellationToken) : Task.CompletedTask);
+        }
+        finally { _localMutationGate.Release(); }
+    }
+
+    private async Task<DatabaseResetResult> ResetDatabaseAfterMutationsAsync(CancellationToken cancellationToken)
+    {
+        await _localMutationGate.WaitAsync(cancellationToken);
+        try { return await Task.Run(() => _repository.ResetDatabaseAsync(cancellationToken), cancellationToken); }
+        finally { _localMutationGate.Release(); }
+    }
+
+    private async Task RefreshReaderHtmlAsync(CancellationToken cancellationToken = default)
+    {
+        var version = ++_readerVersion;
+        var selection = _selectionVersion;
+        var story = SelectedStory;
+        var html = story is null ? string.Empty : await ReaderHtmlBuilder.BuildAsync(story, Settings, cancellationToken: cancellationToken);
+        if (version == _readerVersion && selection == _selectionVersion) ReaderHtml = html;
     }
 
     public async Task ResetLocalDataAsync(CancellationToken cancellationToken = default)
@@ -466,12 +603,17 @@ public sealed class AppViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            ++_accountGeneration;
             CancelSync();
             if (_activeSync is not null) await _activeSync;
             ++_refreshVersion;
             ++_queryVersion;
             ClearSelection();
-            await Task.Run(() => _repository.ClearAccountDataAsync(cancellationToken), cancellationToken);
+            await CleanupTasks.RunAllAsync(
+                () => ClearAccountAfterMutationsAsync(cancellationToken),
+                _clearAccountArtifacts);
+            if (_accountId is not null)
+                await BindLibraryAsync(new SessionResult(true, _accountId) { SessionFingerprint = _sessionFingerprint }, cancellationToken);
             await RefreshLocalAsync(cancellationToken);
             StatusTitle = "Local data reset";
             StatusMessage = "Your local library is empty. Sync to download it again.";
@@ -482,31 +624,89 @@ public sealed class AppViewModel : ObservableObject
     public async Task SignOutAsync(CancellationToken cancellationToken = default)
     {
         IsBusy = true;
+        SetCleanupPending(true);
+        ++_accountGeneration;
+        ClearSelection();
         try
         {
-            CancelSync();
-            if (_activeSync is not null) await _activeSync;
-            ++_refreshVersion;
-            ++_queryVersion;
-            ClearSelection();
-            await _sessionService.SignOutAsync(cancellationToken);
-            await Task.Run(() => _repository.ClearAccountDataAsync(cancellationToken), cancellationToken);
-            _accountId = null;
-            NavigationItems.Clear();
-            Stories.Clear();
-            PublishLibrary();
-            SelectedStory = null;
-            ReaderHtml = string.Empty;
-            Username = string.Empty;
-            Password = string.Empty;
-            Screen = AppScreen.Login;
+            await CleanupTasks.RunAllAsync(
+                () => Task.Run(() => _repository.SetCheckpointAsync(new SyncCheckpoint(PendingSignOutCheckpointName, "pending", DateTimeOffset.UtcNow))),
+                async () => { CancelSync(); if (_activeSync is not null) await _activeSync; },
+                () => _sessionService.SignOutAsync(cancellationToken),
+                () => ClearAccountAfterMutationsAsync(CancellationToken.None, clearBackups: true),
+                _clearAccountArtifacts);
+            await Task.Run(() => _repository.SetCheckpointAsync(new SyncCheckpoint(
+                PendingSignOutCheckpointName, "complete", DateTimeOffset.UtcNow)));
+            SetCleanupPending(false);
             StatusTitle = "Signed out";
             StatusMessage = "Local account data and browsing data were cleared.";
         }
+        catch (Exception exception)
+        {
+            await RecordSignOutCleanupFailureAsync(exception);
+            throw;
+        }
         finally
         {
+            _accountId = null;
+            _sessionFingerprint = null;
+            ClearPresentation();
+            Username = string.Empty;
+            Password = string.Empty;
+            Screen = AppScreen.Login;
             IsBusy = false;
         }
+    }
+
+    public async Task RecordSignOutCleanupFailureAsync(Exception exception)
+    {
+        System.Diagnostics.Trace.TraceError($"Sign-out cleanup failed: {exception.GetType().Name} (0x{exception.HResult:X8})");
+        SetCleanupPending(true);
+        SetCleanupFailureStatus();
+        try
+        {
+            await Task.Run(() => _repository.SetCheckpointAsync(new SyncCheckpoint(
+                PendingSignOutCheckpointName, "pending", DateTimeOffset.UtcNow)));
+        }
+        catch (Exception persistenceError)
+        {
+            System.Diagnostics.Trace.TraceError($"Cleanup marker failed: {persistenceError.GetType().Name} (0x{persistenceError.HResult:X8})");
+        }
+    }
+
+    private void SetCleanupPending(bool pending)
+    {
+        _needsSignOutCleanup = pending;
+        OnPropertyChanged(nameof(NeedsSignOutCleanup));
+        OnPropertyChanged(nameof(CanInteract));
+        OnPropertyChanged(nameof(CanSynchronize));
+    }
+
+    private void SetCleanupFailureStatus()
+    {
+        IsStale = true;
+        StatusTitle = "Sign-out cleanup needs another try";
+        StatusMessage = "The reader is closed. Some account data could not be cleared. Retry cleanup before signing in again.";
+    }
+
+    private void ClearPresentation()
+    {
+        SetLibraryBackup(null);
+        ++_refreshVersion;
+        ++_queryVersion;
+        ClearSelection();
+        SelectedNavigation = null;
+        _folderScope = null;
+        _folders = [];
+        NavigationItems.Clear();
+        Stories.Clear();
+        PublishLibrary();
+    }
+
+    private void SetLibraryBackup(string? path)
+    {
+        if (SetProperty(ref _libraryBackupPath, path, nameof(LibraryBackupPath)))
+            OnPropertyChanged(nameof(LibraryBackupMessage));
     }
 
     private async Task RefreshLocalAsync(CancellationToken cancellationToken)

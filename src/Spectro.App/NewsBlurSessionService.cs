@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using NewsBlurSharp;
 using NewsBlurSharp.Model;
 using Spectro.Presentation;
@@ -55,8 +57,11 @@ internal sealed class NewsBlurSessionService(
             var accountId = profile.UserId > 0
                 ? profile.UserId
                 : profile.UserProfile?.UserId;
+            if (accountId is not > 0)
+                throw new NewsBlurMalformedResponseException("NewsBlur omitted the session's account identity.", null);
             return new SessionResult(
-                true, accountId is > 0 ? accountId.Value.ToString(CultureInfo.InvariantCulture) : "newsblur");
+                true, accountId.Value.ToString(CultureInfo.InvariantCulture))
+                { SessionFingerprint = Fingerprint(cookie) };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -76,7 +81,8 @@ internal sealed class NewsBlurSessionService(
 
             // An unverified saved session can still open the local library. Remote calls
             // continue to enforce authentication; only explicit rejection removes the secret.
-            return new SessionResult(true, "newsblur", failure, RestoreMessage(failure));
+            return new SessionResult(true, "newsblur", failure, RestoreMessage(failure))
+                { SessionFingerprint = Fingerprint(cookie) };
         }
     }
 
@@ -106,6 +112,10 @@ internal sealed class NewsBlurSessionService(
                     FailureKind: SessionFailureKind.Permanent,
                     Message: "NewsBlur did not return a session to save. Try signing in again.");
 
+            if (response.UserId <= 0)
+                return new SessionResult(false, FailureKind: SessionFailureKind.Permanent,
+                    Message: "NewsBlur did not identify your account. Try signing in again.");
+
             try
             {
                 sessionStore.Write(response.AuthCookieToken);
@@ -120,7 +130,8 @@ internal sealed class NewsBlurSessionService(
                     Message: "Windows could not securely save your NewsBlur session. Try signing in again.");
             }
 
-            return new SessionResult(true, response.UserId.ToString(CultureInfo.InvariantCulture));
+            return new SessionResult(true, response.UserId.ToString(CultureInfo.InvariantCulture))
+                { SessionFingerprint = Fingerprint(response.AuthCookieToken) };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -155,11 +166,15 @@ internal sealed class NewsBlurSessionService(
         }
         finally
         {
-            client.SetCookieSessionId(string.Empty);
-            sessionStore.Clear();
-            await webViewDataCleaner.ClearAsync();
+            await CleanupTasks.RunAllAsync(
+                () => { client.SetCookieSessionId(string.Empty); return Task.CompletedTask; },
+                () => { sessionStore.Clear(); return Task.CompletedTask; },
+                webViewDataCleaner.ClearAsync);
         }
     }
+
+    private static string Fingerprint(string cookie) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(cookie)));
 
     internal static string DescribeFailure(Exception exception)
     {

@@ -35,6 +35,8 @@ public sealed class SqliteLibraryTests : IAsyncLifetime
             [new("tech", 1, 0), new("tech", 2, 1), new("arts", 3, 0), new("arts", 4, 1)]);
         foreach (var story in SeedStories)
             await _repository.UpsertStoryAsync(story);
+        await _repository.SetCheckpointAsync(new SyncCheckpoint(
+            AppViewModel.LibraryAccountCheckpointName, "42", DateTimeOffset.UtcNow));
         await _subject.InitializeAsync();
     }
 
