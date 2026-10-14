@@ -34,6 +34,26 @@ public sealed class ReaderSafetyTests
         Assert.DoesNotContain("&lt;p&gt;", html);
     }
 
+    [Fact]
+    public async Task LargeValidArticleWithScriptStillKeepsItsAcceptedHtml()
+    {
+        var content = string.Concat(Enumerable.Repeat("<p>A complete article paragraph.</p>", 70000));
+        var html = await ReaderHtmlBuilder.BuildAsync(Story(content + "<script>if (a < b) alert('fixture');</script>"), new())
+            .WaitAsync(TimeSpan.FromSeconds(20));
+        Assert.Contains(content, html);
+        Assert.DoesNotContain("alert", html);
+        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("<p title=\"a > b\">Safe</p>", "<p title=\"a > b\">Safe</p>")]
+    [InlineData("<SCRIPT>unsafe</SCRIPT><p>Safe</p>", "<p>Safe</p>")]
+    [InlineData("<input><link><embed><p>Safe</p>", "<p>Safe</p>")]
+    [InlineData("<!-- a < b --> <p>Safe</p>", "<!-- a < b --> <p>Safe</p>")]
+    [InlineData("<script-language>Safe</script-language>", "<script-language>Safe</script-language>")]
+    public void TagFilteringPreservesSafeMarkupAndRemovesActualDangerousElements(string content, string expected) =>
+        Assert.Equal(expected, ReaderHtmlBuilder.Sanitize(content));
+
     private static Story Story(string content) => new("1:fixture", 1, null, null, "Fixture article", null, null,
         content, "Fixture preview", null, DateTimeOffset.UtcNow, true, false);
 }
