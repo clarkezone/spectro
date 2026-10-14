@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using Spectro.Domain;
 
@@ -84,13 +85,7 @@ public static partial class ReaderHtmlBuilder
 
     public static string Sanitize(string html)
     {
-        string sanitized;
-        try { sanitized = DangerousElementsRegex().Replace(html ?? string.Empty, string.Empty); }
-        catch (RegexMatchTimeoutException)
-        {
-            // Malformed markup still has a readable, inert representation. Never return it as HTML.
-            return "<pre>" + WebUtility.HtmlEncode(html) + "</pre>";
-        }
+        var sanitized = RemoveDangerousElements(html ?? string.Empty);
         sanitized = EventAttributeRegex().Replace(sanitized, string.Empty);
         sanitized = StyleAttributeRegex().Replace(sanitized, string.Empty);
         sanitized = SourceAttributeRegex().Replace(sanitized, string.Empty);
@@ -98,8 +93,97 @@ public static partial class ReaderHtmlBuilder
         return MetaRefreshRegex().Replace(sanitized, string.Empty);
     }
 
-    [GeneratedRegex(@"<\s*(script|iframe|object|embed|form|input|button|textarea|select|style|link|svg|math)\b[^>]*>.*?<\s*/\s*\1\s*>|<\s*(script|iframe|object|embed|form|input|button|textarea|select|style|link|svg|math)\b[^>]*/?\s*>", RegexOptions.IgnoreCase | RegexOptions.Singleline, 100)]
-    private static partial Regex DangerousElementsRegex();
+    private static string RemoveDangerousElements(string html)
+    {
+        var output = new StringBuilder(html.Length);
+        var position = 0;
+        while (position < html.Length)
+        {
+            var start = html.IndexOf('<', position);
+            if (start < 0) { output.Append(html, position, html.Length - position); break; }
+            output.Append(html, position, start - position);
+            if (html.AsSpan(start).StartsWith("<!--", StringComparison.Ordinal))
+            {
+                var commentEnd = html.IndexOf("-->", start + 4, StringComparison.Ordinal);
+                if (commentEnd < 0) return InertMarkup(html);
+                position = commentEnd + 3;
+                output.Append(html, start, position - start);
+                continue;
+            }
+            var nameStart = start + 1;
+            while (nameStart < html.Length && char.IsWhiteSpace(html[nameStart])) nameStart++;
+            var nameEnd = nameStart;
+            while (nameEnd < html.Length && char.IsAsciiLetter(html[nameEnd])) nameEnd++;
+            if (nameEnd == nameStart)
+            {
+                output.Append('<');
+                position = start + 1;
+                continue;
+            }
+            var end = TagEnd(html, nameEnd);
+            if (end < 0) return InertMarkup(html);
+            var name = html.AsSpan(nameStart, nameEnd - nameStart);
+            var wholeName = nameEnd == html.Length || !char.IsLetterOrDigit(html[nameEnd]) && html[nameEnd] is not '_' and not '-' and not ':';
+            if (!wholeName || !IsDangerousElement(name))
+            {
+                output.Append(html, start, end - start);
+                position = end;
+                continue;
+            }
+            var last = end - 2;
+            while (last > nameEnd && char.IsWhiteSpace(html[last])) last--;
+            if (html[last] == '/' || name.Equals("input", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("embed", StringComparison.OrdinalIgnoreCase) || name.Equals("link", StringComparison.OrdinalIgnoreCase))
+            {
+                position = end;
+                continue;
+            }
+            var closing = "</" + name.ToString();
+            var search = end;
+            var closed = false;
+            while (search < html.Length)
+            {
+                var candidate = html.IndexOf(closing, search, StringComparison.OrdinalIgnoreCase);
+                if (candidate < 0) break;
+                search = candidate + closing.Length;
+                while (search < html.Length && char.IsWhiteSpace(html[search])) search++;
+                if (search < html.Length && html[search] == '>')
+                {
+                    position = search + 1;
+                    closed = true;
+                    break;
+                }
+            }
+            // An unterminated element gets one inert fallback, never another scan from each opener.
+            if (!closed) return InertMarkup(html);
+        }
+        return output.ToString();
+    }
+
+    private static int TagEnd(string html, int position)
+    {
+        var quote = '\0';
+        for (; position < html.Length; position++)
+        {
+            var value = html[position];
+            if (quote != '\0') { if (value == quote) quote = '\0'; }
+            else if (value is '\'' or '"') quote = value;
+            else if (value == '>') return position + 1;
+            else if (value == '<') return -1;
+        }
+        return -1;
+    }
+
+    private static bool IsDangerousElement(ReadOnlySpan<char> name) =>
+        name.Equals("script", StringComparison.OrdinalIgnoreCase) || name.Equals("iframe", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("object", StringComparison.OrdinalIgnoreCase) || name.Equals("embed", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("form", StringComparison.OrdinalIgnoreCase) || name.Equals("input", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("button", StringComparison.OrdinalIgnoreCase) || name.Equals("textarea", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("select", StringComparison.OrdinalIgnoreCase) || name.Equals("style", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("link", StringComparison.OrdinalIgnoreCase) || name.Equals("svg", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("math", StringComparison.OrdinalIgnoreCase);
+
+    private static string InertMarkup(string html) => "<pre>" + WebUtility.HtmlEncode(html) + "</pre>";
 
     [GeneratedRegex(@"\s+on[a-z]+\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
     private static partial Regex EventAttributeRegex();
