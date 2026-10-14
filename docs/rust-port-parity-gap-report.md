@@ -121,11 +121,11 @@ Reactor's ListView accepts `DataItem`, not explicit `ListViewItem`, and its adap
 
 Spectro sets `ItemsStackPanel.ItemsUpdatingScrollMode="KeepItemsInView"`, which is the WinUI default. Reactor needs no new property for it as long as ListView keeps the default `ItemsStackPanel`. (`ItemsPanel`, `ItemsStackPanel`, and `ItemContainerStyle` don't appear in the filtered projection at all.)
 
-The gap is in how updates are applied. Spectro updates its collection incrementally with `RemoveAt`/`Insert` ([incremental sync][app-incremental]). When a reorder moves all but at most one child, Reactor's container relation calls `IVector.ReplaceAll` instead ([container reorder][relations-replace-all]). Replacing everything resets item containers and can lose the anchored scroll position, focus, and the realized selection visuals. Smaller reorders use `RemoveAt`/`InsertAt`.
+Spectro updates its collection incrementally with `RemoveAt`/`Insert` ([incremental sync][app-incremental]). When a reorder moves all but at most one child, Reactor's container relation calls `IVector.ReplaceAll` instead ([container reorder][relations-replace-all]). Smaller reorders use `RemoveAt`/`InsertAt`. Reactor explicitly restores the selected item afterward; it does not explicitly restore the visible anchor, scroll offset, or focused container. The different mutation strategy is a parity risk, not proof by itself that WinUI loses those states.
 
-**Required change:** always emit minimal `RemoveAt`/`InsertAt`/`SetAt` operations for keyed DataItems, or make the threshold configurable per ListView.
+**Required verification/change:** compare large sync reorders against C# with a scrolled, focused, selected ListView. If `ReplaceAll` changes the visible anchor, offset, or focus, preserve those states explicitly or use keyed mutations for that path. The default `KeepItemsInView` mode does not require a new property.
 
-**Blocked parity:** compact-mode reopening, keyboard activation of the selected story, and scroll stability during large sync reorders.
+**Blocked parity:** compact-mode reopening and keyboard activation of the selected story require ItemClick. Scroll stability during large sync reorders is a verification gate rather than a confirmed failure.
 
 ## 8. Visibility: no retained Visible/Collapsed property
 
@@ -289,10 +289,10 @@ Each story row is a `Grid` with a `Grid.ContextFlyout` `MenuFlyout` holding two 
 
 | Work package | Exact changes | Spectro work it unblocks |
 |---|---|---|
-| Native property coverage | TextBlock's four properties; FontIcon's two; NumberBox's two; dialog properties; UIA attached properties; Grid/StackPanel properties (lower priority: Border wrapper works) | Direct translation of the XAML's native property assignments |
+| Native property coverage | TextBlock's four properties; FontIcon's two; NumberBox's two; dialog properties; UIA attached properties; Grid/StackPanel properties (optional if Border wrapper equivalence is proven) | Direct translation of the XAML's native property assignments |
 | Native styles and resources | Named theme brushes/dictionaries; QuietButton setters; generated ListView container styles | Original palettes, contrast behavior, toolbar states, and native row geometry |
 | Retained state and focus | Visibility; enabled ContentControl; ListView references; focused-control capture/restore | Responsive navigation, settings exclusion, reader lifetime, keyboard focus |
-| Native list events/updates | ItemClick/IsItemClickEnabled; minimal keyed collection mutations instead of `ReplaceAll` | Reopening selected stories and preserving scroll during sync reorders |
+| Native list events/updates | ItemClick/IsItemClickEnabled; verify large-reorder state continuity and fix any reproduced mismatch | Reopening selected stories; proving scroll/focus parity during sync reorders |
 | Context menus | `UIElement.ContextFlyout` projection; `context_menu` attachment on any element | Story-row Mark read / Save menus |
 | Keyboard/window integration | Missing keys and modifier combinations; activation/teardown with a safe subclass lifetime; caption setters | Original shortcuts with browser focus and exact window chrome |
 | Runtime deployment | Architecture-qualified caches; explicit staging failure; complete-file validation | Correct x64/ARM64 package output |
@@ -300,6 +300,8 @@ Each story row is a `Grid` with a `Grid.ContextFlyout` `MenuFlyout` holding two 
 For each property addition, update Reactor's schema, generated declarations, filtered native projection, and adapter together. Native binding coverage alone does not create a public declaration; a public builder alone does not apply the property to WinUI.
 
 The missing font/layout/control bindings above are **Reactor's filtered WinUI projection**, not absent Windows font or layout functionality. The required windows-rs work is to generate those methods/types and expose them through Reactor. The native window items additionally require AppWindow/Win32 integration rather than a substitute UI.
+
+The [Rust port plan](rust-port-plan.md) maps these gaps to upstream work packages, application phases, and parity acceptance gates.
 
 [app-xaml]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L83-L359
 [app-styles]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L44-L68
@@ -357,7 +359,7 @@ The missing font/layout/control bindings above are **Reactor's filtered WinUI pr
 [app-context-flyout]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L267-L272
 [app-incremental]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L634-L643
 [schema-border]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L276-L300
-[relations-replace-all]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/relations.rs#L328-L357
+[relations-replace-all]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/relations.rs#L328-L368
 [component-run-window]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/component.rs#L358-L433
 [menu-ext]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/declaration.rs#L2166-L2170
 [hosting-set-menu]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/hosting.rs#L537-L620
