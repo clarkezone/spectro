@@ -6,6 +6,10 @@ namespace Spectro.Presentation;
 
 public static partial class ReaderHtmlBuilder
 {
+    public static Task<string> BuildAsync(Story story, ReaderSettings settings,
+        string? imageDataUri = null, string? publication = null, CancellationToken cancellationToken = default) =>
+        Task.Run(() => Build(story, settings, imageDataUri, publication), cancellationToken);
+
     public static string Build(Story story, ReaderSettings settings, string? imageDataUri = null, string? publication = null)
     {
         var content = Sanitize(story.Content);
@@ -80,7 +84,13 @@ public static partial class ReaderHtmlBuilder
 
     public static string Sanitize(string html)
     {
-        var sanitized = DangerousElementsRegex().Replace(html ?? string.Empty, string.Empty);
+        string sanitized;
+        try { sanitized = DangerousElementsRegex().Replace(html ?? string.Empty, string.Empty); }
+        catch (RegexMatchTimeoutException)
+        {
+            // Malformed markup still has a readable, inert representation. Never return it as HTML.
+            return "<pre>" + WebUtility.HtmlEncode(html) + "</pre>";
+        }
         sanitized = EventAttributeRegex().Replace(sanitized, string.Empty);
         sanitized = StyleAttributeRegex().Replace(sanitized, string.Empty);
         sanitized = SourceAttributeRegex().Replace(sanitized, string.Empty);
@@ -88,21 +98,21 @@ public static partial class ReaderHtmlBuilder
         return MetaRefreshRegex().Replace(sanitized, string.Empty);
     }
 
-    [GeneratedRegex(@"<\s*(script|iframe|object|embed|form|input|button|textarea|select|style|link|svg|math)\b[^>]*>.*?<\s*/\s*\1\s*>|<\s*(script|iframe|object|embed|form|input|button|textarea|select|style|link|svg|math)\b[^>]*/?\s*>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    [GeneratedRegex(@"<\s*(script|iframe|object|embed|form|input|button|textarea|select|style|link|svg|math)\b[^>]*>.*?<\s*/\s*\1\s*>|<\s*(script|iframe|object|embed|form|input|button|textarea|select|style|link|svg|math)\b[^>]*/?\s*>", RegexOptions.IgnoreCase | RegexOptions.Singleline, 100)]
     private static partial Regex DangerousElementsRegex();
 
-    [GeneratedRegex(@"\s+on[a-z]+\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\s+on[a-z]+\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
     private static partial Regex EventAttributeRegex();
 
-    [GeneratedRegex(@"\s+style\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\s+style\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
     private static partial Regex StyleAttributeRegex();
 
-    [GeneratedRegex(@"\s+(?:src|srcset|poster|background|data|action|formaction|xlink:href)\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\s+(?:src|srcset|poster|background|data|action|formaction|xlink:href)\s*=\s*(?:""[^""]*""|'[^']*'|[^\s>]+)", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
     private static partial Regex SourceAttributeRegex();
 
-    [GeneratedRegex(@"(\s(?:href|src)\s*)=\s*(?:""\s*javascript:[^""]*""|'\s*javascript:[^']*'|javascript:[^\s>]+)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(\s(?:href|src)\s*)=\s*(?:""\s*javascript:[^""]*""|'\s*javascript:[^']*'|javascript:[^\s>]+)", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
     private static partial Regex JavascriptUrlRegex();
 
-    [GeneratedRegex(@"<meta\b[^>]*http-equiv\s*=\s*(?:""refresh""|'refresh'|refresh)[^>]*>", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"<meta\b[^>]*http-equiv\s*=\s*(?:""refresh""|'refresh'|refresh)[^>]*>", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
     private static partial Regex MetaRefreshRegex();
 }

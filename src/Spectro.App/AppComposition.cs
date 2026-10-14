@@ -57,14 +57,25 @@ internal sealed class AppComposition
 
     public async Task ClearImagesAsync()
     {
-        await _imageCancellation.CancelAsync();
-        await _imageWork;
-        _imageCancellation.Dispose();
-        _imageCancellation = new CancellationTokenSource();
-        if (_imageDirectory is null || !Directory.Exists(_imageDirectory)) return;
-        foreach (var file in Directory.EnumerateFiles(_imageDirectory, "*.img"))
-            File.Delete(file);
+        await CleanupTasks.RunAllAsync(
+            async () =>
+            {
+                try { await _imageCancellation.CancelAsync(); await _imageWork; }
+                finally
+                {
+                    _imageCancellation.Dispose();
+                    _imageCancellation = new CancellationTokenSource();
+                }
+            },
+            () => Task.Run(() =>
+            {
+                if (_imageDirectory is null || !Directory.Exists(_imageDirectory)) return;
+                foreach (var file in Directory.EnumerateFiles(_imageDirectory, "*.img")) File.Delete(file);
+            }));
     }
+
+    public Task ClearAccountArtifactsAsync() =>
+        CleanupTasks.RunAllAsync(WebViewDataCleaner.ClearAsync, ClearImagesAsync);
 
     public static AppComposition Create(string[] launchArguments)
     {
@@ -79,14 +90,15 @@ internal sealed class AppComposition
         var repository = new SqliteContentRepository(
             new SqliteConnectionFactory(databasePath));
         var settings = new WindowsSettingsStore(demoMode);
-        var webViewDataCleaner = new WebViewDataCleaner();
+        var webViewDataCleaner = new WebViewDataCleaner(Path.Combine(
+            Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, "ArticleReader"));
 
 #if DEBUG
         if (demoMode)
         {
             var demo = new DemoModeService(repository);
             return new AppComposition(
-                new AppViewModel(repository, demo, demo, settings),
+                new AppViewModel(repository, demo, demo, settings, webViewDataCleaner.ClearAsync),
                 webViewDataCleaner) { IsDemo = true };
         }
 #endif
@@ -97,7 +109,8 @@ internal sealed class AppComposition
             client,
             sessionStore,
             webViewDataCleaner);
-        var composition = new AppComposition(
+        AppComposition? composition = null;
+        composition = new AppComposition(
             new AppViewModel(
                 repository,
                 sessionService,
@@ -105,7 +118,8 @@ internal sealed class AppComposition
                     repository,
                     new NewsBlurSyncRemoteService(client),
                     settings),
-                settings),
+                settings,
+                () => composition!.ClearAccountArtifactsAsync()),
             webViewDataCleaner);
         composition._repository = repository;
         composition._imageDirectory = Path.Combine(localFolder, "StoryImages");

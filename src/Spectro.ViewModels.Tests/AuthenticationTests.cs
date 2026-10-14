@@ -13,6 +13,35 @@ namespace Spectro.ViewModels.Tests;
 public sealed class AuthenticationTests
 {
     [Fact]
+    public async Task SavedSessionFingerprintIsStableAcrossOfflineAndVerifiedRestore()
+    {
+        var store = SavedCookie();
+        var verified = await Create(store, _ => Json("""{"authenticated":true,"user_id":42}""")).RestoreAsync(default);
+        var offline = await Create(store, _ => throw new HttpRequestException(
+            HttpRequestError.NameResolutionError, "Fixture offline")).RestoreAsync(default);
+        Assert.NotNull(verified.SessionFingerprint);
+        Assert.Equal(verified.SessionFingerprint, offline.SessionFingerprint);
+        Assert.DoesNotContain("fixture-session", verified.SessionFingerprint);
+    }
+
+    [Fact]
+    public async Task LoginWithoutAccountIdentityDoesNotReplaceSavedCredential()
+    {
+        var store = SavedCookie();
+        var subject = Create(store, _ =>
+        {
+            var response = Json("""{"authenticated":true}""");
+            response.Headers.TryAddWithoutValidation("Set-Cookie", "newsblur_sessionid=fixture-new-session; Path=/; Secure; HttpOnly");
+            return response;
+        });
+        var result = await subject.LoginAsync("fixture-reader", "synthetic-password", default);
+        Assert.False(result.IsAuthenticated);
+        Assert.Equal(SessionFailureKind.Permanent, result.FailureKind);
+        Assert.Equal("fixture-session", store.Read());
+        Assert.Equal(0, store.Writes);
+    }
+
+    [Fact]
     public async Task FreshClientAndServiceRestoreCookieSavedByLogin()
     {
         var store = new MemoryCookieStore();

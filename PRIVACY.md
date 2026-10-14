@@ -1,6 +1,6 @@
 # Spectro privacy policy
 
-Last updated: September 14, 2026
+Last updated: October 14, 2026
 
 Spectro is a Windows client for the NewsBlur service. Spectro does not sell
 personal information and does not include behavioral advertising or behavioral
@@ -12,6 +12,9 @@ When you sign in, Spectro sends the NewsBlur username and password you provide
 directly to NewsBlur over HTTPS. Spectro stores the resulting session credential
 in Windows-protected credential storage. The credential is not written to
 application logs or the local content database.
+The database stores the account identifier and a one-way fingerprint of the
+saved session to prevent another account from using the cached library or its
+queued changes. The fingerprint cannot be used as the session cookie.
 
 Spectro downloads account, feed, folder, story, read, and saved-state information
 from NewsBlur. This content is stored locally in the app's private Windows
@@ -40,6 +43,17 @@ exclude credentials, authentication cookies, and article response bodies.
 Signing out removes the stored NewsBlur credential and account-specific local
 content, pending local mutations, cached preview images, and embedded
 article-reader browsing data.
+This includes database backups preserved during recovery or an account change.
+If cleanup fails, Spectro closes the reader and requires another cleanup attempt
+before allowing sign-in.
+
+When an existing library belongs to another account or lacks ownership metadata,
+Spectro preserves it as a local database backup and creates a separate empty
+library for the verified account. Explicit recovery of an unreadable database
+also preserves a backup. Backups can contain article content and unsynced changes;
+Spectro does not upload their changes automatically. They remain in the app's
+private data folder until sign-out or removal of the app's local data.
+
 Article links are opened by the Windows default browser rather than inside
 Spectro. Uninstalling Spectro through Windows removes the app's private local
 data according to Windows application-data behavior.

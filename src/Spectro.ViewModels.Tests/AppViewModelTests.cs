@@ -19,6 +19,8 @@ public sealed class AppViewModelTests
             .Returns(Task.CompletedTask);
         _repository.Setup(repository => repository.GetFeedsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
+        _repository.Setup(repository => repository.GetCachedStoryIndexAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         _repository.Setup(repository => repository.GetLocalUnreadCountsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<int, int>());
         _repository.Setup(repository => repository.GetLocalFeedCountsAsync(It.IsAny<CancellationToken>()))
@@ -245,11 +247,11 @@ public sealed class AppViewModelTests
     }
 
     [Fact]
-    public void SettingsAreClampedPersistedAndRebuildReader()
+    public async Task SettingsAreClampedPersistedAndRebuildReader()
     {
         var subject = CreateSubject();
 
-        subject.UpdateSettings(new ReaderSettings(
+        await subject.UpdateSettingsAsync(new ReaderSettings(
             AppTheme.Light,
             TextSize: 99,
             ReadingWidth: 10,

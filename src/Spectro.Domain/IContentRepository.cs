@@ -85,4 +85,6 @@ public interface IContentRepository
         CancellationToken cancellationToken = default);
 
     Task ClearAccountDataAsync(CancellationToken cancellationToken = default);
+
+    Task ClearPreservedDatabasesAsync(CancellationToken cancellationToken = default);
 }

@@ -72,6 +72,10 @@ public sealed partial class OfflineFirstSynchronizer
             }
         }
 
+        // Recent inventories cannot confirm reads on older retained articles. Obtain explicit
+        // observations for uploaded read snapshots even when their saved-copy version is unchanged.
+        await ConfirmUploadedReadStateAsync().ConfigureAwait(false);
+
         run.SetStage(SyncStage.FetchStories);
         var available = new ConcurrentDictionary<string, byte>(
             cached.Keys.Select(static hash => new KeyValuePair<string, byte>(hash, 0)), StringComparer.Ordinal);
@@ -143,6 +147,43 @@ public sealed partial class OfflineFirstSynchronizer
             if (timestamp < retentionCutoff) retentionCutoff = timestamp;
         }
         return retentionCutoff;
+
+        async Task ConfirmUploadedReadStateAsync()
+        {
+            var uploaded = await _repository.GetUploadedMutationsAsync(cancellationToken).ConfigureAwait(false);
+            var hashes = uploaded.Where(item => item.Mutation.Kind == StoryMutationKind.Read)
+                .Select(static item => item.Mutation.StoryHash).Distinct(StringComparer.Ordinal)
+                .Where(hash => !unreadHashes.Contains(hash) && !readHashes.Contains(hash)).ToArray();
+            foreach (var group in hashes.GroupBy(savedHashes.Contains))
+            {
+                foreach (var batch in group.Chunk(100))
+                {
+                    var observed = await ObserveAsync(batch, group.Key).ConfigureAwait(false);
+                    foreach (var hash in batch.Where(hash => !observed.Contains(hash)))
+                    {
+                        var singleton = await ObserveAsync([hash], group.Key).ConfigureAwait(false);
+                        if (!singleton.Contains(hash))
+                            throw InventoryFailure("NewsBlur could not confirm an uploaded reading change. The change remains queued locally.");
+                    }
+                }
+            }
+        }
+
+        async Task<HashSet<string>> ObserveAsync(string[] hashes, bool savedRequest)
+        {
+            var result = await ExecuteRemoteAsync(
+                token => _remoteService.GetStoriesByHashesAsync(hashes, savedRequest, token), run,
+                cancellationToken, "Confirming reading changes", savedRequest: savedRequest).ConfigureAwait(false);
+            var requested = hashes.ToHashSet(StringComparer.Ordinal);
+            var observed = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var story in result.Stories.Where(story => requested.Contains(story.Hash)))
+            {
+                observed.Add(story.Hash);
+                if (story.IsRead) readHashes.Add(story.Hash);
+                else unreadHashes.Add(story.Hash);
+            }
+            return observed;
+        }
 
         async Task ReconcileInventoryAsync()
         {

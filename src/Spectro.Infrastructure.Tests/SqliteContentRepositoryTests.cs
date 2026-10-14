@@ -5,6 +5,24 @@ namespace Spectro.Infrastructure.Tests;
 
 public sealed class SqliteContentRepositoryTests : IDisposable
 {
+    [Fact]
+    public async Task PreservedDatabaseCleanupOnlyRemovesThisLibraryBackups()
+    {
+        var factory = new SqliteConnectionFactory(_databasePath);
+        var repository = new SqliteContentRepository(factory);
+        await repository.InitializeAsync();
+        var reset = await repository.ResetDatabaseAsync();
+        Assert.NotNull(reset.PreservedDatabasePath);
+        var unrelated = Path.Combine(_directory, "other.db.failed-fixture");
+        await File.WriteAllTextAsync(unrelated, "Unrelated fixture");
+
+        await repository.ClearPreservedDatabasesAsync();
+
+        Assert.False(File.Exists(reset.PreservedDatabasePath));
+        Assert.True(File.Exists(unrelated));
+        Assert.True(File.Exists(_databasePath));
+        await repository.InitializeAsync();
+    }
     private readonly string _directory = Path.Combine(
         Path.GetTempPath(),
         "Spectro.Tests",

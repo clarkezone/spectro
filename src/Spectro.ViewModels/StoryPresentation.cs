@@ -20,9 +20,9 @@ public static partial class StoryPresentation
     public static int ReadingMinutes(string content) =>
         Math.Max(1, (int)Math.Ceiling(PlainText(content).Split(' ', StringSplitOptions.RemoveEmptyEntries).Length / 220d));
 
-    [GeneratedRegex("<[^>]*>", RegexOptions.Singleline)]
+    [GeneratedRegex("<[^>]*>", RegexOptions.Singleline | RegexOptions.NonBacktracking)]
     private static partial Regex Tags();
 
-    [GeneratedRegex(@"\s+")]
+    [GeneratedRegex(@"\s+", RegexOptions.NonBacktracking)]
     private static partial Regex Whitespace();
 }

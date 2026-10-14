@@ -86,6 +86,18 @@
             </StackPanel>
         </Grid>
 
+        <StackPanel x:Name="StartupErrorPanel" Visibility="Collapsed" MaxWidth="460" Spacing="20"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24"
+                    AutomationProperties.AutomationId="StartupErrorPanel">
+            <TextBlock Text="{x:Bind ViewModel.StatusTitle, Mode=OneWay}" FontFamily="Georgia" FontSize="26" TextWrapping="Wrap" />
+            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" TextWrapping="Wrap" />
+            <Button x:Name="RetryStartupButton" Content="Retry opening library" MinHeight="44" Click="RetryStartup_Click"
+                    AutomationProperties.AutomationId="RetryStartup" />
+            <Button x:Name="ResetStartupButton" Content="Reset local database" MinHeight="44" Click="ResetStartup_Click"
+                    AutomationProperties.AutomationId="ResetStartupDatabase" />
+            <Button Content="Sign out of NewsBlur" MinHeight="44" Click="SignOut_Click" />
+        </StackPanel>
+
         <ScrollViewer x:Name="LoginPanel" VerticalScrollBarVisibility="Auto" AutomationProperties.AutomationId="LoginPanel">
             <StackPanel MaxWidth="380" Padding="24,64" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
                 <FontIcon Glyph="&#xE8A5;" FontSize="40" HorizontalAlignment="Left" Foreground="{ThemeResource BrandBrush}" />
@@ -94,6 +106,8 @@
                            TextWrapping="Wrap" Foreground="{ThemeResource MutedInkBrush}" FontSize="15" />
                 <InfoBar x:Name="LoginStatus" IsClosable="False" IsOpen="False" Severity="Warning"
                          Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" Title="{x:Bind ViewModel.StatusTitle, Mode=OneWay}" />
+                <Button x:Name="RetrySignOutCleanupButton" Content="Retry sign-out cleanup" MinHeight="44" Visibility="Collapsed"
+                        Click="RetrySignOutCleanup_Click" AutomationProperties.AutomationId="RetrySignOutCleanup" />
                 <TextBox x:Name="UsernameBox" Header="NewsBlur username" MinHeight="44"
                          AutomationProperties.AutomationId="Username" AutomationProperties.Name="NewsBlur username"
                          Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -111,7 +125,10 @@
 
         <ContentControl x:Name="ReaderHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
         <Grid x:Name="ReaderPanel" AutomationProperties.AutomationId="ReaderShell">
-            <Grid x:Name="PaneGrid">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <InfoBar x:Name="LibraryBackupNotice" Visibility="Collapsed" IsOpen="False" Severity="Informational"
+                     Title="Previous local library preserved" Message="{x:Bind ViewModel.LibraryBackupMessage, Mode=OneWay}" />
+            <Grid x:Name="PaneGrid" Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Name="NavigationColumn" Width="224" />
                     <ColumnDefinition x:Name="FeedColumn" Width="280" />
@@ -359,8 +376,8 @@
                         <TextBlock Text="YOUR ACCOUNT" FontSize="10" CharacterSpacing="150" Foreground="{ThemeResource MutedInkBrush}" />
                         <TextBlock Text="Connected through NewsBlur. Saved stories stay in your library. Read and save changes are kept locally until the next sync."
                                    TextWrapping="Wrap" FontSize="13" Foreground="{ThemeResource MutedInkBrush}" />
-                        <Button MinHeight="44" HorizontalAlignment="Stretch" Click="SignOut_Click" Content="Sign out of NewsBlur" AutomationProperties.AutomationId="SignOut" />
-                        <Button MinHeight="44" HorizontalAlignment="Stretch" Click="ResetLocalData_Click" Content="Reset downloaded library" AutomationProperties.AutomationId="ResetLocalData" />
+                        <Button MinHeight="44" HorizontalAlignment="Stretch" Click="SignOut_Click" Content="Sign out of NewsBlur" AutomationProperties.AutomationId="SignOut" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}" />
+                        <Button MinHeight="44" HorizontalAlignment="Stretch" Click="ResetLocalData_Click" Content="Reset downloaded library" AutomationProperties.AutomationId="ResetLocalData" IsEnabled="{x:Bind ViewModel.CanInteract, Mode=OneWay}" />
                         <HyperlinkButton MinHeight="44" NavigateUri="https://github.com/clarkezone/spectro/blob/master/PRIVACY.md" Content="Privacy policy" />
                     </StackPanel>
                 </ScrollViewer>

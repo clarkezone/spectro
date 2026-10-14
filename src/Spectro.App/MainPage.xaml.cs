@@ -19,16 +19,21 @@ public sealed partial class MainPage : Page
         Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, "ArticleReader");
     private string? _readerAddress;
     private double? _restoreScroll;
-    private ulong _readerNavigationId;
+    private ulong? _readerNavigationId;
     private bool _focusReaderAfterNavigation;
+    private int _readerRenderVersion;
+    private Task _readerWork = Task.CompletedTask;
+    private string? _readerDocumentPath;
     private Control? _settingsReturnFocus;
     private readonly LoginSubmission _loginSubmission = new();
+    private bool _clearingAccountData;
 
     public AppViewModel ViewModel { get; } = App.Services.ViewModel;
 
     public MainPage()
     {
         InitializeComponent();
+        App.Services.WebViewDataCleaner.BeforeCleanup = async () => { ClearReaderDocument(); await _readerWork; };
         Root.AddHandler(
             UIElement.KeyDownEvent,
             new KeyEventHandler(Root_KeyDown),
@@ -43,6 +48,7 @@ public sealed partial class MainPage : Page
             handledEventsToo: true);
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         ActualThemeChanged += (_, _) => NavigateReader();
+        Unloaded += (_, _) => ++_readerRenderVersion;
     }
 
     private void Root_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -125,7 +131,7 @@ public sealed partial class MainPage : Page
     private void CloseSettings_Click(object sender, RoutedEventArgs e)
     {
         SettingsPanel.Visibility = Visibility.Collapsed;
-        ReaderHost.IsEnabled = true;
+        ReaderHost.IsEnabled = ViewModel.CanInteract && !_clearingAccountData;
         _settingsReturnFocus?.Focus(FocusState.Programmatic);
     }
 
@@ -136,19 +142,53 @@ public sealed partial class MainPage : Page
     {
         await RunUiActionAsync("Sign out", async () =>
         {
-        if (!await ConfirmDestructiveActionAsync(
-                "Sign out of NewsBlur?",
-                "Downloaded stories and any changes that have not synced will be removed from this device.",
-                "Sign out")) return;
-        await EnsureArticleReaderInitializedAsync();
-        await ViewModel.SignOutAsync();
-        ClearReaderDocument();
-        await App.Services.WebViewDataCleaner.ClearAsync();
-        await App.Services.ClearImagesAsync();
-        SettingsPanel.Visibility = Visibility.Collapsed;
-        ReaderHost.IsEnabled = true;
+            if (!await ConfirmDestructiveActionAsync(
+                    "Sign out of NewsBlur?",
+                    "Downloaded stories, database backups, and any changes that have not synced will be removed from this device.",
+                    "Sign out")) return;
+            await FinishSignOutAsync();
+        });
+    }
+
+    private async void RetrySignOutCleanup_Click(object sender, RoutedEventArgs e) => await FinishSignOutAsync();
+
+    private async Task FinishSignOutAsync()
+    {
+        if (_clearingAccountData) return;
+        _clearingAccountData = true;
+        try
+        {
+            await ViewModel.SignOutAsync();
+        }
+        catch (AggregateException) { /* The view model records failures and exposes cleanup retry. */ }
+        finally
+        {
+            _clearingAccountData = false;
+            SettingsPanel.Visibility = Visibility.Collapsed;
+            ReaderHost.IsEnabled = true;
+            BindLocalCollections();
+            UpdateScreen();
+        }
+    }
+
+    private async void RetryStartup_Click(object sender, RoutedEventArgs e)
+    {
+        await RunUiActionAsync("Open library", () => ViewModel.InitializeAsync());
         BindLocalCollections();
         UpdateScreen();
+        await RefreshImagesAsync();
+    }
+
+    private async void ResetStartup_Click(object sender, RoutedEventArgs e)
+    {
+        await RunUiActionAsync("Reset database", async () =>
+        {
+            if (!await ConfirmDestructiveActionAsync("Reset the local database?",
+                "Spectro will preserve the existing database as a local backup and create an empty library. Unsynced changes in the backup will not be uploaded automatically.", "Reset database")) return;
+            await ViewModel.RecoverDatabaseAsync();
+            BindLocalCollections();
+            UpdateScreen();
+            await RefreshImagesAsync();
         });
     }
 
@@ -161,9 +201,6 @@ public sealed partial class MainPage : Page
                 "This removes downloaded stories and unsynced changes from this device. Your NewsBlur account is not deleted.",
                 "Reset library")) return;
         await ViewModel.ResetLocalDataAsync();
-        ClearReaderDocument();
-        await App.Services.WebViewDataCleaner.ClearAsync();
-        await App.Services.ClearImagesAsync();
         BindLocalCollections();
         SelectCurrentNavigation();
         });
@@ -351,7 +388,7 @@ public sealed partial class MainPage : Page
             "reader.spectro.invalid", _readerDirectory, CoreWebView2HostResourceAccessKind.Deny);
         ArticleReader.CoreWebView2.NavigationCompleted += ArticleReader_NavigationCompleted;
         ArticleReader.CoreWebView2.NewWindowRequested += ArticleReader_NewWindowRequested;
-        App.Services.WebViewDataCleaner.Register(ArticleReader.CoreWebView2, _readerDirectory);
+        App.Services.WebViewDataCleaner.Register(ArticleReader.CoreWebView2);
         _readerInitialized = true;
     }
 
@@ -412,8 +449,10 @@ public sealed partial class MainPage : Page
                 });
             }
         }
-        else if (e.PropertyName is nameof(AppViewModel.Screen) or nameof(AppViewModel.IsBusy))
+        else if (e.PropertyName is nameof(AppViewModel.Screen) or nameof(AppViewModel.IsBusy)
+                 or nameof(AppViewModel.NeedsSignOutCleanup))
         {
+            if (!ViewModel.IsReaderScreen) ClearReaderDocument();
             UpdateScreen();
         }
         else if (e.PropertyName == nameof(AppViewModel.ReaderHtml))
@@ -423,6 +462,11 @@ public sealed partial class MainPage : Page
         else if (e.PropertyName == nameof(AppViewModel.Settings))
         {
             ApplyTheme();
+        }
+        else if (e.PropertyName == nameof(AppViewModel.LibraryBackupPath))
+        {
+            LibraryBackupNotice.Visibility = ViewModel.LibraryBackupPath is null ? Visibility.Collapsed : Visibility.Visible;
+            LibraryBackupNotice.IsOpen = ViewModel.LibraryBackupPath is not null;
         }
         else if (e.PropertyName is nameof(AppViewModel.StatusMessage) or nameof(AppViewModel.StatusTitle)
                  or nameof(AppViewModel.IsStale) or nameof(AppViewModel.IsOffline)
@@ -439,8 +483,13 @@ public sealed partial class MainPage : Page
     private void UpdateScreen()
     {
         LoadingPanel.Visibility = ViewModel.IsLoadingScreen ? Visibility.Visible : Visibility.Collapsed;
+        StartupErrorPanel.Visibility = ViewModel.IsStartupErrorScreen ? Visibility.Visible : Visibility.Collapsed;
+        RetryStartupButton.IsEnabled = ResetStartupButton.IsEnabled = !ViewModel.IsBusy;
+        RetrySignOutCleanupButton.Visibility = ViewModel.NeedsSignOutCleanup ? Visibility.Visible : Visibility.Collapsed;
+        RetrySignOutCleanupButton.IsEnabled = !ViewModel.IsBusy;
         LoginPanel.Visibility = ViewModel.IsLoginScreen ? Visibility.Visible : Visibility.Collapsed;
         ReaderPanel.Visibility = ViewModel.IsReaderScreen ? Visibility.Visible : Visibility.Collapsed;
+        ReaderHost.IsEnabled = ViewModel.CanInteract && !_clearingAccountData && SettingsPanel.Visibility != Visibility.Visible;
         LoginProgress.Visibility = ViewModel.IsBusy && ViewModel.IsLoginScreen
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -734,31 +783,59 @@ public sealed partial class MainPage : Page
 
     private void NavigateReader(double? restoreScroll = null)
     {
-        if (_readerInitialized && ViewModel.SelectedStory is { } story)
+        ShowReader();
+        if (!_readerInitialized) return;
+        if (ViewModel.SelectedStory is not { } story)
         {
-            var readerSettings = ViewModel.Settings with
-            {
-                Theme = ActualTheme == ElementTheme.Dark ? AppTheme.Dark : AppTheme.Light
-            };
-            var html = ReaderHtmlBuilder.Build(story, readerSettings, ReadCover(story), SourceFor(story));
+            ClearReaderDocument();
+            return;
+        }
+        var version = ++_readerRenderVersion;
+        _readerNavigationId = null;
+        var readerSettings = ViewModel.Settings with
+        {
+            Theme = ActualTheme == ElementTheme.Dark ? AppTheme.Dark : AppTheme.Light
+        };
+        var publication = SourceFor(story);
+        var previousWork = _readerWork;
+        // Serialize document publication, while letting newer selections invalidate queued work.
+        _readerWork = RunUiActionAsync("Open article reader", async () =>
+        {
+            await previousWork;
+            if (!Current()) return;
+            var html = await Task.Run(() => ReaderHtmlBuilder.Build(story, readerSettings, ReadCover(story), publication));
+            if (!Current()) return;
+            var path = Path.Combine(_readerDirectory, $"article-{Guid.NewGuid():N}.html");
             try
             {
-                // A local virtual host avoids NavigateToString's 2 MiB limit without allowing network content.
-                File.WriteAllText(Path.Combine(_readerDirectory, "article.html"), html);
-                _readerAddress = $"https://reader.spectro.invalid/article.html?v={Guid.NewGuid():N}";
+                await File.WriteAllTextAsync(path, html);
+                if (!Current())
+                {
+                    await Task.Run(() => File.Delete(path));
+                    return;
+                }
+                var previousDocument = _readerDocumentPath;
+                _readerDocumentPath = path;
+                _readerAddress = $"https://reader.spectro.invalid/{Path.GetFileName(path)}";
                 _restoreScroll = restoreScroll;
                 ArticleReader.CoreWebView2.Navigate(_readerAddress);
+                if (previousDocument is not null)
+                    await Task.Run(() => File.Delete(previousDocument));
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
                 System.Diagnostics.Trace.TraceError($"Local reader document failed: {exception.GetType().Name}");
-                StatusBar.Title = "Could not open this article";
-                StatusBar.Message = "The local reading document could not be written. Check available disk space and try again.";
-                StatusBar.IsOpen = true;
+                if (Current())
+                {
+                    StatusBar.Title = "Could not open this article";
+                    StatusBar.Message = "The local reading document could not be written. Check available disk space and try again.";
+                    StatusBar.IsOpen = true;
+                }
             }
-        }
+        });
 
-        ShowReader();
+        bool Current() => version == _readerRenderVersion && IsLoaded && ViewModel.IsReaderScreen
+            && ViewModel.SelectedStory?.Hash == story.Hash;
     }
 
     private async void ArticleReader_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs args)
@@ -779,8 +856,12 @@ public sealed partial class MainPage : Page
 
     private void ClearReaderDocument()
     {
+        ++_readerRenderVersion;
         _readerAddress = null;
+        _readerNavigationId = null;
         _restoreScroll = null;
+        _focusReaderAfterNavigation = false;
+        _readerDocumentPath = null;
         if (_readerInitialized) ArticleReader.CoreWebView2.Navigate("about:blank");
     }
 
@@ -864,20 +945,20 @@ public sealed partial class MainPage : Page
         }
     }
 
-    private void Settings_Changed(object sender, SelectionChangedEventArgs e) =>
-        SaveSettings();
+    private async void Settings_Changed(object sender, SelectionChangedEventArgs e) =>
+        await SaveSettingsAsync();
 
-    private void SettingsNumber_Changed(
+    private async void SettingsNumber_Changed(
         NumberBox sender,
         NumberBoxValueChangedEventArgs args) =>
-        SaveSettings();
+        await SaveSettingsAsync();
 
-    private void DownloadImages_Toggled(object sender, RoutedEventArgs e)
+    private async void DownloadImages_Toggled(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.IsReaderScreen && ThemeBox is not null) SaveSettings();
+        if (ViewModel.IsReaderScreen && ThemeBox is not null) await SaveSettingsAsync();
     }
 
-    private void SaveSettings()
+    private async Task SaveSettingsAsync()
     {
         if (_updatingSettings
             || ThemeBox.SelectedIndex < 0
@@ -889,13 +970,13 @@ public sealed partial class MainPage : Page
             return;
         }
 
-        ViewModel.UpdateSettings(new ReaderSettings(
+        await RunUiActionAsync("Save settings", () => ViewModel.UpdateSettingsAsync(new ReaderSettings(
             (AppTheme)ThemeBox.SelectedIndex,
             TextSizeBox.Value,
             ReadingWidthBox.Value,
             (StoryFilter)DefaultFilterBox.SelectedIndex,
             (int)RetentionBox.Value,
-            DownloadImagesSwitch.IsOn));
+            DownloadImagesSwitch.IsOn)));
     }
 
     private async void SyncAccelerator_Invoked(
