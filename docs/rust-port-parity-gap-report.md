@@ -1,31 +1,67 @@
-# Spectro: specific Reactor gaps blocking WinUI parity
+# Spectro: Reactor parity gaps and landed fixes
 
-## 1. TextBlock: four missing typography properties
+**Reviewed:** 2026-10-20, against windows-rs master at `ed16707c4b889698e68016b7add119d98b283e11`. The original audit used `9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22`; Spectro examples still refer to PR #26 at `44c28d223e1d2170cfdf423fa3ff83467e9a3f53` pending the application-baseline reconciliation in the [port plan](rust-port-plan.md).
 
-| Required WinUI property | Spectro usage | Missing Reactor contract |
+The [October 19 maintainer update][issue-update] closes umbrella issue #5087 after several fixes landed. It explicitly leaves the remaining features for focused issues; closing the issue does not close every gap below. The October 20 accessibility change is also included in this review. Gap numbers remain stable for the port plan; they differ from the issue's checklist numbers.
+
+**Status meanings:** “Landed” means the missing upstream capability is implemented at the audited revision, with the cited upstream coverage. Spectro adoption and its native parity checks are still required. This review inspected source and PR changes; it did not execute Reactor or a Rust Spectro application. The source crates still declare `0.100.0`; that does not establish that a published `0.100.0` package contains these later commits. Pin a source revision containing the fixes, or verify a later release's contents before adoption.
+
+| Gap | Current status | Port consequence |
 |---|---|---|
-| `TextBlock.FontFamily` | `"Georgia"` on loading, login, empty-state, and settings headings; for example, the login heading uses `FontSize="42"` | No `font_family` builder or schema property; no callable `ITextBlock.SetFontFamily` projection. |
-| `TextBlock.CharacterSpacing` | Branding `-30`; labels `100`, `130`, `150`, `160` | No `character_spacing` builder or schema property; no callable `ITextBlock.SetCharacterSpacing` projection. |
-| `TextBlock.LineHeight` | Story summaries `16`; reader empty-state copy `23` | No `line_height` builder or schema property; no callable `ITextBlock.SetLineHeight` projection. |
-| `TextBlock.TextAlignment` | `Center` on wrapped empty-state headings and messages | No `text_alignment` builder or schema property; no callable `ITextBlock.SetTextAlignment` projection. |
+| 1: TextBlock typography | Landed: #5105, #5158 | Consume the four native properties; retain typography comparisons |
+| 2: FontIcon size/foreground | Landed: #5106 | Consume native properties; app-defined theme brushes still need gap 5 |
+| 3: panel padding/borders | Open, optional | Use a proven Border wrapper or request the native builders |
+| 4: QuietButton | Open | Prove the exact setters and state precedence through bounded native support |
+| 5: theme resources | Open | Named brushes, scoped theme dictionaries, and high contrast remain required |
+| 6: ListView container style | Open | Generated row containers still need styling support |
+| 7: ItemClick / reorder continuity | Open / verification required | ItemClick is missing; large-reorder scroll/focus behavior remains unresolved |
+| 8: retained visibility | Open | Native collapse is still required |
+| 9: disabled content host / focus | Open | ContentControl, ListView references, and focus capture/restore remain required |
+| 10: accelerator keys/modifiers | Open | A fork proposal and new tests do not add the required accelerator declarations |
+| 11: window lifecycle/caption colors | Open | Lifecycle-owned shortcuts and explicit caption overrides remain required |
+| 12: NumberBox options | Landed: #5104 | Consume native increment/spinner properties |
+| 13: UI Automation | Partial: #5170 | LiveSetting is available; AccessibilityView is still missing |
+| 14: ContentDialog | Landed: #5103, #5160 | Set the default button; use owner-theme propagation instead of duplicating RequestedTheme |
+| 15: row context menus | Open | Arbitrary-element native context-menu attachment remains required |
+| 16: runtime staging | Landed: #5109 | Adopt fixed setup; retain package architecture/payload and concurrency checks |
 
-**Evidence:** [Spectro TextBlocks][app-xaml]; [Reactor TextBlock schema][schema-text]; [Reactor `ITextBlock_Vtbl`][native-text]. The native projection contains `SetFontFamily: usize`, `SetCharacterSpacing: usize`, `SetTextAlignment: usize`, and `SetLineHeight: usize`: these preserve COM vtable positions but are **not callable Rust bindings**.
+## Merged changes used in this reassessment
 
-**Required change:** add those four schema properties, generate their callable WinUI setters and required types, and wire native property application/removal. `FontFamily` needs a native `FontFamily` value constructed from the family string; `TextAlignment` needs the native enum.
+Merge revisions below are evidence, not independent versions to mix into one build. The audited master revision above contains them together.
 
-**Blocked parity:** actual font selection, glyph advances, line placement, wrapping, and alignment within a text block. Setting the element's `HorizontalAlignment` does not set the alignment of its text.
+| PR | Merged (UTC) | Merge revision | Relevant change |
+|---|---|---|---|
+| [#5103][pr-5103] | 2026-10-16 | `d3c0d1e528f02edec11c5c2902eb2aa8565219c1` | ContentDialog default button and removal/reset handling |
+| [#5104][pr-5104] | 2026-10-16 | `f2dd405ec7e370874c71dd8fce39568c80836c66` | NumberBox SmallChange and spin-button placement |
+| [#5105][pr-5105] | 2026-10-16 | `33fefee73549eddef9d9aca2a17f98d9c032f3f8` | TextBlock text alignment |
+| [#5106][pr-5106] | 2026-10-16 | `ee70f1e719244b7b5b4328ca9ed99625d3b77a54` | FontIcon size and foreground |
+| [#5109][pr-5109] | 2026-10-16 | `9e30330d50b27da94dc70cee13cba4cdccbaabb1` | Architecture-specific completed caches, fatal staging errors, destination locking, and Cargo native-test foundation |
+| [#5158][pr-5158] | 2026-10-19 | `afcb0ab1f8cf7a71ec563f659451748b26e7f5b6` | TextBlock font family, character spacing, and line height |
+| [#5160][pr-5160] | 2026-10-19 | `0a5ced4d9082c34c694d06b015cfe95f47011c1d` | Dialog theme propagation, live theme updates, and shutdown with an open dialog |
+| [#5170][pr-5170] | 2026-10-20 | `b95e10774b625f4a95ba28c7bc3b5ef6a08a6bef` | Live regions, help/full descriptions, and UIA notification requests; resolves focused issue #5135 |
 
-## 2. FontIcon: missing FontSize and Foreground
+## 1. TextBlock: typography properties landed
+
+| Required WinUI property | Spectro usage | Current Reactor contract |
+|---|---|---|
+| `TextBlock.FontFamily` | `"Georgia"` on loading, login, empty-state, and settings headings; for example, the login heading uses `FontSize="42"` | `font_family(...)`, with native FontFamily construction (#5158) |
+| `TextBlock.CharacterSpacing` | Branding `-30`; labels `100`, `130`, `150`, `160` | `character_spacing(i32)`, including negative spacing (#5158) |
+| `TextBlock.LineHeight` | Story summaries `16`; reader empty-state copy `23` | `line_height(f64)`; zero restores automatic line height (#5158) |
+| `TextBlock.TextAlignment` | `Center` on wrapped empty-state headings and messages | `text_alignment(TextAlignment)`, applied to the text itself (#5105) |
+
+**Status: landed.** [#5105][pr-5105] and [#5158][pr-5158] add the public declarations, generated/native handling, and reset behavior. Coverage includes rendered alignment, changing typography on retained controls, automatic line height, and removing overrides. See the [current schema][schema-text] and [generated builders][current-builders].
+
+**Spectro adoption:** port the exact source values and compare font selection, glyph advances, line placement, wrapping, alignment, and property removal against the C# oracle ([TextBlocks][app-xaml]). No additional upstream typography feature is required for these four assignments.
+
+## 2. FontIcon: FontSize and Foreground landed
 
 Spectro sets `FontIcon.FontSize` to values including `11`, `16`, `17`, `23`, `28`, `36`, and `40`, and sets `Foreground` to `BrandBrush` or `MutedInkBrush`.
 
-**Missing:** Reactor's `FontIcon` schema declares only `Glyph`. Its filtered `IFontIcon` projection exposes only `SetGlyph`; the `IIconElement` projection has no foreground setter. There is no public `font_size` or `foreground` contract on this declaration.
+**Status: landed** in [#5106][pr-5106]. `FontIcon::font_size` and `foreground` use the native size and existing theme-brush paths. Removing overrides restores native sizing and inherited foreground. Upstream coverage exercises retained icons, solid/theme brush transitions, Light/Dark changes, clearing, and inheritance.
 
-**Evidence:** [Spectro FontIcon declarations][app-xaml]; [FontIcon schema][schema-icon]; [IFontIcon projection][native-font-icon]; [IIconElement projection][native-icon-element].
+**Evidence:** [Spectro FontIcon declarations][app-xaml]; [current FontIcon schema][schema-icon]; [generated builders][current-builders]; [merged change and coverage][pr-5106].
 
-**Required change:** project and expose `FontIcon.FontSize` and inherited `IconElement.Foreground`, including theme-resource brush assignment. Use those native properties, not a TextBlock containing an icon character.
-
-**Blocked parity:** the loading/sign-in icons, navigation glyphs, toolbar glyphs, saved/unread indicators, and sync status icon have explicit sizes and colors that cannot currently be assigned.
+**Spectro adoption:** use these properties for the original glyphs, sizes, and inheritance. `BrandBrush` and `MutedInkBrush` are app-defined resource keys; #5106 does not add named theme dictionaries, so their exact live palette behavior still depends on gap 5.
 
 ## 3. Grid and StackPanel: missing native padding and border properties (ergonomic; workaround exists)
 
@@ -46,6 +82,8 @@ Spectro sets `FontIcon.FontSize` to values including `11`, `16`, `17`, `23`, `28
 
 ## 4. Button: QuietButton setters cannot be represented
 
+**Status: open.** The current schema still lacks the direct setters below. Existing `resource_overrides` already supports some foreground/border customization; evaluate it before requesting additional API surface.
+
 Spectro's `QuietButton` style requires:
 
 | Setter | Required value | Missing surface |
@@ -58,11 +96,13 @@ Spectro's `QuietButton` style requires:
 
 `ButtonStyle` accepts only `Default`, `Accent`, `Subtle`, and `TextLink`. It cannot accept the app's `QuietButton` style or an arbitrary typed setter collection. The native style adapter only composes predefined button styles and its restricted theme-brush assignments.
 
-**Required change:** expose the three properties and provide a typed native Button style/setter path capable of representing this style. Preserve style-setter precedence; replacing setters with higher-precedence local values must not change disabled, hover, pressed, or focus rendering.
+**Required capability:** represent these exact setters with native precedence, using existing resource overrides where equivalence is proven and bounded property/style support for the remainder. The [upstream checklist][issue] does not require an unrestricted styling API. Preserve disabled, hover, pressed, and focus rendering when choosing between native style setters, resource overrides, and local values.
 
 **Blocked parity:** toolbar/button padding, foreground inheritance into child icons, and border rendering. Choosing `Subtle` because it looks similar is not an equivalent implementation.
 
 ## 5. Theme resources: no app-defined ThemeResource brush references or theme dictionaries
+
+**Status: open.** Neither the FontIcon changes nor automatic dialog theme propagation adds these app-defined resource contracts.
 
 Spectro defines these brush keys in `ResourceDictionary.ThemeDictionaries`:
 
@@ -87,6 +127,8 @@ Each has light/dark values. The HighContrast dictionary maps them to `SystemColo
 
 ## 6. ListView: no ItemContainerStyle contract for the generated native containers
 
+**Status: open.** The audited ListView schema/builders still expose neither generated-container styling nor the required container setters.
+
 | Native container style | Required setters |
 |---|---|
 | `LibraryItemStyle` | `MinHeight=44`, `Padding=0`, `Margin=8,1`, `HorizontalContentAlignment=Stretch` |
@@ -104,6 +146,8 @@ Reactor's ListView accepts `DataItem`, not explicit `ListViewItem`, and its adap
 **Blocked parity:** native selection/hover/focus backgrounds, content stretching, row padding, container margins, and minimum row heights.
 
 ## 7. ListView: missing ItemClick; whole-list replacement during reorders
+
+**Status: ItemClick remains open; reorder continuity remains an acceptance gate.** The similarly named `ItemClicked` event in the schema belongs to another control, not ListView.
 
 ### ItemClick
 
@@ -125,9 +169,15 @@ Spectro updates its collection incrementally with `RemoveAt`/`Insert` ([incremen
 
 **Required verification/change:** compare large sync reorders against C# with a scrolled, focused, selected ListView. If `ReplaceAll` changes the visible anchor, offset, or focus, preserve those states explicitly or use keyed mutations for that path. The default `KeepItemsInView` mode does not require a new property.
 
-**Blocked parity:** compact-mode reopening and keyboard activation of the selected story require ItemClick. Scroll stability during large sync reorders is a verification gate rather than a confirmed failure.
+**New evidence:** the [October 16 maintainer repro][reorder-repro] reverses 101 stable-key ListView items after scrolling/focusing row 50; the `ReplaceAll` path resets scroll to the top and moves focus to the new first item. This establishes a synthetic failure, not yet Spectro's expected behavior under a real sync scenario. Forcing the incremental path also crashed in a diagnostic run, so removing `ReplaceAll` is not a validated fix. Related [issue #5146][list-crash] reports keyed updates followed by a non-public ScrollIntoView helper on a fork; it is not proof of a clean-master Spectro regression.
+
+[#5114][pr-5114] improves keyed moves for **owned** native collections and preserves focus on unmoved controls. ListView DataItems use the separate **container** path, which still calls `ReplaceAll` at the threshold ([current implementation][relations-replace-all]). Do not mark this gate closed based on that PR.
+
+**Blocked parity:** compact-mode reopening and keyboard activation of the selected story require ItemClick. Scroll/focus stability remains a Spectro verification gate, with the upstream synthetic failure documented above.
 
 ## 8. Visibility: no retained Visible/Collapsed property
+
+**Status: open.** The audited shared visual schema still has no native Visibility property.
 
 Spectro changes `UIElement.Visibility` on `LoadingPanel`, `LoginPanel`, `ReaderPanel`, `SettingsPanel`, `NavigationPane`, `FeedPane`, `StoryPane`, `ArticlePane`, `ArticleReader`, search controls, empty states, progress, and Back/Cancel controls.
 
@@ -140,6 +190,8 @@ Spectro changes `UIElement.Visibility` on `LoadingPanel`, `LoginPanel`, `ReaderP
 **Blocked parity:** pane switching and overlays without destroying browser state, text-input state, native selection, or scroll position. Removing/recreating a subtree is not `Collapsed`; opacity zero is not `Collapsed`.
 
 ## 9. Settings: missing disabled ContentControl subtree and focus capture/restore
+
+**Status: open.** [#5128][pr-5128] adds tests for existing ElementRef focus and stale-reference handling; it does not add ContentControl, ListView references, or capture of the currently focused native control.
 
 Spectro wraps the reader in:
 
@@ -161,6 +213,8 @@ Opening settings captures `FocusManager.GetFocusedElement(XamlRoot) as Control`,
 
 ## 10. Keyboard accelerators: missing keys and combined modifiers
 
+**Status: open.** The October 18 issue comment describes a fork/proposed API, not a merged implementation. The audited enums and adapter still have the restrictions below. [#5141][pr-5141] tests keyboard routing and accelerator callback replacement without changing the runtime or declarations.
+
 | Spectro shortcut | Missing Reactor enum value |
 |---|---|
 | Ctrl+D | `AcceleratorKey::D` |
@@ -177,6 +231,8 @@ Opening settings captures `FocusManager.GetFocusedElement(XamlRoot) as Control`,
 **Blocked parity:** settings, open-original, save, and mark-read shortcuts.
 
 ## 11. Native window: missing activation callbacks and caption-color declarations (no safe built-in API; raw-HWND workaround exists)
+
+**Status: open.** The newer native window/input tests do not add activation observation, teardown-owned shortcut registration, or these explicit caption-color setters. [#5127][pr-5127] fixes custom-title-bar client sizing; it does not implement those contracts.
 
 **Existing workaround:** `ComponentContext::run_window` passes a `WindowHandle` to a closure, and `WindowHandle::as_raw` returns the HWND ([run_window][component-run-window]). With it, an app can install its own window subclass (for `WM_ACTIVATE` and `WM_HOTKEY`) and reach `AppWindow` through `GetWindowIdFromWindow` to set the caption colors. Limits of this workaround:
 
@@ -209,7 +265,7 @@ Spectro sets:
 
 **Blocked parity:** active-window-only global shortcut ownership and themed/high-contrast caption buttons.
 
-## 12. NumberBox: missing SmallChange and SpinButtonPlacementMode
+## 12. NumberBox: SmallChange and SpinButtonPlacementMode landed
 
 | Control | `SmallChange` | `SpinButtonPlacementMode` |
 |---|---|---|
@@ -217,42 +273,40 @@ Spectro sets:
 | ReadingWidthBox | `20` | `Compact` |
 | RetentionBox | `7` | `Compact` |
 
-**Missing:** both properties are absent from the NumberBox schema. `INumberBox.SetSmallChange` and `SetSpinButtonPlacementMode` are unprojected vtable slots.
+**Status: landed** in [#5104][pr-5104]. `small_change(f64)` and `spin_button_placement_mode(NumberBoxSpinButtonPlacementMode)` expose Hidden, Inline, and Compact, with native application/removal and ownership coverage.
 
-**Evidence:** [settings NumberBoxes][app-numberboxes]; [NumberBox schema][schema-number]; [INumberBox projection][native-number].
+**Evidence:** [settings NumberBoxes][app-numberboxes]; [current NumberBox schema][schema-number]; [generated builders][current-builders]; [merged change][pr-5104].
 
-**Required change:** generate and expose the double-valued SmallChange setter and native spin-placement enum/setter. Preserve native input validation and ValueChanged feedback.
+**Spectro adoption:** use Compact with the source increments `1`, `20`, and `7`. Preserve native validation, ValueChanged feedback, invalid/NaN input behavior, and the app's setting-population feedback suppression. This no longer needs an upstream feature addition.
 
-**Blocked parity:** spinner appearance and numeric increments. Minimum/maximum/value alone do not specify these behaviors.
+## 13. UI Automation: LiveSetting landed; AccessibilityView remains missing
 
-## 13. UI Automation: missing LiveSetting and AccessibilityView
-
-| Attached property | Required assignment | Missing surface |
+| Attached property | Required assignment | Current status |
 |---|---|---|
-| `AutomationProperties.LiveSetting` | `SyncStatusText=Polite` | No attached schema property; native `SetLiveSetting` is an unprojected slot. |
+| `AutomationProperties.LiveSetting` | `SyncStatusText=Polite` | Landed in #5170 as `automation_live_setting(AutomationLiveSetting::Polite)` |
 | `AutomationProperties.AccessibilityView` | Story thumbnail `Image=Raw` | No attached schema property; native `SetAccessibilityView` is an unprojected slot. |
 
-**Evidence:** [thumbnail automation assignment][app-story-list]; [sync status assignment][app-status]; [attached-property schema][schema-automation]; [native automation slots][native-automation].
+**Status: partial.** [#5170][pr-5170], merged after the umbrella issue closed, resolves focused issue #5135. It adds live settings, HelpText/FullDescription, automatic LiveRegionChanged events for changed text, and ElementRef notification requests. It does **not** add AccessibilityView ([current attached-property schema][schema-automation]).
 
-**Required change:** project and expose both attached setters and their enums.
+**Remaining change:** expose `AutomationProperties.AccessibilityView` and its enum so decorative story thumbnails can remain Raw ([assignment][app-story-list]).
 
-**Blocked parity:** the sync status live-region configuration and exclusion of decorative thumbnails from the Control/Content automation views.
+**Spectro adoption:** apply Polite to [SyncStatusText][app-status] and verify announcements under real sync updates. New/off regions and layout-only changes stay quiet upstream. Reactor's automatic text-change announcements should be checked against the C# oracle; any intended announcement difference needs reconciliation. The new description/notification APIs are available but are not additional Spectro feature requirements. Thumbnail exclusion from Control/Content automation views remains blocked.
 
-## 14. ContentDialog: missing DefaultButton and RequestedTheme
+## 14. ContentDialog: default button and owner-theme behavior landed
 
 Spectro's sign-out/reset confirmation sets:
 
 `DefaultButton=ContentDialogButton.Close`, `CloseButtonText="Cancel"`, and `RequestedTheme=RequestedTheme`.
 
-**Missing:** ContentDialog has no DefaultButton property in the schema/builders; the native `SetDefaultButton` slot is unprojected. RequestedTheme is absent from both the dialog declaration and shared visual properties.
+**Status: landed through two changes.** [#5103][pr-5103] adds `default_button(ContentDialogButton::Close)` and reset/ownership handling. [#5160][pr-5160] applies the owner's actual theme at attachment and observes ActualThemeChanged, including updates while the dialog remains open. It also fixes shutdown with a dialog still open.
 
-**Evidence:** [confirmation construction][app-dialog]; [ContentDialog schema][schema-dialog]; [ContentDialog builders][dialog-builder]; [native DefaultButton slot][native-dialog]; [shared visual schema][schema-visual].
+**Evidence:** [confirmation construction][app-dialog]; [current dialog schema/builders][schema-dialog]; [theme propagation and ownership][dialog-theme]; [upstream native/UI coverage][pr-5160].
 
-**Required change:** add DefaultButton and explicit dialog RequestedTheme. Preserve Cancel as the default and use the page's requested theme rather than relying on popup inheritance.
-
-**Blocked parity:** default-button emphasis/Enter behavior and explicit theme selection on destructive-action confirmations.
+**Spectro adoption:** set Close/Cancel as the default and keep the dialog owner on the same requested/effective theme as the Spectro page. Use Reactor's live owner-theme contract; a separate public RequestedTheme builder is no longer required for this scenario. Verify Light/Dark/System/high contrast, changing theme while open, reopening, owner replacement, Enter/Cancel behavior, and closing the window with a dialog open. A future independently themed dialog would be a different requirement.
 
 ## 15. Context menus: no ContextFlyout on non-button elements
+
+**Status: open.** The audited MenuExt/native attachment path still does not provide an arbitrary-element ContextFlyout contract.
 
 Each story row is a `Grid` with a `Grid.ContextFlyout` `MenuFlyout` holding two `MenuFlyoutItem`s. Their `Text` is bound to `ReadAction`/`SaveAction` (it changes with the item's state), `Tag` is bound to the item, and `Click` invokes `ToggleRead_Click`/`ToggleSaved_Click` ([story context menu][app-context-flyout]). WinUI opens the menu on right-click, a touch press-and-hold, Shift+F10, and the Menu key.
 
@@ -265,43 +319,37 @@ Each story row is a `Grid` with a `Grid.ContextFlyout` `MenuFlyout` holding two 
 
 **Blocked parity:** right-click and keyboard context menus for Mark read/unread and Save/unsave on story rows. A `Button.Flyout` is not equivalent: it adds a visible button and does not respond to right-click or Shift+F10 on the row.
 
-## 16. Reactor setup: wrong-architecture cache reuse and silent deployment failures
+## 16. Reactor setup: architecture caches and staging failures fixed
 
-### Extracted runtime cache is not architecture-specific
+**Status: landed** in [#5109][pr-5109], confirmed by the [updated runtime-deployment comment][deployment-update]. The original wrong-architecture reuse and ignored-error defects are fixed in the [current setup implementation][setup]:
 
-`stage_pkg` creates a cache path keyed by package name/version. `ensure_msix_extracted` selects `MSIX\win10-<target architecture>\Microsoft.WindowsAppRuntime.2.msix`, but extracts it into the same package-level `.msix_extract` directory for every architecture and skips extraction if that directory exists.
+- Extracted MSIX caches use `.msix_extract-{arch}`. A versioned cache namespace avoids trusting unchecked legacy entries.
+- Package/runtime extraction populates a temporary directory, checks required files, and renames it into the completed location only on success. Failed population can be retried; per-entry locks serialize cache publication.
+- Download, extraction, directory/read, and copy errors propagate to the build script. `as_self_contained` fails with staging diagnostics.
+- A separate destination lock spans runtime **and** WebView2 DLL copying into the shared Cargo profile directory. Cache locks alone did not prevent concurrent output-copy sharing violations.
 
-**Consequence:** an x64 build followed by an ARM64 build using that cache can copy the x64 runtime into the ARM64 output.
+Upstream regressions cover architecture separation, failed extraction and retry, required-file checks, failed population, concurrent publication, copy failures, and eight processes deploying through the public API to a shared output directory. The PR's live WinUI test foundation is x64-only; architecture build/filesystem coverage does not establish real ARM64 application startup.
 
-**Required change:** key the extracted runtime cache by target architecture, validate binary architecture, and use an atomic completed-cache marker rather than directory existence.
-
-### Extraction/copy failures can be treated as completed staging
-
-`extract_tar` ignores process exit status; `copy_file` ignores `fs::copy` errors and logs missing files without failing; directory creation can precede unsuccessful extraction.
-
-**Consequence:** packaging can continue with missing runtime files or an incomplete cache that future builds reuse.
-
-**Required change:** propagate download/extract/copy failures, verify required-file completeness, and publish a cache entry only after validation.
-
-**Evidence:** [`ensure_msix_extracted`, copy, cache, download, and extraction functions][setup].
+**Spectro adoption:** consume the fixed setup revision and preserve these tests when patching its runtime pin. Setup's publication checks use selected required files, not an exhaustive Spectro MSIX payload audit or PE-machine inspection. Verify all required packaged files and actual DLL architecture, interrupted staging/retry, both architecture build orders, shared-output concurrency, installed activation, and target-device execution. The upstream fix removes feature-development work from U6; it does not complete production packaging acceptance.
 
 ## Gap-filling order and port dependencies
 
-| Work package | Exact changes | Spectro work it unblocks |
+| Work package | Current disposition | Spectro work it unblocks |
 |---|---|---|
-| Native property coverage | TextBlock's four properties; FontIcon's two; NumberBox's two; dialog properties; UIA attached properties; Grid/StackPanel properties (optional if Border wrapper equivalence is proven) | Direct translation of the XAML's native property assignments |
-| Native styles and resources | Named theme brushes/dictionaries; QuietButton setters; generated ListView container styles | Original palettes, contrast behavior, toolbar states, and native row geometry |
-| Retained state and focus | Visibility; enabled ContentControl; ListView references; focused-control capture/restore | Responsive navigation, settings exclusion, reader lifetime, keyboard focus |
-| Native list events/updates | ItemClick/IsItemClickEnabled; verify large-reorder state continuity and fix any reproduced mismatch | Reopening selected stories; proving scroll/focus parity during sync reorders |
-| Context menus | `UIElement.ContextFlyout` projection; `context_menu` attachment on any element | Story-row Mark read / Save menus |
-| Keyboard/window integration | Missing keys and modifier combinations; activation/teardown with a safe subclass lifetime; caption setters | Original shortcuts with browser focus and exact window chrome |
-| Runtime deployment | Architecture-qualified caches; explicit staging failure; complete-file validation | Correct x64/ARM64 package output |
+| U1: native scalar properties | Adopt landed gaps 1, 2, 12, 14 and LiveSetting from 13; implement only the remaining AccessibilityView contract | Native source property assignments, dialogs, and automation |
+| U2: native styles and resources | Still open: gaps 4/5; use existing overrides where proven equivalent | Original palettes, contrast behavior, and toolbar states |
+| U3: list containers/events/menus | Still open: gap 6, gap 7 ItemClick, and gap 15 | Native row geometry, selected-item activation, and row menus |
+| U4: retained state and focus | Still open: gaps 8/9 | Responsive navigation, settings exclusion, reader lifetime, keyboard focus |
+| U5: keyboard/window integration | Still open: gaps 10/11 | Original shortcuts with browser focus and exact window chrome |
+| U6: runtime deployment | Upstream fixes landed; adopt, validate runtime alignment, inspect package payloads, and retain failure/concurrency regressions | Correct x64/ARM64 package output |
+| U7: panel properties | Optional gap 3; proven Border wrapper remains permitted | Original padding/separators without mandatory upstream expansion |
+| V1: ListView continuity | Synthetic failure documented; retain Spectro-specific repro/expected-behavior gate; #5114 does not close it | Scroll/focus/selection continuity during real sync changes |
 
 For each property addition, update Reactor's schema, generated declarations, filtered native projection, and adapter together. Native binding coverage alone does not create a public declaration; a public builder alone does not apply the property to WinUI.
 
-The missing font/layout/control bindings above are **Reactor's filtered WinUI projection**, not absent Windows font or layout functionality. The required windows-rs work is to generate those methods/types and expose them through Reactor. The native window items additionally require AppWindow/Win32 integration rather than a substitute UI.
+The remaining layout/control binding gaps concern **Reactor's filtered WinUI projection**, not absent Windows functionality. Remaining additions need generated methods/types and public Reactor contracts together. The native window items additionally require AppWindow/Win32 integration rather than a substitute UI.
 
-The [Rust port plan](rust-port-plan.md) maps these gaps to upstream work packages, application phases, and parity acceptance gates.
+The [Rust port plan](rust-port-plan.md#3-upstream-work-packages-and-blocking-gates) carries the same dispositions into P1/P4/P5/P6. Framework fixes do not change the five-crate architecture, data/protocol invariants, approved C# baseline requirement, or the final parity/cutover gates. Use focused upstream issues with small examples for remaining features, as requested when #5087 closed.
 
 [app-xaml]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L83-L359
 [app-styles]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L44-L68
@@ -320,47 +368,60 @@ The [Rust port plan](rust-port-plan.md) maps these gaps to upstream work package
 [app-numberboxes]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L350-L355
 [app-status]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L284-L286
 [app-dialog]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L172-L184
-[schema-text]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L133-L171
-[schema-icon]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L1290-L1294
-[schema-panels]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L407-L451
-[schema-button]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L213-L243
-[schema-list]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L611-L662
-[schema-visual]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L88-L130
-[schema-number]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L794-L824
-[schema-automation]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L69-L85
-[schema-dialog]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L1755-L1783
-[native-text]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L19566-L19610
-[native-font-icon]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L10404-L10412
-[native-icon-element]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L11385-L11387
-[native-grid]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L11095-L11123
-[native-stack]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L18200-L18225
-[native-control]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L8630-L8688
-[brush-types]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/declaration.rs#L204-L317
-[resource-adapter]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/hosting.rs#L1-L54
-[style-adapter]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/hosting.rs#L112-L196
-[window-types]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/window.rs#L14-L27
-[list-builder]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/generated_declarations.rs#L2974-L3062
-[container-builder]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/generated_declarations.rs#L6462-L6490
-[list-template]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/relations.rs#L603-L614
-[native-item-click]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L12701-L12719
-[native-visibility]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L21949-L21953
-[reference-api]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/reference.rs#L129-L340
-[accelerator-types]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/declaration.rs#L415-L446
-[accelerator-adapter]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/hosting.rs#L55-L115
-[window-publication]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/component.rs#L574-L581
-[native-window]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L22848-L22855
-[window-visuals]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/window.rs#L101-L165
-[native-number]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L14135-L14171
-[native-automation]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L6126-L6131
-[dialog-builder]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/generated_declarations.rs#L6337-L6409
-[native-dialog]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L8422-L8425
-[setup]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor-setup/src/lib.rs#L110-L225
+[schema-text]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-icon]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-panels]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-button]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-list]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-visual]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-number]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-automation]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[schema-dialog]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[native-grid]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/bindings.rs
+[native-stack]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/bindings.rs
+[native-control]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/bindings.rs
+[brush-types]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/declaration.rs
+[resource-adapter]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/winui/hosting.rs
+[style-adapter]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/winui/hosting.rs
+[window-types]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/window.rs
+[list-builder]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/generated_declarations.rs
+[container-builder]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/generated_declarations.rs
+[list-template]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/winui/relations.rs
+[native-item-click]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/bindings.rs
+[native-visibility]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/bindings.rs
+[reference-api]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/reference.rs
+[accelerator-types]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/declaration.rs
+[accelerator-adapter]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/winui/hosting.rs
+[window-publication]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/component.rs
+[native-window]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/bindings.rs
+[window-visuals]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/window.rs
+[setup]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor-setup/src/lib.rs
 [app-main-window-xaml]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainWindow.xaml#L15
 [app-context-flyout]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L267-L272
 [app-incremental]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L634-L643
-[schema-border]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/tools/reactor/src/schema.toml#L276-L300
-[relations-replace-all]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/relations.rs#L328-L368
-[component-run-window]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/component.rs#L358-L433
-[menu-ext]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/declaration.rs#L2166-L2170
-[hosting-set-menu]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/winui/hosting.rs#L537-L620
-[native-context-flyout]: https://github.com/microsoft/windows-rs/blob/9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22/crates/libs/reactor/src/native/bindings.rs#L21980-L22211
+[schema-border]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/tools/reactor/src/schema.toml
+[relations-replace-all]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/winui/relations.rs
+[component-run-window]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/component.rs
+[menu-ext]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/declaration.rs
+[hosting-set-menu]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/winui/hosting.rs
+[native-context-flyout]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/bindings.rs
+
+[issue]: https://github.com/microsoft/windows-rs/issues/5087
+[issue-update]: https://github.com/microsoft/windows-rs/issues/5087#issuecomment-6278409857
+[deployment-update]: https://github.com/microsoft/windows-rs/issues/5087#issuecomment-6170600368
+[reorder-repro]: https://github.com/microsoft/windows-rs/issues/5087#issuecomment-6205199520
+[list-crash]: https://github.com/microsoft/windows-rs/issues/5146
+[pr-5103]: https://github.com/microsoft/windows-rs/pull/5103
+[pr-5104]: https://github.com/microsoft/windows-rs/pull/5104
+[pr-5105]: https://github.com/microsoft/windows-rs/pull/5105
+[pr-5106]: https://github.com/microsoft/windows-rs/pull/5106
+[pr-5109]: https://github.com/microsoft/windows-rs/pull/5109
+[pr-5114]: https://github.com/microsoft/windows-rs/pull/5114
+[pr-5127]: https://github.com/microsoft/windows-rs/pull/5127
+[pr-5128]: https://github.com/microsoft/windows-rs/pull/5128
+[pr-5141]: https://github.com/microsoft/windows-rs/pull/5141
+[pr-5158]: https://github.com/microsoft/windows-rs/pull/5158
+[pr-5160]: https://github.com/microsoft/windows-rs/pull/5160
+[pr-5170]: https://github.com/microsoft/windows-rs/pull/5170
+[current-builders]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/generated_declarations.rs
+[dialog-theme]: https://github.com/microsoft/windows-rs/blob/ed16707c4b889698e68016b7add119d98b283e11/crates/libs/reactor/src/native/winui/hosting.rs#L753-L846
