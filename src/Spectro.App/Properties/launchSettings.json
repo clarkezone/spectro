@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Spectro.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Spectro.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -1,23 +1,23 @@
-﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace NewsBlurSharp.Model.Response
 {
 
     internal class InternalLoginResponse
     {
-        [JsonProperty("authenticated")]
+        [JsonPropertyName("authenticated")]
         public bool Authenticated { get; set; }
 
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("user_id")]
+        [JsonPropertyName("user_id")]
         public int UserId { get; set; }
 
-        [JsonProperty("errors")]
+        [JsonPropertyName("errors")]
         public object Errors { get; set; }
 
-        [JsonProperty("result")]
+        [JsonPropertyName("result")]
         public string Result { get; set; }
     }
 }
