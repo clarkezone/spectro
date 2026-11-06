@@ -1,6 +1,6 @@
 # Spectro: Reactor parity gaps and landed fixes
 
-**Reviewed:** 2026-11-05, against windows-rs master at `db9801679bac964b6367b1d1d1bf8472ab001065`. The October 20 reassessment used `ed16707c4b889698e68016b7add119d98b283e11`; the original audit used `9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22`. Spectro examples still refer to PR #26 at `44c28d223e1d2170cfdf423fa3ff83467e9a3f53` pending application-baseline reconciliation. PR #26 remains open at head `7db3a8656f392fd555e5eee760a3d361834cad9e` as verified on November 5.
+**Reviewed:** 2026-11-05, against windows-rs master at `db9801679bac964b6367b1d1d1bf8472ab001065`. The October 20 reassessment used `ed16707c4b889698e68016b7add119d98b283e11`; the original audit used `9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22`. Spectro examples still refer to PR #26 at `53c631a44b3a9683093d3c95216b559641e6bd07` pending application-baseline reconciliation. PR #26 remains open at head `0d71afe047741dd8b3f5337dc0b55971cdc873b6` as verified on November 5.
 
 The [October 19 maintainer update][issue-update] closes umbrella issue #5087 after several fixes landed. It explicitly leaves the remaining features for focused issues; closing the issue does not close every gap below. The November source review finds **no further closure of the original feature gaps** beyond October's five landed areas and partial accessibility support. Later correctness, API, and runtime changes still affect adoption. Gap numbers remain stable for the [port plan](rust-port-plan.md); they differ from the issue's checklist numbers.
 
@@ -376,23 +376,23 @@ The remaining layout/control binding gaps concern **Reactor's filtered WinUI pro
 
 The [Rust port plan](rust-port-plan.md#3-upstream-work-packages-and-blocking-gates) carries the same dispositions into P1/P4/P5/P6. Its completion gates require both paired screenshot matches and normalized **live native XAML tree/property** comparison, plus separate UIA/interaction evidence. Raw tree identity is not mandatory; unexplained semantic/property differences cannot pass through a whole-tree similarity score. Framework fixes do not change the five-crate architecture, data/protocol invariants, approved C# baseline requirement, or these final parity/cutover gates. Use focused upstream issues with small examples for remaining features, as requested when #5087 closed.
 
-[app-xaml]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L83-L359
-[app-styles]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L44-L68
-[app-themes]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L10-L43
-[app-view-items]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/ViewItems.cs#L84-L88
-[app-story-list]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L236-L274
-[app-item-click]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L230-L239
-[app-screen]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L439-L450
-[app-responsive]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L521-L557
-[app-reader-host]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L112-L116
-[app-settings-focus]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L816-L832
-[app-close-settings]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L125-L131
-[app-back]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L722-L732
-[app-accelerators]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L73-L79
-[app-window]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainWindow.xaml.cs#L18-L180
-[app-numberboxes]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L350-L355
-[app-status]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L284-L286
-[app-dialog]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L172-L184
+[app-xaml]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L83-L359
+[app-styles]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L44-L68
+[app-themes]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L10-L43
+[app-view-items]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/ViewItems.cs#L84-L88
+[app-story-list]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L236-L274
+[app-item-click]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L230-L239
+[app-screen]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L439-L450
+[app-responsive]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L521-L557
+[app-reader-host]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L112-L116
+[app-settings-focus]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L816-L832
+[app-close-settings]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L125-L131
+[app-back]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L722-L732
+[app-accelerators]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L73-L79
+[app-window]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainWindow.xaml.cs#L18-L180
+[app-numberboxes]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L350-L355
+[app-status]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L284-L286
+[app-dialog]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L172-L184
 [schema-text]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/tools/reactor/src/schema.toml
 [schema-icon]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/tools/reactor/src/schema.toml
 [schema-panels]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/tools/reactor/src/schema.toml
@@ -421,9 +421,9 @@ The [Rust port plan](rust-port-plan.md#3-upstream-work-packages-and-blocking-gat
 [native-window]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/libs/reactor/src/native/bindings.rs
 [window-visuals]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/libs/reactor/src/window.rs
 [setup]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/libs/reactor-setup/src/lib.rs
-[app-main-window-xaml]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainWindow.xaml#L15
-[app-context-flyout]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L267-L272
-[app-incremental]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L634-L643
+[app-main-window-xaml]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainWindow.xaml#L15
+[app-context-flyout]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L267-L272
+[app-incremental]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L634-L643
 [schema-border]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/tools/reactor/src/schema.toml
 [relations-replace-all]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/libs/reactor/src/native/winui/relations.rs
 [component-run-window]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/libs/reactor/src/component/context.rs

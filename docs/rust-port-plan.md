@@ -4,7 +4,7 @@
 
 **Implementation gate:** no port implementation starts until PR #26 has landed, its review changes have been reconciled with this plan and the [Reactor gap report](rust-port-parity-gap-report.md), and the combined plan has been approved. The repository's default branch is `master`.
 
-The source baseline for this plan remains PR #26 at `44c28d223e1d2170cfdf423fa3ff83467e9a3f53`, pending reconciliation with the final application. PR #26 remains open at `7db3a8656f392fd555e5eee760a3d361834cad9e` as verified on November 5. **Framework reassessment: 2026-11-05.** Reactor evidence now uses windows-rs `db9801679bac964b6367b1d1d1bf8472ab001065`, superseding the October 20 reassessment at `ed16707c4b889698e68016b7add119d98b283e11` and original audit at `9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22`. Source prepares Reactor/WebView/window `0.101.0` and setup `0.100.1`, while the latest published Reactor/setup/WebView versions are still `0.100.0` on November 5 ([release status and sources](rust-port-parity-gap-report.md)). Keep the recorded published baseline `a57cc321bfdbac6bb98c488ba49f399da8fcb98a` separate. At P0 approve a compatible source pin or verify a later release contains the required fixes. This reassessment does not approve implementation or reconcile the C# baseline by itself.
+The source baseline for this plan remains PR #26 at `53c631a44b3a9683093d3c95216b559641e6bd07`, pending reconciliation with the final application. PR #26 remains open at `0d71afe047741dd8b3f5337dc0b55971cdc873b6` as verified on November 5. **Framework reassessment: 2026-11-05.** Reactor evidence now uses windows-rs `db9801679bac964b6367b1d1d1bf8472ab001065`, superseding the October 20 reassessment at `ed16707c4b889698e68016b7add119d98b283e11` and original audit at `9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22`. Source prepares Reactor/WebView/window `0.101.0` and setup `0.100.1`, while the latest published Reactor/setup/WebView versions are still `0.100.0` on November 5 ([release status and sources](rust-port-parity-gap-report.md)). Keep the recorded published baseline `a57cc321bfdbac6bb98c488ba49f399da8fcb98a` separate. At P0 approve a compatible source pin or verify a later release contains the required fixes. This reassessment does not approve implementation or reconcile the C# baseline by itself.
 
 The [updated gap report](rust-port-parity-gap-report.md) records the merged PRs and their revisions. Gaps 1/2/12/14/16 are implemented upstream; gap 13 is partly implemented by #5170. The [maintainer's closure of #5087][reactor-issue-update] explicitly leaves other features for focused issues. U1 now has adoption/verification work plus the remaining AccessibilityView addition, and U6 has adoption/package verification work. U2-U5, optional U7, and V1 retain the outstanding contracts described below.
 
@@ -271,33 +271,33 @@ Run the installed package, not merely a loose Cargo executable, for final Applic
 
 **The port is complete only when:** all approved baseline features and limits match; differential state/wire/database tests have no unexplained differences; every required screenshot comparison visually matches; normalized live XAML tree/property and UIA/interaction comparisons pass with only explicitly approved structural differences; the corresponding evidence bundle has been reviewed; data/session upgrade and cleanup are proven; both architecture packages execute on their target architectures; and combined-plan/product approval authorizes cutover. Visual or tree failures/inconclusive observations block completion. Existing unresolved Store-certification and physical-device gates remain unresolved until separately satisfied, not marked complete merely because the language changed.
 
-[app-project]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/Spectro.App.csproj#L1-L67
-[composition]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/AppComposition.cs#L1-L122
-[domain]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Domain/IContentRepository.cs#L1-L88
-[database]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Infrastructure/SqliteDatabase.cs#L1-L254
-[repository]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Infrastructure/SqliteContentRepository.cs
-[repository-queries]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Infrastructure/SqliteContentRepository.cs#L311-L369
-[repository-mutations]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Infrastructure/SqliteContentRepository.cs#L436-L639
-[client]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/NewsBlurSharp/NewsBlurClient.cs#L101-L418
-[remote-mapping]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Sync/NewsBlurSyncRemoteService.cs#L1-L400
-[sync]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Sync/OfflineFirstSynchronizer.cs#L1-L408
-[inventory]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Sync/OfflineFirstSynchronizer.Inventory.cs#L1-L268
-[presentation]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.ViewModels/AppViewModel.cs#L1-L687
-[platform-services]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/Services.cs#L28-L147
-[session]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/NewsBlurSessionService.cs#L1-L208
-[image-cache]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.Infrastructure/StoryImageCache.cs#L1-L298
-[reader-html]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.ViewModels/ReaderHtmlBuilder.cs#L1-L108
-[reader-initialization]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L324-L386
-[reader-navigation]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L735-L815
-[responsive-layout]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml.cs#L521-L608
-[window]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainWindow.xaml.cs#L18-L180
-[xaml-resources]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L10-L79
-[view-items]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/ViewItems.cs#L1-L105
-[ci]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/.github/workflows/ci.yml
-[ui-runner]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/tools/Test-SpectroLibraryUI.ps1
-[package-tool]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/tools/New-SpectroMsix.ps1
-[msix-tests]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/tools/Test-SpectroMsix.ps1
-[release-checklist]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/docs/release-checklist.md
+[app-project]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/Spectro.App.csproj#L1-L67
+[composition]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/AppComposition.cs#L1-L122
+[domain]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Domain/IContentRepository.cs#L1-L88
+[database]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Infrastructure/SqliteDatabase.cs#L1-L254
+[repository]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Infrastructure/SqliteContentRepository.cs
+[repository-queries]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Infrastructure/SqliteContentRepository.cs#L311-L369
+[repository-mutations]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Infrastructure/SqliteContentRepository.cs#L436-L639
+[client]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/NewsBlurSharp/NewsBlurClient.cs#L101-L418
+[remote-mapping]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Sync/NewsBlurSyncRemoteService.cs#L1-L400
+[sync]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Sync/OfflineFirstSynchronizer.cs#L1-L408
+[inventory]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Sync/OfflineFirstSynchronizer.Inventory.cs#L1-L268
+[presentation]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.ViewModels/AppViewModel.cs#L1-L687
+[platform-services]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/Services.cs#L28-L147
+[session]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/NewsBlurSessionService.cs#L1-L208
+[image-cache]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.Infrastructure/StoryImageCache.cs#L1-L298
+[reader-html]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.ViewModels/ReaderHtmlBuilder.cs#L1-L108
+[reader-initialization]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L324-L386
+[reader-navigation]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L735-L815
+[responsive-layout]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml.cs#L521-L608
+[window]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainWindow.xaml.cs#L18-L180
+[xaml-resources]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/MainPage.xaml#L10-L79
+[view-items]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/src/Spectro.App/ViewItems.cs#L1-L105
+[ci]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/.github/workflows/ci.yml
+[ui-runner]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/tools/Test-SpectroLibraryUI.ps1
+[package-tool]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/tools/New-SpectroMsix.ps1
+[msix-tests]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/tools/Test-SpectroMsix.ps1
+[release-checklist]: https://github.com/clarkezone/spectro/blob/53c631a44b3a9683093d3c95216b559641e6bd07/docs/release-checklist.md
 [setup-release-pins]: https://github.com/microsoft/windows-rs/blob/a57cc321bfdbac6bb98c488ba49f399da8fcb98a/crates/libs/reactor-setup/src/lib.rs#L8-L17
 [setup-pins]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/libs/reactor-setup/src/lib.rs
 [reactor-generator]: https://github.com/microsoft/windows-rs/blob/db9801679bac964b6367b1d1d1bf8472ab001065/crates/tools/reactor/src/main.rs
