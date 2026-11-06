@@ -1,6 +1,6 @@
 # Spectro: Reactor parity gaps and landed fixes
 
-**Reviewed:** 2026-11-05, against windows-rs master at `db9801679bac964b6367b1d1d1bf8472ab001065`. The October 20 reassessment used `ed16707c4b889698e68016b7add119d98b283e11`; the original audit used `9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22`. Spectro examples still refer to PR #26 at `44c28d223e1d2170cfdf423fa3ff83467e9a3f53` pending application-baseline reconciliation. PR #26 remains open at head `5f23f0118da14bf109005357c4156e518b417eaf` as verified on November 5.
+**Reviewed:** 2026-11-05, against windows-rs master at `db9801679bac964b6367b1d1d1bf8472ab001065`. The October 20 reassessment used `ed16707c4b889698e68016b7add119d98b283e11`; the original audit used `9897c4fe55d00a38cb4445dafbd7aa28e3f5bd22`. Spectro examples still refer to PR #26 at `44c28d223e1d2170cfdf423fa3ff83467e9a3f53` pending application-baseline reconciliation. PR #26 remains open at head `7db3a8656f392fd555e5eee760a3d361834cad9e` as verified on November 5.
 
 The [October 19 maintainer update][issue-update] closes umbrella issue #5087 after several fixes landed. It explicitly leaves the remaining features for focused issues; closing the issue does not close every gap below. The November source review finds **no further closure of the original feature gaps** beyond October's five landed areas and partial accessibility support. Later correctness, API, and runtime changes still affect adoption. Gap numbers remain stable for the [port plan](rust-port-plan.md); they differ from the issue's checklist numbers.
 
@@ -95,7 +95,7 @@ Spectro sets `FontIcon.FontSize` to values including `11`, `16`, `17`, `23`, `28
 
 **Optional change:** add these properties to the actual panel declarations and generated dependency-property/brush paths. Story row padding must update between normal `12,9,12,9` and dense `8,6,8,6` values ([ViewItems][app-view-items]).
 
-**Workaround available today:** Reactor's `Border` declares `Background`, `BorderBrush`, `BorderThickness`, `CornerRadius`, and `Padding` ([Border schema][schema-border]). Wrapping each panel in a `Border` that carries these properties should produce the same insets, separators, and available width, at the cost of one extra native element per row. Parity of the wrapped layout still needs a screenshot comparison. Replacing panel padding with child margins is **not** equivalent.
+**Workaround available today:** Reactor's `Border` declares `Background`, `BorderBrush`, `BorderThickness`, `CornerRadius`, and `Padding` ([Border schema][schema-border]). Wrapping each panel in a `Border` that carries these properties should produce the same insets, separators, and available width, at the cost of one extra native element per row. Accept the wrapper only after paired screenshot/property/input/UIA checks and an explicit, location-specific allowance in the [normalized live visual tree gate](rust-port-plan.md#live-xaml-visual-tree-and-accessibility-comparison). Replacing panel padding with child margins is **not** equivalent.
 
 **Classification:** convenience gap, not a parity blocker. Adding the native panel properties removes the extra element from every story row.
 
@@ -374,7 +374,7 @@ For each property addition, update Reactor's schema, generated declarations, fil
 
 The remaining layout/control binding gaps concern **Reactor's filtered WinUI projection**, not absent Windows functionality. Remaining additions need generated methods/types and public Reactor contracts together. The native window items additionally require AppWindow/Win32 integration rather than a substitute UI.
 
-The [Rust port plan](rust-port-plan.md#3-upstream-work-packages-and-blocking-gates) carries the same dispositions into P1/P4/P5/P6. Framework fixes do not change the five-crate architecture, data/protocol invariants, approved C# baseline requirement, or the final parity/cutover gates. Use focused upstream issues with small examples for remaining features, as requested when #5087 closed.
+The [Rust port plan](rust-port-plan.md#3-upstream-work-packages-and-blocking-gates) carries the same dispositions into P1/P4/P5/P6. Its completion gates require both paired screenshot matches and normalized **live native XAML tree/property** comparison, plus separate UIA/interaction evidence. Raw tree identity is not mandatory; unexplained semantic/property differences cannot pass through a whole-tree similarity score. Framework fixes do not change the five-crate architecture, data/protocol invariants, approved C# baseline requirement, or these final parity/cutover gates. Use focused upstream issues with small examples for remaining features, as requested when #5087 closed.
 
 [app-xaml]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L83-L359
 [app-styles]: https://github.com/clarkezone/spectro/blob/44c28d223e1d2170cfdf423fa3ff83467e9a3f53/src/Spectro.App/MainPage.xaml#L44-L68
